@@ -73,3 +73,14 @@ Run `import_sketch_plan.py` in Rhino (Rhino 8: `ScriptEditor`; Rhino 7: `RunPyth
 
 - Model: `claude-sonnet-5-5` by default. Pick `claude-opus-5-5` in the window, or pass `--model`, for messy sketches.
 - Tolerances (how close lines must be to count as the same line, how far off horizontal an edge can be) are at the top of `sketch_reader/geometry.py`.
+
+## Seismic ELF API
+
+`api.py` is a FastAPI service over `elf_engine.py`, the ASCE 7-22 ELF engine for steel braced frames or concrete shear walls (one engine, picked by the project's `lateral_system`).
+
+```
+pip install -r requirements-api.txt
+uvicorn api:app --reload
+```
+
+Open http://127.0.0.1:8000/docs. `POST /analyze` takes the project file the Bones drawing pad downloads. For shear walls, add a `shear_walls` block with R, C<sub>d</sub>, f′c and the other wall inputs; wall thicknesses come from the pad. Tests: `python -m pytest tests` (the shear wall results are checked against the ShearWall dashboard, `tests/test_shearwall.py`).
