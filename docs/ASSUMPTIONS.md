@@ -118,7 +118,7 @@ Loads, LL reduction, combinations and seismic weight are the same as COL-1 to CO
 | # | Assumption | Decision |
 |---|---|---|
 | S-1 | Score = Σ weight × min-max normalized metric / Σ weights, over every candidate of one system. Metrics: total cost (framing + columns), max structure depth, total carbon (framing + columns). A metric equal for all candidates contributes 0. Lower is better. | Spec 4.6 |
-| S-2 | `rank_score` = score + 1.0 per bay over the allowable depth + 100.0 per infeasible bay (`config/systems.json` `scoring`). Any penalty exceeds the largest score difference (1.0), so a clean candidate always ranks first and penalized candidates still appear. | Spec 4.3, 4.4 (penalize, not remove); values are a default, decisions log |
+| S-2 | `rank_score` = score + 1.0 per bay over the allowable depth + 100.0 per infeasible bay (`config/systems.json` `scoring`). Any penalty exceeds the largest score difference (1.0), so a clean candidate always ranks first and penalized candidates still appear. | Spec 4.3, 4.4 (penalize, not remove); confirmed (decisions log) |
 | S-3 | Ties: fewest columns, then grid id, then structural system. The best candidate is the scheme; the next 3 are its `alternates` (their own `alternates` are empty). | Spec 4.7 |
 | S-4 | A family with several structural systems (concrete: RC flat plate, PT flat plate, one-way slab on PT beams, pan joist) runs each system uniformly over the whole building and scores all their candidates together; alternates may be other concrete systems. | Decisions log |
 | O-1 | Bays with no feasible framing are left out of a scheme's `bays` list (the contract requires `framing`); each still has a warning. | Confirmed (decisions log) |
