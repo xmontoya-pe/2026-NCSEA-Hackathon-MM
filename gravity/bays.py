@@ -50,6 +50,13 @@ class BayResult:
             self.framing.depth_in <= self.allowable_depth_in + DEPTH_TOL_IN
         )
 
+    @property
+    def over_depth_in(self) -> float:
+        """Inches the framing exceeds the allowable depth (0 if within it or infeasible)."""
+        if self.framing is None or self.depth_ok:
+            return 0.0
+        return self.framing.depth_in - self.allowable_depth_in
+
 
 @dataclass
 class CandidateResult:
@@ -84,6 +91,11 @@ class CandidateResult:
     @property
     def n_over_depth(self) -> int:
         return sum(b.feasible and not b.depth_ok for b in self.bays)
+
+    @property
+    def over_depth_in(self) -> float:
+        """Sum over bays of the inches each exceeds its allowable depth."""
+        return sum(b.over_depth_in for b in self.bays)
 
     @property
     def warnings(self) -> list[str]:
