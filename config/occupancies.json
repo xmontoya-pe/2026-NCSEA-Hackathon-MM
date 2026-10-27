@@ -1,0 +1,39 @@
+{
+  "_meta": {
+    "source": "Starter values from spec 2.2 (ASCE 7-22 Table 4.3-1). Verify before trusting.",
+    "units": "psf",
+    "criterion": "Bay study vibration criterion for steel floor lookups (spec 2.2, decision D); null means the Strength rows."
+  },
+  "settings": {
+    "default_occupancy": "office",
+    "flat_roof_snow_psf": null,
+    "flat_roof_snow_note": "null means not given: taken as 0 psf with a warning (spec decisions log, roof snow load source).",
+    "vibration_precedence": ["Walking b=0.02", "Walking b=0.025", "Walking b=0.03"],
+    "vibration_precedence_note": "Most stringent first (lower damping). A bay overlapping zones with different criteria uses the first one listed.",
+    "kll": {
+      "interior_column": 4,
+      "edge_column": 4,
+      "corner_column": 4,
+      "interior_beam": 2,
+      "edge_beam": 2
+    },
+    "kll_note": "ASCE 7-22 Table 4.7-1 with no cantilever slabs: interior, edge and corner columns all 4 (decisions log). With cantilever slabs ASCE gives edge 3, corner 2. Beams 2."
+  },
+  "occupancies": {
+    "office": {"ll_psf": 50, "partitions_psf": 15, "ll_reducible": true, "criterion": "Walking b=0.03"},
+    "lobby_first_floor": {"ll_psf": 100, "partitions_psf": 0, "ll_reducible": true, "criterion": null},
+    "corridor_first_floor": {"ll_psf": 100, "partitions_psf": 0, "ll_reducible": true, "criterion": null},
+    "corridor_above_first": {"ll_psf": 80, "partitions_psf": 0, "ll_reducible": true, "criterion": null},
+    "residential_private": {"ll_psf": 40, "partitions_psf": 15, "ll_reducible": true, "criterion": "Walking b=0.03"},
+    "residential_public_corridor": {"ll_psf": 100, "partitions_psf": 0, "ll_reducible": true, "criterion": null},
+    "assembly_movable_seats": {"ll_psf": 100, "partitions_psf": 0, "ll_reducible": false, "criterion": null},
+    "retail_first_floor": {"ll_psf": 100, "partitions_psf": 0, "ll_reducible": true, "criterion": null},
+    "storage_light": {"ll_psf": 125, "partitions_psf": 0, "ll_reducible": false, "criterion": null,
+                      "seismic_storage": true,
+                      "note": "ASCE allows 20% reduction for columns supporting 2+ levels; not used for the hackathon"},
+    "mechanical": {"ll_psf": 125, "partitions_psf": 0, "ll_reducible": false, "criterion": null,
+                   "note": "Firm standard, not an ASCE table value"},
+    "roof": {"ll_psf": 20, "partitions_psf": 0, "ll_reducible": true, "criterion": null, "is_roof": true,
+             "note": "Lr, reduced per ASCE 7-22 4.8 (not 4.7); snow handled as a flat input in settings"}
+  }
+}

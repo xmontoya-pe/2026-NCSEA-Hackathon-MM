@@ -27,10 +27,21 @@ function bonesOpen(project){
   return same;
 }
 
-/* Gravity loads by load area (LL, SDL; SL at the roof), kept in S.bones.loads[level][id] */
+/* Gravity loads by load area (occupancy, LL, SDL; SL at the roof), kept in S.bones.loads[level][id].
+   The occupancy keys come from /api/occupancies (window.BonesOccupancies); the gravity optimizer
+   uses the occupancy, not the LL and SDL typed here. */
 function bonesData(){ S.bones = S.bones || {}; S.bones.loads = S.bones.loads || {}; return S.bones; }
 function loadsAt(lv){ const B = bonesData(); return (B.loads[lv] = B.loads[lv] || {}); }
 function loadDefaults(lv){ return lv === nLv() ? {LL: 20, SDL: 20} : {LL: 50, SDL: 15}; }
+const occList = () => (window.BonesOccupancies || []).filter(o => !o.is_roof);
+const occName = k => k.replace(/_/g, ' ');
+function occCell(id, v){
+  const opts = occList();
+  if(!opts.length) return window.BonesOccupancies ? '<span class="b-warn">unavailable: start Bones with python -m bones_service.api</span>' : '<span class="muted">loading…</span>';
+  return `<select data-occ="${esc(id)}" aria-label="Occupancy for area ${esc(id)}" style="height:36px;border:1px solid var(--line2);border-radius:8px;padding:0 8px">
+    <option value=""${v.occupancy ? '' : ' selected'}>Choose…</option>${opts.map(o =>
+    `<option value="${esc(o.key)}"${o.key === v.occupancy ? ' selected' : ''}>${esc(occName(o.key))} (${fmt(o.ll_psf, 0)}${o.partitions_psf ? ' + ' + fmt(o.partitions_psf, 0) : ''} psf)</option>`).join('')}</select>`;
+}
 function renderLoads(){
   const el = document.getElementById('bonesLoads'); if(!el) return;
   const lv = padLv(), roof = lv === nLv(), ids = LVP().laIds || [], LS = laStats(), L = loadsAt(lv);
@@ -42,15 +53,23 @@ function renderLoads(){
   if(changedAny) save();
   const rows = ids.map(q => { const b = LS.byId[q.id], v = L[q.id];
     return `<tr><th scope="row"><span class="sw" style="background:${laCol(q.id)}"></span>${esc(q.id)}</th>
+      <td style="text-align:left">${roof ? '<span class="muted">roof (L<sub>r</sub>)</span>' : occCell(q.id, v)}</td>
       <td>${b ? fmt(b.A, 0) : '0'}</td><td class="muted">${esc(q.psf)}</td>
       <td><input inputmode="decimal" data-ll="${esc(q.id)}" value="${esc(v.LL)}" aria-label="Live load for area ${esc(q.id)}, psf"></td>
       <td><input inputmode="decimal" data-sdl="${esc(q.id)}" value="${esc(v.SDL)}" aria-label="Superimposed dead load for area ${esc(q.id)}, psf"></td>
       <td>${roof ? (pf !== null ? `<b>${fmt(pf, 1)}</b>` : '<span class="b-warn">enter p<sub>g</sub></span>') : '<span class="muted">–</span>'}</td></tr>`; }).join('');
-  el.innerHTML = `<div class="tbl"><table><thead><tr><th>Area ID</th><th>Area, ft²</th><th>Seismic weight, psf</th><th>LL, psf</th><th>SDL, psf</th><th>SL, psf</th></tr></thead><tbody>${rows}</tbody></table></div>
-    <p class="small" style="margin:8px 0 0">${roof ? 'Roof: LL is roof live load L<sub>r</sub>. SL is the flat-roof snow load p<sub>f</sub> from the hazard panel.' : 'SL applies at the roof only; pick the roof level to see it.'} Seismic weight is set in the pad’s Loading areas panel.</p>`;
+  el.innerHTML = `<div class="tbl"><table><thead><tr><th>Area ID</th><th style="text-align:left">Occupancy (LL + partitions)</th><th>Area, ft²</th><th>Seismic weight, psf</th><th>LL, psf</th><th>SDL, psf</th><th>SL, psf</th></tr></thead><tbody>${rows}</tbody></table></div>
+    <p class="small" style="margin:8px 0 0">${roof ? 'Roof: LL is roof live load L<sub>r</sub>. SL is the flat-roof snow load p<sub>f</sub> from the hazard panel.' : 'SL applies at the roof only; pick the roof level to see it.'} Seismic weight is set in the pad’s Loading areas panel. The gravity optimizer uses each area’s occupancy (its LL, partitions and LL reduction) and the SDL in its config.</p>`;
 }
 document.addEventListener('change', e => {
-  const t = e.target; if(!t.matches || !t.matches('#bonesLoads input')) return;
+  const t = e.target; if(!t.matches) return;
+  if(t.matches('#bonesLoads select[data-occ]')){
+    const row = loadsAt(padLv())[t.dataset.occ], o = occList().find(q => q.key === t.value);
+    row.occupancy = t.value || null;
+    if(o) row.LL = o.ll_psf;   // show the occupancy's LL; partitions are added by the optimizer
+    save(); renderLoads(); return;
+  }
+  if(!t.matches('#bonesLoads input')) return;
   const id = t.dataset.ll !== undefined ? t.dataset.ll : t.dataset.sdl, f = t.dataset.ll !== undefined ? 'LL' : 'SDL', v = num(t.value);
   if(!(v >= 0)){ renderLoads(); return; }
   loadsAt(padLv())[id][f] = v; save();
@@ -174,6 +193,7 @@ function rewordTree(n){
     .observe(pad, {childList: true, subtree: true, characterData: true});
 })();
 window.BonesPad = {open: bonesOpen, state: () => S, bones: () => bonesData(), setHazard, setSnow, setMaterial, copyLoadsToFloors,
+window.BonesPad = {open: bonesOpen, state: () => S, bones: () => bonesData(), setHazard, setSnow, copyLoadsToFloors, renderLoads,
   toScreen: (x, y) => { const r = document.getElementById('plan').getBoundingClientRect(), p = toS([x, y]); return [r.left + p[0], r.top + p[1]]; }, fit: () => { sizePlan(); fit(); render(); }, refresh: () => { bonesLines(); render3D(); }};
 bonesReady = true;
 bonesLines(); render3D(); renderLoads();
