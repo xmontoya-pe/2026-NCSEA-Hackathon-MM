@@ -1,0 +1,29 @@
+{
+  "project_name": "Hackathon Test 2 - L shape",
+  "outline": [[0,0],[150,0],[150,60],[60,60],[60,120],[0,120]],
+  "dimension_lines": {
+    "x_ft": [0, 30, 60, 90, 120, 150],
+    "y_ft": [0, 30, 60, 90, 120]
+  },
+  "levels": [
+    {"name": "L1",   "elev_ft": 0.0,  "floor_to_floor_ft": 15.0},
+    {"name": "L2",   "elev_ft": 15.0, "floor_to_floor_ft": 13.0},
+    {"name": "L3",   "elev_ft": 28.0, "floor_to_floor_ft": 13.0},
+    {"name": "ROOF", "elev_ft": 41.0, "floor_to_floor_ft": null}
+  ],
+  "zones": [
+    {"id": "z1", "level": "L2", "occupancy": "office", "polygon": [[0,0],[120,0],[120,60],[60,60],[60,120],[0,120]]},
+    {"id": "z2", "level": "L2", "occupancy": "corridor_above_first", "polygon": [[120,0],[150,0],[150,60],[120,60]]},
+    {"id": "z3", "level": "L1", "occupancy": "lobby_first_floor", "polygon": [[0,0],[60,0],[60,60],[0,60]]}
+  ],
+  "typical_zones_apply_to_all_levels": true,
+  "constraints": {
+    "min_ceiling_height_ft": 9.0,
+    "plenum_allowance_in": 18,
+    "max_structure_depth_in": null,
+    "min_bay_ft": 20,
+    "max_bay_ft": 45
+  },
+  "objective_weights": {"cost": 0.5, "depth": 0.3, "carbon": 0.2},
+  "systems": ["steel", "concrete", "mass_timber"]
+}
