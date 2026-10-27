@@ -313,4 +313,4 @@ Review each step's output before moving on — especially step 2 (DB units and l
 | Slab/deck weight copied from the DB `assumptions` table into `config/systems.json` | **Settled** |
 | Roof lookup load = max(Lr, flat roof snow) | **Settled** |
 | Concrete flat plates: DB `column_in` is the column size and is reported in the concrete output | **Settled** |
-| Office walking rows exist only at `LL=50`, but office lookups go to `LL=100` (partitions added): how to combine | Open |
+| When a vibration row was designed for less LL than the lookup needs (office walking rows are `LL=50`, lookup goes to `LL=100`), use the heavier of it and the Strength row at the same spans and spacing, with a warning (`docs/ASSUMPTIONS.md` L-6) | **Settled** |
