@@ -9,8 +9,19 @@ the contract in ``gravity/models.py``. Warnings alone do not change the exit sta
 ``output.schema.json`` (JSON Schema generated from ``gravity/models.py``) for the
 integration team.
 
-``python -m gravity summary <input.json>`` prints the ranked steel candidate grids and
-the bay framing of the best one (spec 6, prompt 5).
+``python -m gravity examples`` regenerates ``examples/sample_output.json`` (``run`` on
+``examples/sample_input.json``) and the schema files.
+
+``python -m gravity dbdump [-o out/db_dump_p8.txt]`` writes the concrete and mass timber
+bay study tables to a text file for review (spec 6, prompt 8).
+
+``python -m gravity report <input.json> [<input.json> ...]`` prints, per input and
+system, the best scheme and its alternates: grid, max depth, steel tons (framing vs
+columns), concrete, timber, cost, carbon and warnings (spec 6, prompt 7), then a
+comparison table across systems (prompt 8).
+
+``python -m gravity summary <input.json>`` prints the steel candidate grids ranked by
+framing alone and the bay framing of the first one (spec 6, prompt 5).
 
 ``python -m gravity column <input.json> --column B-2 [--grid "X:30x5 Y:30x3"]`` prints
 the hand-check trace for one steel column, plus column totals and seismic weights
@@ -27,7 +38,9 @@ from pathlib import Path
 from pydantic import ValidationError
 
 from gravity import run
-from gravity.exporters import write_output, write_schemas, write_warnings_log
+from gravity.exporters import write_examples, write_output, write_schemas, write_warnings_log
+
+EXAMPLES_DIR = Path(__file__).resolve().parent.parent / "examples"
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -45,8 +58,22 @@ def main(argv: list[str] | None = None) -> int:
         "-o", "--output-dir", type=Path, default=Path("."), help="directory for the schema files"
     )
 
+    sub.add_parser("examples", help="regenerate examples/sample_output.json and the schemas")
+
+    dbdump_parser = sub.add_parser(
+        "dbdump", help="write the non-steel bay study tables to a text file for review"
+    )
+    dbdump_parser.add_argument("-o", "--output", type=Path, default=Path("out/db_dump_p8.txt"),
+                               help="file to write (default: out/db_dump_p8.txt)")
+
+    report_parser = sub.add_parser(
+        "report", help="best scheme and alternates per system and input, plus a comparison "
+                       "across systems: tons, concrete, timber, cost, carbon, warnings"
+    )
+    report_parser.add_argument("inputs", type=Path, nargs="+", help="input.json file(s)")
+
     summary_parser = sub.add_parser(
-        "summary", help="print the ranked candidate grids and best-grid framing (steel)"
+        "summary", help="print candidate grids ranked by framing alone (steel)"
     )
     summary_parser.add_argument("input", type=Path, help="path to input.json")
     summary_parser.add_argument("--top", type=int, default=15, help="candidates to list")
@@ -72,6 +99,42 @@ def main(argv: list[str] | None = None) -> int:
             return 2
         print(column_report(inp, args.column, args.grid))
         return 0
+
+    if args.command == "dbdump":
+        from gravity.db_adapter import review_dump
+
+        text = review_dump()
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        args.output.write_text(text, encoding="utf-8")
+        print(f"wrote {args.output.resolve()} ({len(text.splitlines())} lines)")
+        return 0
+
+    if args.command == "examples":
+        for path in write_examples(EXAMPLES_DIR):
+            print(f"wrote {path}")
+        return 0
+
+    if args.command == "report":
+        from gravity.models import GravityInput
+        from gravity.optimizer import is_built, optimize
+        from gravity.report import comparison_table, scheme_report
+
+        status = 0
+        for path in args.inputs:
+            try:
+                inp = GravityInput.model_validate_json(path.read_text(encoding="utf-8"))
+            except (OSError, ValidationError) as exc:
+                print(f"error: cannot use {path}: {exc}", file=sys.stderr)
+                status = 2
+                continue
+            print(f"=== {path}")
+            results = {s: optimize(inp, s) for s in inp.systems if is_built(s)}
+            for system, result in results.items():
+                print(scheme_report(inp, system, result))
+                print()
+            print(comparison_table(inp, results))
+            print()
+        return status
 
     if args.command == "schema":
         for path in write_schemas(args.output_dir):

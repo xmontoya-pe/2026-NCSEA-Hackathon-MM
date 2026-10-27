@@ -148,7 +148,7 @@ What the DB actually holds (section 6 step 2; full list in `docs/ASSUMPTIONS.md`
 
 `governing_combo` is one of `1.4D`, `1.2D+1.6L+0.5Lr`, `1.2D+1.6L+0.5S`, `1.2D+1.6Lr+1.0L`, `1.2D+1.6S+1.0L` (section 4.5).
 
-The integration team builds against `examples/` (sample input, matching output, JSON Schema generated from `models.py` by `python -m gravity schema -o examples`, and a README of conventions). Tests keep it in sync with the models.
+The integration team builds against `examples/` (sample input, matching output, JSON Schema generated from `models.py`, and a README of conventions). `python -m gravity examples` regenerates the sample output and schemas; tests keep them in sync with the models and with `run()`.
 
 ### 3.2 What the lateral team needs from us (agree on this early)
 
@@ -176,7 +176,7 @@ gravity/
   scoring.py           # cost/depth/carbon normalization and weighted score
   optimizer.py         # search loop per system
   exporters.py         # output.json, plus optional lateral-team format
-  report.py            # plain-text summary tables (python -m gravity summary)
+  report.py            # plain-text tables (python -m gravity report / summary / column)
 config/
   occupancies.json
   sdl.json
@@ -323,6 +323,17 @@ Review each step's output before moving on — especially step 2 (DB units and l
 | Integration team builds against `examples/` (sample input/output, generated JSON Schema, README); tests keep it in sync with `models.py` | **Settled** |
 | A column removed for a `no_columns` zone is removed from that story and every story above it; no transfer girders (`docs/ASSUMPTIONS.md` G-3) | **Settled** |
 | Steel column method: half-bay tributary area, partitions carried as dead, W12/W14 from the AISC v16.0 CSV with slender shapes excluded, weak-axis E3 with K = 1 and L = story height, lightest shape at Pu/φPn ≤ 0.90 per 2-story tier, self-weight iterated, cladding 0 plf (placeholder); seismic weight per ASCE 12.7.2 with half the columns above and below (`docs/ASSUMPTIONS.md` COL-1 to COL-13) | **Settled** |
+| Scheme ranking: `rank_score` = weighted min-max score (0–1, cost and carbon include columns) + (1.0 + 1.0 per inch over) for each bay over depth + 1000.0 per infeasible bay, so clean candidates always rank first and smaller depth overruns rank ahead of larger ones (`config/systems.json` `scoring`; `docs/ASSUMPTIONS.md` S-1 to S-3) | **Settled** |
+| Bays with no feasible framing are left out of a scheme's `bays` (the contract requires `framing`) and named in `warnings` (`docs/ASSUMPTIONS.md` O-1) | **Settled** |
+| Systems not built yet are skipped; each returned scheme warns about them (the output has no top-level `warnings`) (`docs/ASSUMPTIONS.md` O-5) | Open — default as stated until concrete and mass timber are built |
+| Concrete: each concrete floor system in the bay study (RC flat plate, PT flat plate, one-way slab on PT beams, pan joist) competes as one uniform system over the whole building; no mixing systems bay by bay. The `concrete` scheme is the best of them and names its system; other concrete systems may appear as alternates | **Settled** |
+| Concrete and mass timber unit costs are placeholders in `config/costs.json`, like steel, until an estimator verifies them | **Settled** |
+| Placeholder column properties in `config/systems.json`: glulam Fc = 2,300 psi, E_min = 850,000 psi (about DF combination 2), widths 6¾, 8¾, 10¾, 12¼ in; concrete f'c = 5 ksi, fy = 60 ksi, 1% steel, 16 in minimum, 2 in increments | **Settled** |
+| Concrete and mass timber DB mapping (prompt 8): their load cases already include partitions; SDL per family equals each study's design SDL (concrete 15/20, timber 10/15 psf); concrete floor and roof rows are told apart by `use`; timber walking rows map from `Walking b=` to `Walking β=`; concrete has no vibration rows (Strength used, warned); self-weight from equivalent thickness × 150 pcf and from CLT + topping + glulam (`docs/ASSUMPTIONS.md` L-8, L-9, V-1, W-3 to W-5, Z-7, CC-2, CC-3) | **Settled** |
+| Concrete columns: target Pu/φPn,max ≤ 1.0 (the 0.80 factor is already in φPn,max); flat plates use at least the DB punching column. Glulam columns: NDS LRFD with λ = 0.6 (1.4D) / 0.8 (other combos), target 0.90. One size up the full height for both (`docs/ASSUMPTIONS.md` COLC-1 to COLC-5, COLT-1 to COLT-4) | **Settled** |
+| Stud rails on flat plates priced as a placeholder allowance per sq ft (`config/costs.json`); the DB has no rail count | **Settled** |
+| Beams and girders are in the same plane. Mass timber depth is the DB `structural_depth_in` as stored, which already is deepest glulam + CLT + topping (bay_id 6535: 46.5 + 6.875 + 3 = 56.375 in), checked against the depth limit like any system (`docs/ASSUMPTIONS.md` W-6) | **Settled** |
+| Equal bays round up to the next 0.5 ft; the last bay of the span takes the remainder (150 ft in 7 bays: 6 × 21.5 + 21). Outline vertices and dimension lines are not moved (`docs/ASSUMPTIONS.md` G-6) | **Settled** |
 | `run()` replaces the stub with the 4.7 pipeline for steel. Ranking: infeasible bays, then over-depth bays, then the 4.6 weighted score (cost and carbon include columns), then fewest columns, then grid id (`docs/ASSUMPTIONS.md` B-2). Systems not built yet return no scheme, with a warning on each returned scheme (OUT-5) | **Settled** (2026-10-27); ranking details open for review. Note: infeasible candidates look cheap (their missing bays cost nothing) and still take part in the min-max normalization, which can shift the cost/depth/carbon trade-off among the feasible grids |
 | Output shaping: infeasible bays left out of `bays`; `clear_height_ft`, `foundation_reactions` and `quantities` as in `docs/ASSUMPTIONS.md` OUT-1 to OUT-4 | Open — review with the integration team |
 | Front end ↔ gravity: FastAPI app `bones_service/api.py` serves the Bones UI and `POST /api/gravity`; `bones_service/gravity_bridge.py` builds the input from the drawing pad. Occupancy is chosen per load area in the UI; typed LL/SDL and the hazard panel's snow are not sent (`docs/ASSUMPTIONS.md` INT-1 to INT-6) | **Settled** (2026-10-27) |

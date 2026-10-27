@@ -1,12 +1,39 @@
 {
   "_meta": {
     "description": "Maps optimizer systems to bay study DB systems and holds the design values the DB stores only as text. Spec sections 2.3 and 4.5; docs/ASSUMPTIONS.md.",
-    "systems_covered": "Steel only. Concrete and mass timber are added when those systems are built."
+    "systems": "Each entry under 'systems' is one uniform structural system. 'family' is the output system it competes in (steel, concrete, mass_timber); a family runs when it has at least one system here and an entry under 'columns'. Concrete has four systems that each compete over the whole building (decisions log).",
+    "materials": "db_systems 'material' picks how a row is weighed and priced: steel (default), concrete, mass_timber."
   },
   "systems": {
     "steel": {
+      "family": "steel", "label": "Composite steel",
       "floor": {"db_systems": ["STL_COMP"]},
       "roof": {"db_systems": ["STL_ROOF_W", "STL_ROOF_J"]}
+    },
+    "concrete_rc_fp": {
+      "family": "concrete", "label": "RC flat plate",
+      "floor": {"db_systems": ["CONC_RC_FP"]},
+      "roof": {"db_systems": ["CONC_RC_FP"]}
+    },
+    "concrete_pt_fp": {
+      "family": "concrete", "label": "PT flat plate",
+      "floor": {"db_systems": ["CONC_PT_FP"]},
+      "roof": {"db_systems": ["CONC_PT_FP"]}
+    },
+    "concrete_ow_ptb": {
+      "family": "concrete", "label": "One-way slab on PT beams",
+      "floor": {"db_systems": ["CONC_OW_PTB"]},
+      "roof": {"db_systems": ["CONC_OW_PTB"]}
+    },
+    "concrete_pan": {
+      "family": "concrete", "label": "Pan joists on concrete beams",
+      "floor": {"db_systems": ["CONC_PAN"]},
+      "roof": {"db_systems": ["CONC_PAN"]}
+    },
+    "mass_timber": {
+      "family": "mass_timber", "label": "CLT on glulam beams and girders",
+      "floor": {"db_systems": ["MT_FLOOR"]},
+      "roof": {"db_systems": ["MT_ROOF"]}
     }
   },
   "columns": {
@@ -23,23 +50,129 @@
       "cladding_note": "Perimeter cladding line load per framed level (plf of perimeter). 0 for the hackathon; a warning says so.",
       "carbon_material": "hot_rolled_sections",
       "max_self_weight_iterations": 5
+    },
+    "concrete": {
+      "fc_ksi": 5.0,
+      "fy_ksi": 60.0,
+      "rho_g": 0.01,
+      "min_size_in": 16,
+      "max_size_in": 48,
+      "size_increment_in": 2,
+      "phi": 0.65,
+      "alpha_max": 0.80,
+      "unit_weight_pcf": 150.0,
+      "rebar_unit_weight_pcf": 490.0,
+      "target_ratio": 1.0,
+      "target_note": "phiPn,max already carries the 0.80 accidental-eccentricity factor, so Pu/phiPn,max <= 1.0 (ASSUMPTIONS COLC-2).",
+      "cladding_plf": 0.0,
+      "carbon_concrete": "concrete_5000psi",
+      "carbon_rebar": "rebar_fabricated",
+      "max_self_weight_iterations": 5,
+      "note": "Square tied column, phiPn,max = 0.80*0.65*[0.85 f'c (Ag - Ast) + fy Ast] (spec 4.5). One size up the full height. Slenderness ignored and flagged. Flat plates use at least the DB column size (punching) and flag it when axial sizing needs larger."
+    },
+    "mass_timber": {
+      "fc_psi": 2300.0,
+      "emin_psi": 850000.0,
+      "grade_note": "Placeholder, about DF glulam combination 2 (decisions log). Verify against NDS Supplement Table 5B for the grade specified.",
+      "c": 0.9,
+      "widths_in": [6.75, 8.75, 10.75, 12.25],
+      "unit_weight_pcf": 35.0,
+      "kf_c": 2.40,
+      "kf_e": 1.76,
+      "phi_c": 0.90,
+      "phi_s": 0.85,
+      "lambda": {"1.4D": 0.6, "other": 0.8},
+      "target_ratio": 0.90,
+      "cladding_plf": 0.0,
+      "carbon_material": "glulam",
+      "max_self_weight_iterations": 5,
+      "note": "Square glulam, NDS LRFD: Fc' = Fc KF phi lambda Cp, Emin' = Emin KF phi_s, NDS 3.7.1 Cp with c = 0.9, le = story height, le/d <= 50. One size up the full height. Preliminary; flagged in warnings."
     }
+  },
+  "scoring": {
+    "infeasible_bay_penalty": 1000.0,
+    "over_depth_bay_penalty": 1.0,
+    "over_depth_penalty_per_in": 1.0,
+    "note": "Added to the 0..1 weighted score (spec 4.3, 4.4: penalize, never remove). Each bay over depth adds over_depth_bay_penalty + over_depth_penalty_per_in x inches over; each infeasible bay adds infeasible_bay_penalty. Every penalty exceeds any score difference, so a clean candidate always ranks first. docs/ASSUMPTIONS.md S-2."
   },
   "db_systems": {
     "STL_COMP": {
+      "material": "steel",
       "design_sdl_psf": 15.0,
       "slab_deck_psf": 69.0,
       "source": "DB assumptions table, STL_COMP: 'Design SDL 15.0 psf'; 'Slab + deck weight 69.0 psf (verify against Vulcraft 2VLI table for gauge used)'"
     },
     "STL_ROOF_W": {
+      "material": "steel",
       "design_sdl_psf": 15.0,
       "slab_deck_psf": null,
       "source": "DB assumptions table, STL_ROOF_W: 'Roof dead load 15.0 psf superimposed'. Deck weight read per row from ref_roof_deck_spans."
     },
     "STL_ROOF_J": {
+      "material": "steel",
       "design_sdl_psf": 15.0,
       "slab_deck_psf": null,
       "source": "DB assumptions table, STL_ROOF_J: 'Roof dead load 15.0 psf superimposed'. Deck weight read per row from ref_roof_deck_spans."
+    },
+    "CONC_RC_FP": {
+      "material": "concrete",
+      "shared_floor_roof": true,
+      "design_sdl_psf": {"floor": 15.0, "roof": 20.0},
+      "concrete_pcf": 150.0,
+      "formwork_cost_key": "formwork_flat_plate_usd_per_sf",
+      "db_column_size": true,
+      "criteria": {},
+      "fallback_self_wt_psf": 150.0,
+      "source": "DB assumptions CONC_RC_FP: f'c 5,000 psi NW (150 pcf); 'SDL 15 psf floors / 20 psf roof'; columns square, sized by longer span. No vibration rows. Fallback = 12 in. slab."
+    },
+    "CONC_PT_FP": {
+      "material": "concrete",
+      "shared_floor_roof": true,
+      "design_sdl_psf": {"floor": 15.0, "roof": 20.0},
+      "concrete_pcf": 150.0,
+      "formwork_cost_key": "formwork_flat_plate_usd_per_sf",
+      "db_column_size": true,
+      "criteria": {},
+      "fallback_self_wt_psf": 125.0,
+      "source": "DB assumptions CONC_PT_FP: as CONC_RC_FP. No vibration rows. Fallback = 10 in. slab."
+    },
+    "CONC_OW_PTB": {
+      "material": "concrete",
+      "shared_floor_roof": true,
+      "design_sdl_psf": {"floor": 15.0, "roof": 20.0},
+      "concrete_pcf": 150.0,
+      "formwork_cost_key": "formwork_one_way_slab_beam_usd_per_sf",
+      "criteria": {},
+      "fallback_self_wt_psf": 125.0,
+      "source": "DB assumptions CONC_OW_PTB: office SDL 15, roof snow SDL 20; span_1 = PT beam span, span_2 = slab span = column spacing. No vibration rows. Fallback = 10 in. equivalent."
+    },
+    "CONC_PAN": {
+      "material": "concrete",
+      "shared_floor_roof": true,
+      "design_sdl_psf": {"floor": 15.0, "roof": 20.0},
+      "concrete_pcf": 150.0,
+      "formwork_cost_key": "formwork_pan_joist_usd_per_sf",
+      "criteria": {},
+      "fallback_self_wt_psf": 100.0,
+      "source": "DB assumptions CONC_PAN: office SDL 15, roof snow SDL 20; 4.5 in. top slab. No vibration rows. Fallback = 8 in. equivalent."
+    },
+    "MT_FLOOR": {
+      "material": "mass_timber",
+      "design_sdl_psf": 10.0,
+      "slab_deck_psf": 58.1,
+      "glulam_pcf": 35.0,
+      "criteria": {"Walking b=0.03": "Walking β=0.03 (office)", "Walking b=0.02": "Walking β=0.02 (office)"},
+      "fallback_self_wt_psf": 66.0,
+      "source": "DB assumptions MT_FLOOR: 'Dead: CLT + 3\" NW concrete topping (37.5 psf) + 10.0 psf MEP/ceiling/finishes'; CLT self-weight 20.6 psf; glulam 35 pcf. slab_deck_psf = 20.6 + 37.5. Fallback adds about 8 psf of glulam."
+    },
+    "MT_ROOF": {
+      "material": "mass_timber",
+      "design_sdl_psf": 15.0,
+      "slab_deck_psf": 20.6,
+      "glulam_pcf": 35.0,
+      "criteria": {},
+      "fallback_self_wt_psf": 25.0,
+      "source": "DB assumptions MT_ROOF: 'Dead: CLT + 15.0 psf roofing/insulation/MEP'; CLT 20.6 psf; glulam 35 pcf. Fallback adds about 4 psf of glulam."
     }
   }
 }

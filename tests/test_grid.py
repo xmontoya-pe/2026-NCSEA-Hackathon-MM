@@ -6,7 +6,7 @@ import json
 import unittest
 from pathlib import Path
 
-from gravity.grid import Grid, _compress, generate_grids, layout, x_label
+from gravity.grid import Grid, _compress, _divide, generate_grids, layout, x_label
 from gravity.loads import resolve_zones
 from gravity.models import GravityInput
 
@@ -60,6 +60,15 @@ class TestCandidates(unittest.TestCase):
         # 26 ft bays: 5 x 26 = 130, odd end bay 20 ft.
         self.assertTrue(any(g.grid_id.startswith("X:26x5+20 ") for g in self.grids))
 
+    def test_bays_round_up_to_half_foot(self):
+        # 150 ft in 7 bays: 6 x 21.5 + 21 (ASSUMPTIONS G-6), not 7 x 21.43.
+        ids = [g.grid_id for g in self.grids]
+        self.assertTrue(any(i.startswith("X:21.5x6+21 ") for i in ids), ids)
+        for g in self.grids:
+            for lines in (g.x_ft, g.y_ft):
+                for p, q in zip(lines[:-1], lines[1:]):
+                    self.assertAlmostEqual((q - p) * 2, round((q - p) * 2), 9, g.grid_id)
+
     def test_l_shape_grids_include_reentrant_corner_lines(self):
         grids, _ = generate_grids(load("l_shape.json"), SIZES)
         self.assertTrue(grids)
@@ -72,6 +81,12 @@ class TestHelpers(unittest.TestCase):
     def test_compress(self):
         self.assertEqual(_compress((0, 30, 60, 90)), "30x3")
         self.assertEqual(_compress((0, 26, 52, 78, 104, 130, 150)), "26x5+20")
+
+    def test_divide_rounds_up_and_last_bay_takes_remainder(self):
+        self.assertEqual(_divide(0.0, 100.0, 3), [33.5, 67.0, 100.0])  # 33.5, 33.5, 33
+        self.assertEqual(_divide(10.0, 100.0, 4), [32.5, 55.0, 77.5, 100.0])  # exact 22.5
+        self.assertEqual(_divide(0.0, 30.0, 1), [30.0])
+        self.assertIsNone(_divide(0.0, 10.1, 20))  # 0.505 rounds up to 1.0; 19 x 1.0 > 10.1
 
     def test_x_labels(self):
         self.assertEqual([x_label(i) for i in (0, 1, 25, 26, 27)], ["A", "B", "Z", "AA", "AB"])

@@ -1,114 +1,185 @@
-"""Tests for scoring.py, optimizer.py and the real (non-stub) ``gravity.run``.
-
-Run from the repo root:  python -m unittest discover -s tests -v
-"""
+"""Tests for gravity.scoring and gravity.optimizer (spec 4.6, 4.7; spec 6, prompt 7)."""
 
 from __future__ import annotations
 
-import copy
-import json
+import subprocess
+import sys
 import unittest
 from pathlib import Path
 
-import gravity
-from gravity.models import GravityInput, GravityOutput, ObjectiveWeights
-from gravity.scoring import Metrics, normalize, weighted_scores
+from gravity import db_adapter
+from gravity.columns import column_config, load_shapes
+from gravity.models import GravityInput, ObjectiveWeights
+from gravity.optimizer import N_ALTERNATES, optimize
+from gravity.scoring import penalty, weighted_scores
+from test_contract import FIXTURE_NAMES, FIXTURES, all_schemes, load_json, run_fixture
 
-FIXTURES = Path(__file__).resolve().parent / "fixtures"
-
-
-def load(name: str) -> dict:
-    return json.loads((FIXTURES / name).read_text(encoding="utf-8"))
+REPO_ROOT = Path(__file__).resolve().parent.parent
+CFG = column_config("steel")
+HAS_DATA = db_adapter.db_path().is_file() and (REPO_ROOT / CFG["shapes_csv"]).is_file()
+WEIGHTS = ObjectiveWeights(cost=0.5, depth=0.3, carbon=0.2)
 
 
 class TestScoring(unittest.TestCase):
-    def test_normalize(self):
-        self.assertEqual(normalize([1.0, 2.0, 3.0]), [0.0, 0.5, 1.0])
-        self.assertEqual(normalize([5.0, 5.0]), [0.0, 0.0])
-        self.assertEqual(normalize([]), [])
+    def test_min_max_normalized_weighted_sum(self):
+        rows = [
+            {"cost": 100.0, "depth": 20.0, "carbon": 10.0},
+            {"cost": 200.0, "depth": 30.0, "carbon": 10.0},
+            {"cost": 150.0, "depth": 25.0, "carbon": 10.0},
+        ]
+        # Row 2: cost 1.0, depth 1.0, carbon 0 (all equal) -> (0.5 + 0.3) / 1.0 = 0.8
+        # Row 3: cost 0.5, depth 0.5 -> (0.25 + 0.15) / 1.0 = 0.4
+        for actual, expected in zip(weighted_scores(rows, WEIGHTS), [0.0, 0.8, 0.4]):
+            self.assertAlmostEqual(actual, expected)
 
-    def test_weighted_scores(self):
-        metrics = [Metrics(100, 20, 10), Metrics(200, 10, 10), Metrics(150, 30, 10)]
-        w = ObjectiveWeights(cost=0.5, depth=0.3, carbon=0.2)
-        # cost -> 0, 1, 0.5; depth -> 0.5, 0, 1; carbon flat -> 0
-        expected = [0.5 * 0 + 0.3 * 0.5, 0.5 * 1 + 0.3 * 0, 0.5 * 0.5 + 0.3 * 1]
-        for got, want in zip(weighted_scores(metrics, w), expected):
-            self.assertAlmostEqual(got, want)
+    def test_weights_are_normalized_by_their_sum(self):
+        rows = [{"cost": 0.0, "depth": 0.0, "carbon": 0.0},
+                {"cost": 1.0, "depth": 1.0, "carbon": 1.0}]
+        heavy = ObjectiveWeights(cost=5, depth=3, carbon=2)
+        self.assertAlmostEqual(weighted_scores(rows, heavy)[1], 1.0)
+
+    def test_zero_weights_score_zero(self):
+        rows = [{"cost": 1.0, "depth": 2.0, "carbon": 3.0}, {"cost": 4.0, "depth": 5.0, "carbon": 6.0}]
+        self.assertEqual(weighted_scores(rows, ObjectiveWeights(cost=0, depth=0, carbon=0)),
+                         [0.0, 0.0])
+
+    def test_penalties_outweigh_any_score(self):
+        self.assertGreaterEqual(penalty(0, 1, 0.01), 1.0)  # one bay over depth > max score of 1
+        self.assertGreater(penalty(1, 0), penalty(0, 36, 36 * 20.0))  # 36 bays 20 in over
+        self.assertEqual(penalty(0, 0), 0.0)
+
+    def test_over_depth_penalty_grows_with_inches(self):
+        # 1.0 per bay + 1.0 per inch over: one bay 2 in over = 3.0, two bays 0.5 in over = 3.0
+        self.assertAlmostEqual(penalty(0, 1, 2.0), 3.0)
+        self.assertAlmostEqual(penalty(0, 2, 1.0), 3.0)
+        self.assertGreater(penalty(0, 1, 20.0), penalty(0, 3, 3.0))
 
 
-class TestRun(unittest.TestCase):
+@unittest.skipUnless(HAS_DATA, "bay study DB or shapes CSV not present")
+class TestOptimizeSimpleRect(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.inp = load("simple_rect.json")
-        cls.result = gravity.run(cls.inp)
-        cls.scheme = cls.result["schemes"][0]
+        cls.inp = GravityInput.model_validate(load_json(FIXTURES / "simple_rect.json"))
+        cls.result = optimize(cls.inp)
 
-    def test_steel_only_with_warnings_for_unbuilt_systems(self):
-        self.assertEqual([s["system"] for s in self.result["schemes"]], ["steel"])
-        for system in ("concrete", "mass_timber"):
-            self.assertTrue(any(f"'{system}'" in w and "not built" in w
-                                for w in self.scheme["warnings"]), system)
+    def test_ranked_best_first(self):
+        keys = [e.rank_key() for e in self.result.ranked]
+        self.assertEqual(keys, sorted(keys))
+        self.assertGreater(len(keys), N_ALTERNATES)
 
-    def test_output_matches_contract_and_is_deterministic(self):
-        GravityOutput.model_validate(self.result)
-        self.assertEqual(gravity.run(copy.deepcopy(self.inp)), self.result)
+    def test_rank_score_is_score_plus_penalty(self):
+        for e in self.result.ranked:
+            c = e.candidate
+            self.assertAlmostEqual(
+                e.rank_score, e.score + penalty(c.n_infeasible, c.n_over_depth, c.over_depth_in))
+            self.assertTrue(0.0 <= e.score <= 1.0)
 
-    def test_alternates(self):
-        alternates = self.scheme["alternates"]
-        self.assertLessEqual(len(alternates), 3)
-        grids = [json.dumps(a["grid"]) for a in alternates] + [json.dumps(self.scheme["grid"])]
-        self.assertEqual(len(set(grids)), len(grids), "alternates repeat a grid")
-        for a in alternates:
-            self.assertEqual(a["alternates"], [])
+    def test_best_is_feasible_and_within_depth(self):
+        best = self.result.ranked[0].candidate
+        self.assertEqual((best.n_infeasible, best.n_over_depth), (0, 0))
 
-    def test_bays_and_levels_are_framed_levels(self):
-        framed = {"L2", "L3", "ROOF"}
-        self.assertTrue(self.scheme["bays"])
-        self.assertTrue({b["level"] for b in self.scheme["bays"]} <= framed)
-        self.assertEqual([lv["level"] for lv in self.scheme["levels"]], ["L2", "L3", "ROOF"])
+    def test_totals_add_framing_and_columns(self):
+        e = self.result.ranked[0]
+        self.assertAlmostEqual(e.cost_usd, e.candidate.framing_cost_usd + e.design.cost_usd)
+        self.assertAlmostEqual(e.carbon_kgco2e,
+                               e.candidate.framing_carbon_kgco2e + e.design.carbon_kgco2e)
+        framing = sum(b.framing.steel_psf * b.area_sf for b in e.candidate.bays if b.framing) / 2000
+        self.assertAlmostEqual(e.framing_tons, framing)
 
-    def test_clear_height(self):
-        # ASSUMPTIONS OUT-1: story below minus (deepest framing + plenum) / 12
-        story_below = {"L2": 15.0, "L3": 13.0, "ROOF": 13.0}
-        plenum = self.inp["constraints"]["plenum_allowance_in"]
-        for lv in self.scheme["levels"]:
-            want = story_below[lv["level"]] - (lv["max_structure_depth_in"] + plenum) / 12
-            self.assertAlmostEqual(lv["clear_height_ft"], want, places=2)
 
-    def test_level_depth_is_deepest_bay(self):
-        for lv in self.scheme["levels"]:
-            depths = [b["framing"]["depth_in"] for b in self.scheme["bays"] if b["level"] == lv["level"]]
-            self.assertAlmostEqual(lv["max_structure_depth_in"], max(depths, default=0.0), places=3)
-        self.assertAlmostEqual(self.scheme["totals"]["max_depth_in"],
-                               max(lv["max_structure_depth_in"] for lv in self.scheme["levels"]), places=3)
+@unittest.skipUnless(HAS_DATA, "bay study DB or shapes CSV not present")
+class TestSchemeOutput(unittest.TestCase):
+    """run() output for every fixture, checked against itself and the input."""
 
-    def test_foundation_reactions_are_bottom_segments(self):
-        by_id = {c["id"]: c for c in self.scheme["columns"]}
-        self.assertTrue(self.scheme["foundation_reactions"])
-        for r in self.scheme["foundation_reactions"]:
-            bottom = by_id[r["column_id"]]["stack"][0]
-            self.assertEqual((r["D_kips"], r["L_kips"], r["Lr_kips"], r["S_kips"]),
-                             (bottom["Pd_kips"], bottom["Pl_kips"], bottom["Plr_kips"], bottom["Psnow_kips"]))
+    def each_scheme(self):
+        for name in FIXTURE_NAMES:
+            inp = load_json(FIXTURES / name)
+            for scheme in all_schemes(run_fixture(name)):
+                yield name, inp, scheme
 
-    def test_no_column_zone_columns_absent(self):
-        # z3 (30..90 x 30..60, no_columns at L1): columns strictly inside it are removed
-        for c in self.scheme["columns"]:
-            inside = 30 < c["x_ft"] < 90 and 30 < c["y_ft"] < 60
-            self.assertFalse(inside, c["id"])
+    def test_alternates_ranked_after_best(self):
+        for name in FIXTURE_NAMES:
+            for top in run_fixture(name)["schemes"]:
+                scores = [top["rank_score"]] + [a["rank_score"] for a in top["alternates"]]
+                with self.subTest(fixture=name, system=top["system"]):
+                    self.assertLessEqual(len(top["alternates"]), N_ALTERNATES)
+                    self.assertEqual(scores, sorted(scores))
+                    self.assertTrue(all(a["alternates"] == [] for a in top["alternates"]))
+                    self.assertTrue(all(a["system"] == top["system"] for a in top["alternates"]))
 
-    def test_totals_positive(self):
-        t, q = self.scheme["totals"], self.scheme["quantities"]
-        self.assertGreater(t["cost_usd"], 0)
-        self.assertGreater(t["cost_per_sf"], 0)
-        self.assertGreater(q["steel_tons"], 0)
+    def test_foundation_reaction_is_base_of_stack(self):
+        for name, _, scheme in self.each_scheme():
+            stacks = {c["id"]: c["stack"][0] for c in scheme["columns"]}
+            for r in scheme["foundation_reactions"]:
+                base = stacks[r["column_id"]]
+                with self.subTest(fixture=name, column=r["column_id"]):
+                    self.assertEqual(base["level"], "L1")
+                    self.assertEqual((r["D_kips"], r["L_kips"], r["Lr_kips"], r["S_kips"]),
+                                     (base["Pd_kips"], base["Pl_kips"], base["Plr_kips"],
+                                      base["Psnow_kips"]))
 
-    def test_only_unbuilt_systems_gives_no_schemes(self):
-        inp = copy.deepcopy(self.inp)
-        inp["systems"] = ["concrete"]
-        self.assertEqual(gravity.run(inp), {"schemes": []})
+    def test_levels_depth_and_clear_height(self):
+        for name, inp, scheme in self.each_scheme():
+            heights = {lvl["name"]: lvl["floor_to_floor_ft"] for lvl in inp["levels"]}
+            below = {"L2": "L1", "L3": "L2", "ROOF": "L3"}
+            self.assertEqual([lv["level"] for lv in scheme["levels"]], ["L2", "L3", "ROOF"])
+            for lv in scheme["levels"]:
+                depths = [b["framing"]["depth_in"] for b in scheme["bays"]
+                          if b["level"] == lv["level"]] or [0.0]  # all infeasible: depth 0
+                expected = heights[below[lv["level"]]] - (max(depths) + 18) / 12
+                with self.subTest(fixture=name, level=lv["level"]):
+                    self.assertEqual(lv["max_structure_depth_in"], max(depths))
+                    self.assertAlmostEqual(lv["clear_height_ft"], expected, places=2)
+                    self.assertGreater(lv["seismic_weight_kips"], 0)
+            self.assertEqual(scheme["totals"]["max_depth_in"],
+                             max(lv["max_structure_depth_in"] for lv in scheme["levels"]))
 
-    def test_input_still_validates(self):
-        GravityInput.model_validate(self.inp)
+    def test_steel_tons_include_columns(self):
+        shapes = {s.name: s for s in load_shapes(REPO_ROOT / CFG["shapes_csv"],
+                                                 tuple(CFG["families"]))}
+        for name, inp, scheme in self.each_scheme():
+            with self.subTest(fixture=name, system=scheme["system"]):
+                self.assertGreater(scheme["quantities"]["concrete_cy"], 0)  # slabs or topping
+            if scheme["system"] != "steel":
+                continue
+            heights = {lvl["name"]: lvl["floor_to_floor_ft"] for lvl in inp["levels"]}
+            column_tons = sum(shapes[seg["size"]].weight_plf * heights[seg["level"]]
+                              for c in scheme["columns"] for seg in c["stack"]) / 2000
+            with self.subTest(fixture=name):
+                self.assertGreater(scheme["quantities"]["steel_tons"], column_tons)
+
+    def test_columns_inside_outline_and_named_on_grid(self):
+        for name, inp, scheme in self.each_scheme():
+            xs, ys = scheme["grid"]["x_ft"], scheme["grid"]["y_ft"]
+            for c in scheme["columns"]:
+                with self.subTest(fixture=name, column=c["id"]):
+                    self.assertIn(c["x_ft"], xs)
+                    self.assertIn(c["y_ft"], ys)
+            if name == "l_shape.json":  # nothing in the notch (x > 60, y > 60)
+                self.assertFalse([c for c in scheme["columns"]
+                                  if c["x_ft"] > 60 and c["y_ft"] > 60])
+
+    def test_no_column_zone_reported(self):
+        top = run_fixture("no_column_zone.json")["schemes"][0]
+        zone = (40, 80, 20, 70)  # z2 on L1: x 40-80, y 20-70
+        inside = [c["id"] for c in top["columns"]
+                  if zone[0] < c["x_ft"] < zone[1] and zone[2] < c["y_ft"] < zone[3]]
+        self.assertEqual(inside, [])
+
+
+@unittest.skipUnless(HAS_DATA, "bay study DB or shapes CSV not present")
+class TestReportCli(unittest.TestCase):
+    def test_report_on_all_fixtures(self):
+        proc = subprocess.run(
+            [sys.executable, "-m", "gravity", "report", *(str(FIXTURES / n) for n in FIXTURE_NAMES)],
+            cwd=REPO_ROOT, capture_output=True, text=True, check=False,
+        )
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        for name in FIXTURE_NAMES:
+            self.assertIn(name, proc.stdout)
+        for text in ("framing t", "column t", "best", "alt1", "Warnings (best scheme",
+                     "STEEL |", "CONCRETE |", "MASS_TIMBER |", "SYSTEM COMPARISON"):
+            self.assertIn(text, proc.stdout)
 
 
 if __name__ == "__main__":

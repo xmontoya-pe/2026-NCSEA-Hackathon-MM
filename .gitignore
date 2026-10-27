@@ -221,3 +221,7 @@ __marimo__/
 
 # Certificates
 *.crt
+
+# Windows "downloaded from the internet" markers (copied into WSL alongside each file)
+*:Zone.Identifier
+*Zone.Identifier

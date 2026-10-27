@@ -5,8 +5,8 @@
     "currency": "USD",
     "base_year": 2025,
     "location_factor": 1.0,
-    "ton": "US short ton (2,000 lb). The bay study gives steel in lb per sq ft of floor: tons per sq ft = steel_psf / 2000.",
-    "systems_covered": "Steel only (STL_COMP, STL_ROOF_W, STL_ROOF_J). Concrete and mass timber rates are added when those systems are built."
+    "ton": "US short ton (2,000 lb). The bay study gives steel, rebar and PT in lb per sq ft of floor: tons per sq ft = psf / 2000.",
+    "systems_covered": "Steel (STL_COMP, STL_ROOF_W, STL_ROOF_J). Concrete and mass timber rates added for spec 6, prompt 8 (decisions log); how each DB quantity maps to a rate is settled when those systems are built."
   },
   "steel": {
     "wide_flange_framing_usd_per_ton": {
@@ -51,6 +51,70 @@
       "3N 18 ga": {"value": 5.0, "low": 4.0, "high": 6.0},
       "applies_to": "STL_ROOF_W and STL_ROOF_J deck_or_slab",
       "note": "Rows with a blank gauge in the bay study (e.g. '1.5B  ga roof deck') are priced at the 18 ga rate (conservative)"
+    }
+  },
+  "concrete": {
+    "structural_concrete_usd_per_cy": {
+      "value": 300, "low": 240, "high": 400,
+      "applies_to": "Cast-in-place slab, beam and joist concrete (DB concrete_cy_per_sf)",
+      "note": "5 ksi normal weight, pumped, placed, finished and cured; formwork and reinforcing priced separately"
+    },
+    "formwork_flat_plate_usd_per_sf": {
+      "value": 9.0, "low": 7.0, "high": 12.0,
+      "applies_to": "CONC_RC_FP and CONC_PT_FP slab soffit, per sq ft of floor",
+      "note": "Flying or table forms, multiple reuses"
+    },
+    "formwork_one_way_slab_beam_usd_per_sf": {
+      "value": 11.0, "low": 9.0, "high": 14.0,
+      "applies_to": "CONC_OW_PTB slab and beams, per sq ft of floor",
+      "note": "Includes beam sides and soffits"
+    },
+    "formwork_pan_joist_usd_per_sf": {
+      "value": 12.0, "low": 10.0, "high": 15.0,
+      "applies_to": "CONC_PAN pans, joist and beam forms, per sq ft of floor",
+      "note": "Rented pans; standard or wide module"
+    },
+    "rebar_usd_per_ton": {
+      "value": 2800, "low": 2200, "high": 3600,
+      "applies_to": "Mild reinforcing in slabs, beams and joists (DB rebar_psf), and concrete columns",
+      "note": "Grade 60, furnished, fabricated and placed"
+    },
+    "pt_strand_usd_per_lb": {
+      "value": 4.0, "low": 3.0, "high": 5.5,
+      "applies_to": "Post-tensioning (DB pt_psf, lb per sq ft)",
+      "note": "Unbonded 0.5 in. monostrand, installed and stressed, including anchors"
+    },
+    "stud_rails_usd_per_sf": {
+      "value": 1.0, "low": 0.5, "high": 2.0,
+      "applies_to": "Flat plate rows with stud rails (DB shear_studs = 'Yes'), per sq ft of floor",
+      "note": "Allowance: the bay study gives no rail count"
+    },
+    "column_formwork_usd_per_sfca": {
+      "value": 18.0, "low": 14.0, "high": 24.0,
+      "applies_to": "Square concrete columns sized by columns.py, per sq ft of contact area",
+      "note": "Column concrete is priced at structural_concrete_usd_per_cy and column bars at rebar_usd_per_ton"
+    }
+  },
+  "mass_timber": {
+    "glulam_framing_usd_per_bf": {
+      "value": 7.0, "low": 5.0, "high": 10.0,
+      "applies_to": "Glulam beams and girders (DB timber_bf_per_sf, board feet)",
+      "note": "Fabricated (CNC) and erected, including typical concealed connections; about $3,000 per cubic meter"
+    },
+    "glulam_columns_usd_per_bf": {
+      "value": 8.0, "low": 6.0, "high": 11.0,
+      "applies_to": "Square glulam columns sized by columns.py",
+      "note": "Includes base and cap connection allowance"
+    },
+    "clt_panels_usd_per_cf": {
+      "value": 45.0, "low": 35.0, "high": 60.0,
+      "applies_to": "CLT floor and roof panels (DB clt_thickness_in x floor area)",
+      "note": "Supplied and installed; 5-ply (about 6.9 in.) is about $26 per sq ft of floor"
+    },
+    "concrete_topping_usd_per_sf": {
+      "value": 6.0, "low": 4.5, "high": 8.0,
+      "applies_to": "MT_FLOOR 3 in. concrete topping, per sq ft of floor",
+      "note": "Concrete, welded wire mesh, pumping and finishing; acoustic mat excluded"
     }
   }
 }
