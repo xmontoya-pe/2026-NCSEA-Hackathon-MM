@@ -16,6 +16,7 @@ from pathlib import Path
 from pydantic import ValidationError
 
 import gravity
+from gravity.exporters import write_warnings_log
 from gravity.models import GravityInput, GravityOutput
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -57,6 +58,26 @@ class TestFixtures(unittest.TestCase):
         result = gravity.run(load_json(FIXTURES / "simple_rect.json"))
         for scheme in result["schemes"]:
             self.assertIsInstance(scheme["warnings"], list)
+
+
+class TestWarningsLog(unittest.TestCase):
+    def test_run_emits_each_warning_on_gravity_logger(self):
+        input_dict = load_json(FIXTURES / "simple_rect.json")
+        with self.assertLogs("gravity", level="WARNING") as captured:
+            result = gravity.run(input_dict)
+        n = sum(len(s["warnings"]) for s in result["schemes"])
+        self.assertEqual(len(captured.records), n)
+
+    def test_log_written_even_with_no_warnings(self):
+        result = gravity.run(load_json(FIXTURES / "simple_rect.json"))
+        for scheme in result["schemes"]:
+            scheme["warnings"] = []
+        with tempfile.TemporaryDirectory() as tmp:
+            path, warnings = write_warnings_log(result, Path(tmp), "Quiet project")
+            self.assertEqual(warnings, [])
+            lines = path.read_text(encoding="utf-8").splitlines()
+            self.assertEqual(len(lines), 1)
+            self.assertIn("0 warning(s)", lines[0])
 
 
 class TestSpecExamples(unittest.TestCase):
@@ -154,6 +175,22 @@ class TestCli(unittest.TestCase):
                 proc = self.run_cli("run", str(FIXTURES / name), "-o", tmp)
                 self.assertEqual(proc.returncode, 0, proc.stderr)
                 GravityOutput.model_validate(load_json(Path(tmp) / "output.json"))
+
+    def test_cli_logs_and_reports_warnings(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            proc = self.run_cli("run", str(FIXTURES / "simple_rect.json"), "-o", tmp)
+            self.assertEqual(proc.returncode, 0, proc.stderr)
+
+            expected = gravity.run(load_json(FIXTURES / "simple_rect.json"))
+            n = sum(len(s["warnings"]) for s in expected["schemes"])
+            self.assertGreater(n, 0)  # the stub always warns
+
+            lines = (Path(tmp) / "warnings.log").read_text(encoding="utf-8").splitlines()
+            self.assertIn("project: Hackathon Test 1", lines[0])
+            self.assertIn(f"{n} warning(s)", lines[0])
+            self.assertEqual(len(lines), n + 1)
+            self.assertTrue(all(line.startswith("[steel] ") for line in lines[1:]))
+            self.assertIn(f"WARNINGS: {n} warning(s) logged to", proc.stdout)
 
     def test_cli_rejects_invalid_input(self):
         with tempfile.TemporaryDirectory() as tmp:

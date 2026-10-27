@@ -1,8 +1,9 @@
 """CLI: ``python -m gravity run <input.json> -o <output_dir>`` (spec section 1).
 
-Reads ``input.json`` (spec 2.1), calls ``gravity.run``, and writes
-``<output_dir>/output.json`` (spec 3.1). Exits with status 2 if the input
-does not match the contract in ``gravity/models.py``.
+Reads ``input.json`` (spec 2.1), calls ``gravity.run``, writes
+``<output_dir>/output.json`` (spec 3.1) and ``<output_dir>/warnings.log``, and reports
+whether the log contains warnings. Exits with status 2 if the input does not match
+the contract in ``gravity/models.py``. Warnings alone do not change the exit status.
 """
 
 from __future__ import annotations
@@ -15,6 +16,7 @@ from pathlib import Path
 from pydantic import ValidationError
 
 from gravity import run
+from gravity.exporters import write_output, write_warnings_log
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -24,7 +26,7 @@ def main(argv: list[str] | None = None) -> int:
     run_parser = sub.add_parser("run", help="optimize gravity schemes for an input.json")
     run_parser.add_argument("input", type=Path, help="path to input.json")
     run_parser.add_argument(
-        "-o", "--output-dir", type=Path, default=Path("."), help="directory for output.json"
+        "-o", "--output-dir", type=Path, default=Path("."), help="directory for output.json and warnings.log"
     )
 
     args = parser.parse_args(argv)
@@ -41,12 +43,16 @@ def main(argv: list[str] | None = None) -> int:
         print(f"error: {args.input} does not match the input contract:\n{exc}", file=sys.stderr)
         return 2
 
-    args.output_dir.mkdir(parents=True, exist_ok=True)
-    out_path = args.output_dir / "output.json"
-    out_path.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
+    out_path = write_output(result, args.output_dir)
+    log_path, warnings = write_warnings_log(result, args.output_dir, input_dict["project_name"])
 
-    n_warnings = sum(len(s["warnings"]) for s in result["schemes"])
-    print(f"wrote {out_path} ({len(result['schemes'])} scheme(s), {n_warnings} warning(s))")
+    print(f"wrote {out_path} ({len(result['schemes'])} scheme(s))")
+    if warnings:
+        print(f"WARNINGS: {len(warnings)} warning(s) logged to {log_path}")
+        for system, warning in warnings:
+            print(f"  [{system}] {warning}")
+    else:
+        print(f"no warnings (log: {log_path})")
     return 0
 
 

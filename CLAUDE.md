@@ -29,5 +29,6 @@ Spec: `GRAVITY_OPTIMIZER_SPEC.md` (section 1 is reproduced below).
 ## Layout and commands
 
 - `gravity/models.py` is the single source of truth for the input/output JSON contract.
-- Run: `python -m gravity run tests/fixtures/simple_rect.json -o out/`
+- Run: `python -m gravity run tests/fixtures/simple_rect.json -o out/` — writes `out/output.json`
+  and `out/warnings.log`, and prints every warning. Investigate warnings from the log.
 - Test: `python -m unittest discover -s tests -v` (from the repo root; pytest also works).
