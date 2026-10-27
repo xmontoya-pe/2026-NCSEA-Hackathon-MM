@@ -1,6 +1,6 @@
 """Candidate column grid generation and clipping to the building outline.
 
-Spec section 4.2 (decisions log, spec section 7; docs/ASSUMPTIONS.md G-*). Steel only for now.
+Spec section 4.2 (decisions log, spec section 7; docs/ASSUMPTIONS.md G-*).
 
 Candidates are built axis by axis. The outline's vertex coordinates are required grid
 lines (so re-entrant corners get columns); each segment between them is divided by:
@@ -12,6 +12,10 @@ lines (so re-entrant corners get columns); each segment between them is divided 
 
 Every bay must lie within ``min_bay_ft``..``max_bay_ft`` (a segment shorter than
 ``min_bay_ft`` is kept as one bay). X and Y options are combined into grids.
+
+Equal subdivisions are rounded up to ``GRID_STEP_FT`` (0.5 ft) and the last bay of the
+span takes the remainder: 150 ft in 7 bays is 6 x 21.5 + 21, not 7 x 21.43
+(ASSUMPTIONS G-6). Outline vertices and dimension lines are kept where they are.
 
 ``layout`` places columns at grid intersections covered by the outline, flags columns
 within 2 ft of the outline edge, removes columns strictly inside ``no_columns`` zones
@@ -32,6 +36,7 @@ from gravity.models import GravityInput
 
 TOL_FT = 1e-6
 PERIMETER_FLAG_FT = 2.0  # spec 4.2
+GRID_STEP_FT = 0.5  # bay sizes round up to this (ASSUMPTIONS G-6)
 
 
 @dataclass(frozen=True)
@@ -174,7 +179,10 @@ def _strategy_a(a, b, dims, variant, min_bay, max_bay):
             return None
         if variant == "fine" and m < 3 and span / (m + 1) >= min_bay - TOL_FT:
             m += 1
-        lines.extend(p + span * k / m for k in range(1, m + 1))
+        part = _divide(p, q, m)
+        if part is None:
+            return None
+        lines.extend(part)
     return lines
 
 
@@ -184,7 +192,17 @@ def _equal(a, b, size, rounding, min_bay, max_bay):
     bay = length / n
     if not (min_bay - TOL_FT <= bay <= max_bay + TOL_FT) and not (n == 1 and length < min_bay):
         return None
-    return [a + bay * k for k in range(n + 1)]
+    part = _divide(a, b, n)
+    return None if part is None else [a] + part
+
+
+def _divide(p, q, n):
+    """Lines after ``p`` splitting p..q into ``n`` bays: n - 1 bays of (q - p) / n rounded
+    up to GRID_STEP_FT, and a last bay with the remainder. None if nothing is left for it."""
+    step = math.ceil(round((q - p) / n / GRID_STEP_FT, 9)) * GRID_STEP_FT
+    if n > 1 and q - p - step * (n - 1) < GRID_STEP_FT - TOL_FT:
+        return None
+    return [p + step * k for k in range(1, n)] + [q]
 
 
 def _with_odd_bay(a, b, size, min_bay, max_bay):

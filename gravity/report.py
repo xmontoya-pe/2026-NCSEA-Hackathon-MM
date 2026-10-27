@@ -33,7 +33,7 @@ def scheme_report(inp: GravityInput, system: str = "steel", result: SystemResult
         f"{system.upper()} | {inp.project_name}: {len(result.ranked)} candidate grids; best and "
         f"{N_ALTERNATES} alternates (placeholder costs)",
         "",
-        f"{'':4} {'structural system':<28} {'grid':<26} {'cols':>4} {'score':>7} {'infeas':>6} "
+        f"{'':4} {'structural system':<31} {'grid':<26} {'cols':>4} {'score':>7} {'infeas':>6} "
         f"{'>depth':>6} {'depth in':>8} {'framing t':>9} {'column t':>8} {'conc cy':>8} "
         f"{'timber cf':>9} {'cost $':>11} {'$/sf':>6} {'kgCO2e':>9} {'kg/sf':>6}",
     ]
@@ -48,7 +48,7 @@ def scheme_report(inp: GravityInput, system: str = "steel", result: SystemResult
         "",
         f"Best: x_ft={list(best.candidate.layout.grid.x_ft)}  "
         f"y_ft={list(best.candidate.layout.grid.y_ft)}; framed area {best.area_sf:,.0f} sf; "
-        f"concrete on deck {best.concrete_cy:,.0f} cy",
+        f"concrete {best.concrete_cy:,.0f} cy",
         "",
         "Warnings (best scheme, grouped):",
     ]
@@ -61,7 +61,7 @@ def scheme_report(inp: GravityInput, system: str = "steel", result: SystemResult
 def _scheme_row(label: str, e: Evaluated) -> str:
     c, area = e.candidate, e.area_sf or 1.0
     return (
-        f"{label:<4} {e.label[:28]:<28} {e.grid_id:<26} {c.layout.column_count:>4} "
+        f"{label:<4} {e.label[:31]:<31} {e.grid_id:<26} {c.layout.column_count:>4} "
         f"{e.rank_score:>7.3f} {c.n_infeasible:>6} {c.n_over_depth:>6} {e.max_depth_in:>8.1f} "
         f"{e.framing_tons:>9.1f} {e.column_tons:>8.1f} {e.concrete_cy:>8,.0f} "
         f"{e.timber_cf:>9,.0f} {e.cost_usd:>11,.0f} {e.cost_usd / area:>6.2f} "
@@ -75,7 +75,7 @@ def comparison_table(inp: GravityInput, results: dict[str, SystemResult]) -> str
     lines = [
         f"SYSTEM COMPARISON | {inp.project_name} (best scheme per system; placeholder costs)",
         "",
-        f"{'system':<12} {'structural system':<28} {'grid':<26} {'cols':>4} {'depth in':>8} "
+        f"{'system':<12} {'structural system':<31} {'grid':<26} {'cols':>4} {'depth in':>8} "
         f"{'steel t':>8} {'conc cy':>8} {'timber cf':>9} {'cost $':>11} {'$/sf':>6} "
         f"{'kgCO2e':>9} {'kg/sf':>6} {'infeas':>6} {'>depth':>6} {'warnings':>8}",
     ]
@@ -87,7 +87,7 @@ def comparison_table(inp: GravityInput, results: dict[str, SystemResult]) -> str
         c, area = e.candidate, e.area_sf or 1.0
         n_warn = len(set(result.warnings + c.warnings + e.design.warnings))
         lines.append(
-            f"{system:<12} {e.label[:28]:<28} {e.grid_id:<26} {c.layout.column_count:>4} "
+            f"{system:<12} {e.label[:31]:<31} {e.grid_id:<26} {c.layout.column_count:>4} "
             f"{e.max_depth_in:>8.1f} {e.framing_tons + e.column_tons:>8.1f} "
             f"{e.concrete_cy:>8,.0f} {e.timber_cf:>9,.0f} {e.cost_usd:>11,.0f} "
             f"{e.cost_usd / area:>6.2f} {e.carbon_kgco2e:>9,.0f} {e.carbon_kgco2e / area:>6.2f} "
