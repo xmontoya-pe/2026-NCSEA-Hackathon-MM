@@ -2,17 +2,16 @@
 
 Exposes ``run(input_dict) -> dict`` for the integration team (spec sections 1 and 4).
 
-STUB (spec section 6, prompt 1): ``run`` validates the input against
-``models.GravityInput`` and returns a hardcoded, schema-valid steel scheme
-(``stub_output.json``) so teammates can integrate now. No engineering is performed.
-The pipeline in spec 4.7 (grid -> bays -> columns -> score) replaces the stub later.
+``run`` validates the input against ``models.GravityInput`` and runs the spec 4.7
+pipeline (grid -> bays -> columns -> score, ``optimizer.optimize``) for each requested
+system. Only steel is built; a requested system that is not built yet gets no scheme,
+and every returned scheme carries a warning saying so. ``stub_output.json`` is the old
+canned output, kept for reference.
 """
 
 from __future__ import annotations
 
-import json
 import logging
-from pathlib import Path
 from typing import Any
 
 from gravity.models import GravityInput, GravityOutput
@@ -23,8 +22,6 @@ logger = logging.getLogger(__name__)
 # Library convention: stay silent unless the caller configures logging.
 logger.addHandler(logging.NullHandler())
 
-_STUB_OUTPUT = Path(__file__).with_name("stub_output.json")
-
 
 def run(input_dict: dict[str, Any]) -> dict[str, Any]:
     """Validate ``input_dict`` (spec 2.1) and return an ``output.json`` dict (spec 3.1).
@@ -34,10 +31,22 @@ def run(input_dict: dict[str, Any]) -> dict[str, Any]:
 
     Raises ``pydantic.ValidationError`` if the input does not match the contract.
     """
+    from gravity.optimizer import BUILT_SYSTEMS, optimize
+
     gravity_input = GravityInput.model_validate(input_dict)
 
-    canned = json.loads(_STUB_OUTPUT.read_text(encoding="utf-8"))
-    result = GravityOutput.model_validate(canned).model_dump(mode="json")
+    requested = list(dict.fromkeys(gravity_input.systems))
+    not_built = [s for s in requested if s not in BUILT_SYSTEMS]
+    schemes = [optimize(gravity_input, s) for s in requested if s in BUILT_SYSTEMS]
+    for scheme in schemes:
+        scheme["warnings"].extend(
+            f"System {s!r} was requested but is not built yet; no scheme returned for it"
+            for s in not_built
+        )
+    if not schemes and not_built:
+        logger.warning("[%s] no built system requested (%s)", gravity_input.project_name,
+                       ", ".join(not_built))
+    result = GravityOutput.model_validate({"schemes": schemes}).model_dump(mode="json")
 
     for scheme in result["schemes"]:
         for warning in scheme["warnings"]:

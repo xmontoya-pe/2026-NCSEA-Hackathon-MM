@@ -298,6 +298,19 @@ ul.plain{margin:6px 0 0;padding-left:18px;font-size:13.5px;color:var(--muted)}
       <p class="small" style="margin:-4px 0 12px">One row per load area on the pad. Change the level with the pad’s <b>Level</b> menu.</p>
       <div id="bonesLoads"></div>
     </div>
+    <div class="b-card" style="margin-top:20px" id="gravCard">
+      <div class="headrow"><h2>Gravity framing: best bay sizes</h2>
+        <button class="btn b-primary b-sm" id="gravRun" type="button">Find bay sizes</button></div>
+      <p class="small" style="margin:-4px 0 12px">Sends the outline, stories and each load area’s occupancy to the gravity optimizer, which tries candidate grids against the bay study and sizes the columns. Steel only for now; costs are placeholder rates.</p>
+      <div class="hz-grid">
+        <label class="f">Min bay (ft)<input id="gvMinBay" inputmode="decimal" value="20"></label>
+        <label class="f">Max bay (ft)<input id="gvMaxBay" inputmode="decimal" value="45"></label>
+        <label class="f">Min ceiling height (ft)<input id="gvCeil" inputmode="decimal" value="9"></label>
+        <label class="f">Plenum (in)<input id="gvPlenum" inputmode="decimal" value="18"></label>
+      </div>
+      <p class="small" id="gravMsg" style="margin:10px 0 0"></p>
+      <div id="gravOut"></div>
+    </div>
   </section>
 </main>
 <!--PAD_JS-->
@@ -443,6 +456,47 @@ $("hzPull").addEventListener("click", async () => {
   }catch(e){ $("hzMsg").textContent = e.message; }
   finally{ b.disabled = false; }
 });
+/* ---------- step 3: gravity framing ---------- */
+async function occupancies(){
+  try{ const r = await fetch("/api/occupancies"); const j = await r.json(); window.BonesOccupancies = j.occupancies || []; }
+  catch(e){ window.BonesOccupancies = []; }
+  if(window.BonesPad && window.BonesPad.renderLoads) window.BonesPad.renderLoads();
+}
+const spans = xs => { const d = xs.slice(1).map((x, i) => +(x - xs[i]).toFixed(2)), out = [];
+  d.forEach(v => { const last = out[out.length-1]; if(last && last[0] === v) last[1]++; else out.push([v, 1]); });
+  return out.map(([v, n]) => n > 1 ? `${fmt(v, 2)}′ × ${n}` : `${fmt(v, 2)}′`).join(" + "); };
+function gravRow(s, label){
+  const t = s.totals, cols = (s.columns || []).length;
+  return `<tr><th scope="row">${esc(label)}</th><td style="text-align:left">X: ${spans(s.grid.x_ft)}<br>Y: ${spans(s.grid.y_ft)}</td>
+    <td>${cols}</td><td>${fmt(t.max_depth_in, 1)}</td><td>${fmt(s.quantities.steel_tons, 1)}</td><td>$${fmt(t.cost_per_sf, 2)}</td><td>${fmt(t.carbon_per_sf, 2)}</td></tr>`;
+}
+function renderGravity(res){
+  const out = res.output || {}, schemes = out.schemes || [];
+  if(!schemes.length){ $("gravOut").innerHTML = `<p class="small">No scheme came back. ${esc((res.notes || []).join(" "))}</p>`; return; }
+  let h = "";
+  schemes.forEach(s => {
+    const typ = {}; (s.bays || []).forEach(b => { const k = `${b.level}: ${fmt(b.span_x_ft, 2)}′ × ${fmt(b.span_y_ft, 2)}′, ${b.framing.beam}, girder ${b.framing.girder}, ${fmt(b.framing.depth_in, 1)} in`; typ[k] = (typ[k] || 0) + 1; });
+    h += `<h3 style="margin:16px 0 6px;font-size:15px">${esc(s.system.replace("_", " "))}</h3>
+      <div class="tbl"><table><thead><tr><th>Scheme</th><th style="text-align:left">Grid (bay spacing)</th><th>Columns</th><th>Max depth, in</th><th>Steel, tons</th><th>Cost, $/sf</th><th>kgCO₂e/sf</th></tr></thead>
+      <tbody>${gravRow(s, "Best")}${(s.alternates || []).map((a, i) => gravRow(a, "Alternate " + (i + 1))).join("")}</tbody></table></div>`;
+    const keys = Object.keys(typ);
+    if(keys.length) h += `<p class="small" style="margin:10px 0 4px">Bay framing, best scheme (count of bays):</p><ul class="plain">${keys.map(k => `<li>${esc(k)} (${typ[k]})</li>`).join("")}</ul>`;
+    if((s.warnings || []).length) h += `<details style="margin-top:8px"><summary class="small">${s.warnings.length} warning${s.warnings.length === 1 ? "" : "s"}</summary><ul class="plain">${s.warnings.map(w => `<li>${esc(w)}</li>`).join("")}</ul></details>`;
+  });
+  if((res.notes || []).length) h += `<p class="small" style="margin:12px 0 4px">Notes on what was sent:</p><ul class="plain">${res.notes.map(n => `<li>${esc(n)}</li>`).join("")}</ul>`;
+  $("gravOut").innerHTML = h;
+}
+$("gravRun").addEventListener("click", async () => {
+  const b = $("gravRun"); b.disabled = true; $("gravMsg").textContent = "Trying candidate grids…"; $("gravOut").innerHTML = "";
+  const n = id => { const v = parseFloat($(id).value); return isFinite(v) ? v : null; };
+  const constraints = {min_bay_ft: n("gvMinBay"), max_bay_ft: n("gvMaxBay"), min_ceiling_height_ft: n("gvCeil"), plenum_allowance_in: n("gvPlenum")};
+  Object.keys(constraints).forEach(k => { if(constraints[k] === null) delete constraints[k]; });
+  try{
+    const res = await post("/api/gravity", {state: window.BonesPad.state(), options: {constraints}});
+    $("gravMsg").textContent = ""; renderGravity(res);
+  }catch(e){ $("gravMsg").textContent = e.message; }
+  finally{ b.disabled = false; }
+});
 $("toPad").addEventListener("click", () => {
   if(!S.result || !window.BonesPad) return;
   if(!S.result.ready){ showErr(2, "Fix the checks marked ✕ before opening the drawing pad."); return; }
@@ -562,6 +616,7 @@ $("rebuild").addEventListener("click", async () => {
 });
 
 health();
+occupancies();
 })();
 </script>
 </body>

@@ -10,10 +10,11 @@ the files here are generated from it or checked against it by tests.
 | `sample_output.json` | The output for that input (spec section 3.1). |
 | `input.schema.json`, `output.schema.json` | JSON Schema for both, generated from `gravity/models.py` with `python -m gravity schema -o examples`. |
 
-> **The output values are placeholders.** `sample_output.json` comes from a stub that
-> returns the same canned steel scheme for every input. **Field names, nesting and units
-> are the contract; the numbers are not.** Every scheme's `warnings` list says so.
-> Real results replace the numbers without changing the shape.
+> **Steel results are real; costs are not.** `run()` now runs the full steel pipeline
+> (grids, bay study lookups, column sizing, scoring). Costs use the placeholder unit rates
+> in `config/costs.json`. Concrete and mass timber return no scheme yet, with a warning.
+> Regenerate `sample_output.json` after any engine change:
+> `python -m gravity run sample_input.json -o out/` then copy `out/output.json` over it.
 
 ## How to call it
 
@@ -58,10 +59,10 @@ back as strings in each scheme's `warnings` list, so there is always something t
 
 ## What may still change
 
-- `alternates`: will hold up to three runner-up schemes with the same shape as a scheme.
-  The stub returns an empty list.
-- `schemes`: the stub returns steel only; concrete and mass timber come later, in the
-  same shape.
+- `alternates`: up to three runner-up schemes with the same shape as a scheme (their own
+  `alternates` are empty).
+- `schemes`: steel only; concrete and mass timber come later, in the same shape.
+- `bays`: bays with no framing in the bay study are left out and named in `warnings`.
 - The coordinate convention above is pending confirmation.
 
 Any contract change is made in `gravity/models.py`, regenerates the schema files, and

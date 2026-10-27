@@ -37,7 +37,7 @@ class BayResult:
     framing: BayFraming | None  # None: infeasible
     allowable_depth_in: float
     area_sf: float
-    warnings: list[str] = field(default_factory=list)
+    warnings: list[str] = field(default_factory=list[str])
 
     @property
     def feasible(self) -> bool:
@@ -131,7 +131,8 @@ def evaluate(
         allow = allowable_depth_in(inp, level)
         use = "roof" if zone_map.levels[level].role == ROOF else "floor"
         for rect in rects:
-            results.append(_evaluate_bay(inp, zone_map, level, use, rect, allow, system, cache))
+            results.append(_evaluate_bay(inp, zone_map, level,
+                           use, rect, allow, system, cache))
     return CandidateResult(grid_layout, results)
 
 
@@ -142,7 +143,8 @@ def evaluate_all(
     zone_map = resolve_zones(inp)
     grids, grid_warnings = generate_grids(inp, system=system)
     cache: dict = {}
-    results = [evaluate(inp, zone_map, layout(inp, zone_map, g), system, cache) for g in grids]
+    results = [evaluate(inp, zone_map, layout(
+        inp, zone_map, g), system, cache) for g in grids]
     return sorted(results, key=CandidateResult.rank_key), zone_map.warnings + grid_warnings
 
 
@@ -172,7 +174,8 @@ def _evaluate_bay(inp, zone_map, level, use, rect, allow, system, cache) -> BayR
     options = cache[key]
 
     if not options:
-        warnings.append(f"{tag}: {_infeasible_reason(system, use, rect, loads)}")
+        warnings.append(
+            f"{tag}: {_infeasible_reason(system, use, rect, loads)}")
         return BayResult(level, rect, loads, None, allow, area, warnings)
 
     framing = _choose(options, allow, inp.objective_weights)
@@ -215,7 +218,8 @@ def _infeasible_reason(system, use, rect, loads: BayLoads) -> str:
     beams, girders = db_adapter.available_spans(system, use)
     lls, _ = db_adapter.available_loads(system, use)
     sx, sy = rect.span_x_ft, rect.span_y_ft
-    fits = (sx <= max(beams) and sy <= max(girders)) or (sy <= max(beams) and sx <= max(girders))
+    fits = (sx <= max(beams) and sy <= max(girders)) or (
+        sy <= max(beams) and sx <= max(girders))
     spans = f"{sx:g} x {sy:g} ft"
     if not fits:
         return (
