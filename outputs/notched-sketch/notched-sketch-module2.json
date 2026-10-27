@@ -1,0 +1,63 @@
+{
+  "project": "notched-sketch",
+  "n": 1,
+  "levels": [
+    {
+      "name": "",
+      "h": 12.0,
+      "psf": 150,
+      "la": false
+    }
+  ],
+  "plan": {
+    "verts": [
+      [
+        0.0,
+        0.0
+      ],
+      [
+        500.0,
+        0.0
+      ],
+      [
+        500.0,
+        100.0
+      ],
+      [
+        300.0,
+        100.0
+      ],
+      [
+        300.0,
+        200.0
+      ],
+      [
+        0.0,
+        200.0
+      ]
+    ],
+    "closed": true,
+    "grid": 1,
+    "lfrs": []
+  },
+  "bones": {
+    "source": {
+      "image": "notched-sketch.png",
+      "image_size_px": [
+        1542,
+        1026
+      ],
+      "read": "2026-10-27",
+      "model": "read by hand in chat (example)"
+    },
+    "area_sf": 80000.0,
+    "grids": {
+      "x": [],
+      "y": []
+    },
+    "columns": [],
+    "cores": [],
+    "warnings": [],
+    "snow": null
+  }
+}

@@ -17,6 +17,11 @@ the files here are generated from it or checked against it by tests.
 > grid, bay framing from the bay study, sized columns, loads, seismic weights and totals.
 > Unit costs in `config/costs.json` are placeholders until an estimator checks them, and
 > every scheme's `warnings` says so.
+> **Steel results are real; costs are not.** `run()` now runs the full steel pipeline
+> (grids, bay study lookups, column sizing, scoring). Costs use the placeholder unit rates
+> in `config/costs.json`. Concrete and mass timber return no scheme yet, with a warning.
+> Regenerate `sample_output.json` after any engine change:
+> `python -m gravity run sample_input.json -o out/` then copy `out/output.json` over it.
 
 ## How to call it
 
@@ -77,6 +82,10 @@ back as strings in each scheme's `warnings` list, so there is always something t
 
 ## What may still change
 
+- `alternates`: up to three runner-up schemes with the same shape as a scheme (their own
+  `alternates` are empty).
+- `schemes`: steel only; concrete and mass timber come later, in the same shape.
+- `bays`: bays with no framing in the bay study are left out and named in `warnings`.
 - The coordinate convention above is pending confirmation.
 
 Any contract change is made in `gravity/models.py`, regenerates the schema files, and

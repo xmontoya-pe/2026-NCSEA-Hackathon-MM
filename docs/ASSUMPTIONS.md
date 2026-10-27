@@ -131,6 +131,28 @@ Loads, LL reduction, combinations and seismic weight are the same as COL-1 to CO
 | O-7 | A concrete scheme's first warning names its structural system and DB system, e.g. `Concrete system: PT flat plate (CONC_PT_FP)`; the output contract has no field for it. | Contract unchanged |
 
 ## Concrete
+## Output (`gravity/optimizer.py`)
+
+| # | Assumption | Source |
+|---|---|---|
+| OUT-1 | `clear_height_ft` at a framed level = floor-to-floor height of the story below − (deepest framing at that level + `plenum_allowance_in`) / 12. | Spec 4.4 (same depth budget) |
+| OUT-2 | Bays with no DB framing are left out of `bays` (the contract requires `framing`); each one keeps its own warning, and a summary warning gives the count. | Contract (`models.Bay`) |
+| OUT-3 | `foundation_reactions` are the service loads of each column's bottom segment: D (with column self-weight), L **reduced** per COL-5, Lr reduced, S. | Spec 3.1 |
+| OUT-4 | `quantities.steel_tons` = framing (DB `steel_psf` × bay area / 2000) + columns (COL-12). `concrete_cy` is the slab concrete on deck from the DB. Deck, studs and connections are in cost only. | C-1, C-3 |
+| OUT-5 | A requested system that is not built yet (concrete, mass timber) returns no scheme; every returned scheme carries a warning naming it. | Spec 1 (warnings, not errors) |
+
+## Front end integration (`bones_service/gravity_bridge.py`)
+
+| # | Assumption | Source |
+|---|---|---|
+| INT-1 | The pad's levels are the elevated levels (cumulative `h`). Gravity gets `L1` at elevation 0 (slab on grade, story height = the first pad level's `h`), then `L2`, `L3`, … for the pad levels, the top one named `ROOF`. | Pad file format |
+| INT-2 | Each load area with an occupancy chosen in the loads table becomes one zone per rectangle on its level. Areas with no occupancy are not sent, so gravity applies `default_occupancy` there (with its warning). Roof areas are not sent: the roof is `roof` occupancy. | User decision: occupancy dropdown |
+| INT-3 | The LL and SDL typed in the loads table are not sent. LL, partitions, reducibility and vibration criterion come from the occupancy; SDL from `config/sdl.json`. | User decision: no contract change |
+| INT-4 | Roof snow p_f from the hazard panel is not sent; gravity reads `settings.flat_roof_snow_psf` from `config/occupancies.json` (0 with a warning when null). | No contract change |
+| INT-5 | `typical_zones_apply_to_all_levels` is false (the pad copies load areas explicitly). `dimension_lines` are the sketch's grid lines plus the outline extents, or the outline's vertex coordinates when no grid was read. No `no_columns` zones are sent (the pad has no way to draw one yet). | Pad file format |
+| INT-6 | `constraints` (min/max bay, min ceiling height, plenum) come from the gravity card, with the spec 2.1 example values as defaults; `objective_weights` and `systems` use the spec 2.1 defaults (`steel` only). | Spec 2.1 |
+
+## Concrete (when built)
 
 | # | Assumption | Decision |
 |---|---|---|

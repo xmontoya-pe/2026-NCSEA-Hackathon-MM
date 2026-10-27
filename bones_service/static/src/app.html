@@ -120,6 +120,30 @@ ul.plain{margin:6px 0 0;padding-left:18px;font-size:13.5px;color:var(--muted)}
 .lines li{display:flex;justify-content:space-between;gap:12px;font-size:14px;padding:6px 10px;border-radius:8px;background:#F7F7F5}
 .lines li span:last-child{font-weight:600;color:var(--wine)}
 #s3 > .row h2{margin:0 0 10px;font-size:17px}
+#wallDlg{border:1px solid var(--line);border-radius:16px;padding:20px 24px;width:min(420px,calc(100vw - 32px));color:var(--ink);box-shadow:0 20px 60px rgba(14,14,16,.25)}
+#wallDlg::backdrop{background:rgba(14,14,16,.35)}
+#wallDlg h2{margin:0 0 6px;font-size:17px;font-weight:600}
+#wallDlg .small{margin:0 0 12px}
+.dlg-btns{display:flex;gap:10px;margin-top:16px}
+
+.sys-basis{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px}
+.sys-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin-top:20px}
+.sys-card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:20px;display:flex;flex-direction:column;gap:12px}
+.sys-card.on{border-color:var(--wine);box-shadow:0 0 0 1px var(--wine)}
+.sys-card h3{margin:0;font-size:16px;font-weight:600;line-height:1.3}
+.sys-top{display:flex;justify-content:space-between;align-items:center;gap:8px;min-height:22px}
+.sys-mat{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--wine)}
+.badge{font-size:11.5px;font-weight:600;padding:2px 8px;border-radius:999px;background:var(--wine-l);color:var(--wine)}
+.badge.ok{background:#E7F3EC;color:var(--ok)}
+.sys-big{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.sys-dl{margin:0;display:flex;flex-direction:column;gap:8px;font-size:13.5px}
+.sys-dl > div{display:grid;grid-template-columns:1fr auto;gap:3px 8px;align-items:baseline}
+.sys-dl dt{color:var(--muted)}
+.sys-dl dd{margin:0;font-weight:600;text-align:right}
+.bar{grid-column:1 / -1;height:4px;border-radius:2px;background:#ECECE8;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--wine)}
+.sys-card .btn{margin-top:auto}
+@media (max-width:1000px){.sys-grid{grid-template-columns:1fr}.sys-basis{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media (max-width:640px){header,nav{padding-left:16px;padding-right:16px} main{padding:24px 16px 48px} h1{font-size:28px} .b-stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
 </style>
 <!--PAD_CSS-->
@@ -137,7 +161,7 @@ ul.plain{margin:6px 0 0;padding-left:18px;font-size:13.5px;color:var(--muted)}
   <button class="step" id="nav1" type="button" aria-current="step"><i>1</i>Sketch</button>
   <button class="step later" id="nav2" type="button" disabled><i>2</i>Plan and 3D</button>
   <button class="step later" id="nav3" type="button" disabled><i>3</i>Drawing pad and loads</button>
-  <span class="step later"><i>4</i>Analysis</span>
+  <button class="step later" id="nav4" type="button" disabled><i>4</i>Structural system</button>
   <span class="step later"><i>5</i>Client view</span>
 </nav>
 
@@ -234,7 +258,7 @@ ul.plain{margin:6px 0 0;padding-left:18px;font-size:13.5px;color:var(--muted)}
           <h2>Hand-off</h2>
           <button class="btn b-primary" id="toPad" type="button" style="width:100%">Open in the drawing pad</button>
           <a class="btn ghost b-sm" id="dlM2" style="width:100%;margin-top:10px">Download Module 2 file</a>
-          <p class="small" style="margin:8px 0 0">Add braced frames and load areas next. The file also opens in the ELF app with <b>Open…</b>.</p>
+          <p class="small" style="margin:8px 0 0">Add lines of resistance and load areas next. The file also opens in the ELF app with <b>Open…</b>.</p>
           <div class="files" id="files"></div>
         </div>
         <button class="btn ghost" id="back" type="button">Read another sketch</button>
@@ -245,7 +269,7 @@ ul.plain{margin:6px 0 0;padding-left:18px;font-size:13.5px;color:var(--muted)}
   <!-- STEP 3 -->
   <section id="s3" hidden>
     <h1>Lateral system, loads and hazards</h1>
-    <p class="lede">Pull the site hazards, draw braced frames and load areas, and set LL, SDL and SL for each area. Everything is saved in this browser as you go.</p>
+    <p class="lede">Pull the site hazards, draw lines of resistance and load areas, and set LL, SDL and SL for each area. Everything is saved in this browser as you go.</p>
     <div class="row" style="margin-bottom:20px">
       <div class="b-card grow" style="flex-basis:620px" id="hazCard">
         <div class="headrow"><h2>Site hazards, ASCE 7</h2><a class="small" href="https://ascehazardtool.org/" target="_blank" rel="noopener">Open the ASCE Hazard Tool</a></div>
@@ -276,7 +300,7 @@ ul.plain{margin:6px 0 0;padding-left:18px;font-size:13.5px;color:var(--muted)}
       <aside class="side">
         <div class="b-card">
           <h2>Project file</h2>
-          <p class="small" style="margin:0 0 12px">The same file the ELF app opens, with your frames and load areas.</p>
+          <p class="small" style="margin:0 0 12px">The same file the ELF app opens, with your lines of resistance and load areas.</p>
           <div style="display:flex;gap:10px;flex-wrap:wrap">
             <button class="btn b-primary" id="btnSave" type="button" style="flex:1;white-space:nowrap">Download file</button>
             <button class="btn ghost" id="btnOpen" type="button" style="flex:1">Open…</button>
@@ -284,9 +308,15 @@ ul.plain{margin:6px 0 0;padding-left:18px;font-size:13.5px;color:var(--muted)}
           </div>
         </div>
         <div class="b-card">
+          <h2>Lateral system</h2>
+          <div class="b-seg" role="group" aria-label="Lateral system"><button type="button" data-sys="braced_frame" aria-pressed="true">Steel braced frames</button><button type="button" data-sys="shear_wall" aria-pressed="false">Concrete shear walls</button></div>
+          <p class="small" style="margin:8px 0 0">Shear walls: each wall you draw asks for its thickness. R, C<sub>d</sub>, f′c and the other wall inputs go with the analysis request.</p>
+        </div>
+        <div class="b-card">
           <h2>Lines of resistance</h2>
           <div id="bonesLines" class="lines"></div>
         </div>
+        <button class="btn b-primary" id="toSys" type="button">Compare structural systems</button>
         <button class="btn ghost" id="back3" type="button">Back to the plan</button>
       </aside>
     </div>
@@ -297,6 +327,50 @@ ul.plain{margin:6px 0 0;padding-left:18px;font-size:13.5px;color:var(--muted)}
         <button class="btn ghost b-sm" id="copyLoads" type="button">Copy to every floor level</button></div>
       <p class="small" style="margin:-4px 0 12px">One row per load area on the pad. Change the level with the pad’s <b>Level</b> menu.</p>
       <div id="bonesLoads"></div>
+    </div>
+    <div class="b-card" style="margin-top:20px" id="gravCard">
+      <div class="headrow"><h2>Gravity framing: best bay sizes</h2>
+        <button class="btn b-primary b-sm" id="gravRun" type="button">Find bay sizes</button></div>
+      <p class="small" style="margin:-4px 0 12px">Sends the outline, stories and each load area’s occupancy to the gravity optimizer, which tries candidate grids against the bay study and sizes the columns. Steel only for now; costs are placeholder rates.</p>
+      <div class="hz-grid">
+        <label class="f">Min bay (ft)<input id="gvMinBay" inputmode="decimal" value="20"></label>
+        <label class="f">Max bay (ft)<input id="gvMaxBay" inputmode="decimal" value="45"></label>
+        <label class="f">Min ceiling height (ft)<input id="gvCeil" inputmode="decimal" value="9"></label>
+        <label class="f">Plenum (in)<input id="gvPlenum" inputmode="decimal" value="18"></label>
+      </div>
+      <p class="small" id="gravMsg" style="margin:10px 0 0"></p>
+      <div id="gravOut"></div>
+    </div>
+    <dialog id="wallDlg" aria-labelledby="wallDlgH">
+      <form method="dialog">
+        <h2 id="wallDlgH">Wall thickness</h2>
+        <p class="small" id="wallDlgMsg"></p>
+        <label class="f">Thickness (in)<input id="wallDlgIn" type="number" inputmode="decimal" min="1" step="0.5" required></label>
+        <div class="dlg-btns"><button class="btn b-primary b-sm" value="ok">Set thickness</button><button class="btn ghost b-sm" type="button" id="wallDlgKeep">Keep</button></div>
+      </form>
+    </dialog>
+  </section>
+
+  <!-- STEP 4 -->
+  <section id="s4" hidden>
+    <h1>Structural system</h1>
+    <p class="lede">Compare steel, concrete and wood for this building, then choose one. The plan, stories and site hazards come from the earlier steps.</p>
+    <div class="b-card">
+      <div class="headrow"><h2>Basis</h2><span class="small" id="sysSrc"></span></div>
+      <div class="sys-basis" id="sysBasis"></div>
+    </div>
+    <div class="sys-grid" id="sysCards"></div>
+    <p class="small" style="margin:12px 0 0">R, Ω<sub>0</sub>, C<sub>d</sub> and height limits: ASCE 7-22 Table 12.2-1. V = C<sub>s</sub>W, with T<sub>a</sub> = 0.02 h<sub>n</sub><sup>0.75</sup> (Eq. 12.8-7). Self-weight, cost, schedule and carbon are placeholder values until Module 4 is in.</p>
+    <div class="row" style="margin-top:20px">
+      <div class="b-card grow"><h2>Chosen system</h2><div id="sysPicked"></div></div>
+      <aside class="side">
+        <div class="b-card">
+          <h2>Project file</h2>
+          <p class="small" style="margin:0 0 12px">The same file as step 3, now with the chosen system under <code>bones.material</code>.</p>
+          <button class="btn b-primary" id="sysSave" type="button" style="width:100%">Download file</button>
+        </div>
+        <button class="btn ghost" id="back4" type="button">Back to the drawing pad</button>
+      </aside>
     </div>
   </section>
 </main>
@@ -362,16 +436,12 @@ $("example").addEventListener("click", async () => {
 
 /* ---------- navigation ---------- */
 function go(n){
-  $("s1").hidden = n !== 1; $("s2").hidden = n !== 2; $("s3").hidden = n !== 3;
-  $("nav3").setAttribute("aria-current", n === 3 ? "step" : "false");
-  $("nav3").className = "step" + (S.padOpen ? (n === 3 ? "" : " done") : " later");
-  $("nav3").disabled = !S.padOpen;
-  if(n === 3 && window.BonesPad) requestAnimationFrame(() => window.BonesPad.fit());
-  $("nav1").setAttribute("aria-current", n === 1 ? "step" : "false");
-  $("nav2").setAttribute("aria-current", n === 2 ? "step" : "false");
+  const open = {2: !!S.result, 3: !!S.padOpen, 4: !!S.sysOpen};
+  [1, 2, 3, 4].forEach(i => { $("s" + i).hidden = n !== i; $("nav" + i).setAttribute("aria-current", n === i ? "step" : "false"); });
   $("nav1").className = "step" + (n >= 2 ? " done" : "");
-  $("nav2").className = "step" + (S.result ? (n === 2 ? "" : n === 3 ? " done" : " done") : " later");
-  $("nav2").disabled = !S.result;
+  [2, 3, 4].forEach(i => { $("nav" + i).disabled = !open[i]; $("nav" + i).className = "step" + (!open[i] ? " later" : n === i ? "" : " done"); });
+  if(n === 3 && window.BonesPad) requestAnimationFrame(() => window.BonesPad.fit());
+  if(n === 4) sysRender();
   window.scrollTo(0, 0);
 }
 $("nav1").addEventListener("click", () => go(1));
@@ -379,6 +449,88 @@ $("nav2").addEventListener("click", () => S.result && go(2));
 $("back").addEventListener("click", () => go(1));
 $("nav3").addEventListener("click", () => S.padOpen && go(3));
 $("back3").addEventListener("click", () => go(2));
+$("nav4").addEventListener("click", () => S.sysOpen && go(4));
+$("toSys").addEventListener("click", () => { S.sysOpen = true; go(4); });
+$("back4").addEventListener("click", () => go(3));
+
+/* ---------- step 4: structural system (stand-in for module 4) ---------- */
+// R, Ω0, Cd, row and height limits (ft, by SDC; absent = not limited) are ASCE 7-22 Table 12.2-1.
+// psf (self-weight), cost ($/sf), weeks per floor and carbon (kg CO2e/m²) are placeholders until module 4 is in.
+const SYSTEMS = [
+  {key: "steel", short: "Steel", name: "Steel special concentrically braced frames", row: "B.2", R: 6, O: 2, Cd: 5,
+   limit: {D: 160, E: 160, F: 100}, psf: 85, cost: 42, wk: 1.5, carbon: 180,
+   note: "Light and quick to erect, with open bays between frames. Needs fireproofing and detailed brace connections."},
+  {key: "concrete", short: "Concrete", name: "Special reinforced concrete shear walls", row: "B.4", R: 6, O: 2.5, Cd: 5,
+   limit: {D: 160, E: 160, F: 100}, psf: 150, cost: 36, wk: 2.5, carbon: 260,
+   note: "Stiff walls with fire rating built in. The heaviest option, so the seismic weight and foundations go up."},
+  {key: "wood", short: "Wood", name: "Light-frame wood walls sheathed with wood structural panels", row: "A.15", R: 6.5, O: 3, Cd: 4,
+   limit: {D: 65, E: 65, F: 65}, psf: 30, cost: 26, wk: 1, carbon: 90, maxStories: 5,
+   note: "The lightest and lowest-carbon option, with many short shear walls. Limited in height and story count."}
+];
+function sdcOf(sds, sd1, rc){   // ASCE 7 Tables 11.6-1 and 11.6-2
+  const iv = rc === "IV", cat = (v, l) => v < l[0] ? "A" : v < l[1] ? (iv ? "C" : "B") : v < l[2] ? (iv ? "D" : "C") : "D";
+  return [cat(sds, [0.167, 0.33, 0.5]), cat(sd1, [0.067, 0.133, 0.2])].sort().pop();
+}
+function sysBasis(){
+  const P = window.BonesPad.state(), h = window.BonesPad.bones().hazard || {}, v = h.values || {}, V = P.plan.verts || [];
+  let A = 0; V.forEach((p, i) => { const q = V[(i + 1) % V.length]; A += p[0] * q[1] - q[0] * p[1]; });
+  const hs = (P.levels || []).map(L => +L.h).filter(isFinite), has = v.sds != null && v.sd1 != null;
+  const sds = has ? +v.sds : 1.0, sd1 = has ? +v.sd1 : 0.6, rc = (h.query || {}).risk_category || "II";
+  return {A: Math.abs(A) / 2, n: hs.length, hn: hs.length ? Math.max(...hs) : 0, sds, sd1, ie: +v.ie || 1.0, rc, has,
+          sdc: (has && v.sdc ? String(v.sdc).toUpperCase() : sdcOf(sds, sd1, rc))};
+}
+function sysCalc(s, b){
+  const W = b.A * b.n * s.psf / 1000, Ta = 0.02 * Math.pow(b.hn, 0.75), RI = s.R / b.ie;
+  const Cs = Math.max(Math.min(b.sds / RI, Ta > 0 ? b.sd1 / (Ta * RI) : Infinity), 0.044 * b.sds * b.ie, 0.01);
+  const lim = s.limit[b.sdc], why = [], sf = b.A * b.n;
+  if(lim != null && b.hn > lim) why.push(`${fmt(b.hn, 0)} ft is over the ${lim} ft height limit for SDC ${b.sdc}.`);
+  if(s.maxStories && b.n > s.maxStories) why.push(`${b.n} stories is more than light-frame wood usually allows (about ${s.maxStories}).`);
+  return Object.assign({}, s, {W, Ta, Cs, V: Cs * W, lim, why, allowed: !why.length,
+    total: sf * s.cost, weeks: b.n * s.wk, tCO2: sf * 0.0929 * s.carbon / 1000});
+}
+const money = v => "$" + (v >= 1e6 ? (v / 1e6).toFixed(1) + "M" : Math.round(v / 1e3) + "k");
+function sysRender(){
+  if(!window.BonesPad) return;
+  const b = sysBasis(), chosen = (window.BonesPad.bones().material || {}).key, rows = SYSTEMS.map(s => sysCalc(s, b));
+  const ok = rows.filter(r => r.allowed), best = ok.length ? ok.reduce((p, q) => q.total < p.total ? q : p) : null;
+  const greenest = ok.length ? ok.reduce((p, q) => q.tCO2 < p.tCO2 ? q : p) : null;
+  const max = k => Math.max(...rows.map(r => r[k])) || 1, bar = (r, k) => `<span class="bar"><i style="width:${(r[k] / max(k) * 100).toFixed(0)}%"></i></span>`;
+  const stat = (l, v) => `<div class="b-stat"><div>${l}</div><div>${v}</div></div>`;
+  $("sysBasis").innerHTML = stat("Floor area", fmt(b.A, 0) + " sf") + stat("Stories", b.n) + stat("Roof height h<sub>n</sub>", fmt(b.hn, 1) + " ft") +
+    stat("S<sub>DS</sub> / S<sub>D1</sub>", b.sds.toFixed(2) + " / " + b.sd1.toFixed(2)) + stat("SDC", b.sdc) + stat("I<sub>e</sub>, Risk Cat. " + esc(b.rc), b.ie.toFixed(2));
+  $("sysSrc").innerHTML = b.has ? "Site hazards from step 3" : '<span class="b-warn">No site hazards yet: S<sub>DS</sub> 1.0 and S<sub>D1</sub> 0.6 assumed. Pull them in step 3.</span>';
+  $("sysCards").innerHTML = rows.map(r => { const on = r.key === chosen;
+    const badges = (r === best ? '<span class="badge ok">Lowest cost</span>' : "") + (r === greenest && r !== best ? '<span class="badge ok">Lowest carbon</span>' : "") + (!r.allowed ? '<span class="badge">Not permitted</span>' : "");
+    return `<div class="sys-card${on ? " on" : ""}">
+      <div class="sys-top"><span class="sys-mat">${r.short}</span><span>${badges}</span></div>
+      <h3>${r.name}</h3>
+      <div class="sys-big">${stat("Base shear V", fmt(r.V, 0) + " k")}${stat("Seismic weight W", fmt(r.W, 0) + " k")}</div>
+      <dl class="sys-dl">
+        <div><dt>R / Ω<sub>0</sub> / C<sub>d</sub> <span class="muted">(Table 12.2-1, ${r.row})</span></dt><dd>${r.R} / ${r.O} / ${r.Cd}</dd></div>
+        <div><dt>C<sub>s</sub> at T<sub>a</sub> = ${r.Ta.toFixed(2)} s</dt><dd>${r.Cs.toFixed(3)}</dd>${bar(r, "V")}</div>
+        <div><dt>Height limit, SDC ${b.sdc}</dt><dd class="${r.lim != null && b.hn > r.lim ? "b-bad" : "b-good"}">${r.lim == null ? "Not limited" : r.lim + " ft"}</dd></div>
+        <div><dt>Self-weight</dt><dd>${r.psf} psf</dd></div>
+        <div><dt>Structure cost</dt><dd>${money(r.total)}</dd>${bar(r, "total")}</div>
+        <div><dt>Frame schedule</dt><dd>${fmt(r.weeks, 1)} weeks</dd>${bar(r, "weeks")}</div>
+        <div><dt>Embodied carbon</dt><dd>${fmt(r.tCO2, 0)} t CO<sub>2</sub>e</dd>${bar(r, "tCO2")}</div>
+      </dl>
+      ${r.allowed ? `<p class="small" style="margin:0">${r.note}</p>` : `<p class="small b-bad" style="margin:0">${r.why.join(" ")}</p>`}
+      <button class="btn ${on ? "black" : "b-primary"} b-sm" type="button" data-sys="${r.key}"${r.allowed ? "" : " disabled"}>${on ? "Chosen" : "Choose " + r.short.toLowerCase()}</button>
+    </div>`; }).join("");
+  const c = rows.find(r => r.key === chosen);
+  $("sysPicked").innerHTML = c
+    ? `<p style="margin:0 0 6px"><b>${c.name}</b>${c.allowed ? "" : ' <span class="b-bad">(no longer permitted for this building)</span>'}</p>
+       <p class="small" style="margin:0">R = ${c.R}, Ω<sub>0</sub> = ${c.O}, C<sub>d</sub> = ${c.Cd}. C<sub>s</sub> = ${c.Cs.toFixed(3)}, W = ${fmt(c.W, 0)} k, V = ${fmt(c.V, 0)} k. Saved in the project file.</p>`
+    : '<p class="small" style="margin:0">None yet. Choose one of the three systems above.</p>';
+}
+$("sysCards").addEventListener("click", e => {
+  const btn = e.target.closest("[data-sys]"); if(!btn || btn.disabled) return;
+  const r = sysCalc(SYSTEMS.find(s => s.key === btn.dataset.sys), sysBasis()), r3 = v => Math.round(v * 1000) / 1000;
+  window.BonesPad.setMaterial({key: r.key, material: r.short, system: r.name, table_12_2_1: r.row, R: r.R, omega0: r.O, Cd: r.Cd,
+    self_weight_psf: r.psf, Ta_s: r3(r.Ta), Cs: r3(r.Cs), W_kips: Math.round(r.W), V_kips: Math.round(r.V), placeholder: true});
+  sysRender();
+});
+$("sysSave").addEventListener("click", () => $("btnSave").click());
 /* ---------- step 3: site hazards and snow ---------- */
 const hz = id => $(id);
 function hzFill(){
@@ -441,6 +593,47 @@ $("hzPull").addEventListener("click", async () => {
     const h = {address: $("hzAddr").value.trim(), query: r.query, values: Object.assign({}, v), sources: s, messages: r.messages};
     window.BonesPad.setHazard(h); pfPreview();
   }catch(e){ $("hzMsg").textContent = e.message; }
+  finally{ b.disabled = false; }
+});
+/* ---------- step 3: gravity framing ---------- */
+async function occupancies(){
+  try{ const r = await fetch("/api/occupancies"); const j = await r.json(); window.BonesOccupancies = j.occupancies || []; }
+  catch(e){ window.BonesOccupancies = []; }
+  if(window.BonesPad && window.BonesPad.renderLoads) window.BonesPad.renderLoads();
+}
+const spans = xs => { const d = xs.slice(1).map((x, i) => +(x - xs[i]).toFixed(2)), out = [];
+  d.forEach(v => { const last = out[out.length-1]; if(last && last[0] === v) last[1]++; else out.push([v, 1]); });
+  return out.map(([v, n]) => n > 1 ? `${fmt(v, 2)}′ × ${n}` : `${fmt(v, 2)}′`).join(" + "); };
+function gravRow(s, label){
+  const t = s.totals, cols = (s.columns || []).length;
+  return `<tr><th scope="row">${esc(label)}</th><td style="text-align:left">X: ${spans(s.grid.x_ft)}<br>Y: ${spans(s.grid.y_ft)}</td>
+    <td>${cols}</td><td>${fmt(t.max_depth_in, 1)}</td><td>${fmt(s.quantities.steel_tons, 1)}</td><td>$${fmt(t.cost_per_sf, 2)}</td><td>${fmt(t.carbon_per_sf, 2)}</td></tr>`;
+}
+function renderGravity(res){
+  const out = res.output || {}, schemes = out.schemes || [];
+  if(!schemes.length){ $("gravOut").innerHTML = `<p class="small">No scheme came back. ${esc((res.notes || []).join(" "))}</p>`; return; }
+  let h = "";
+  schemes.forEach(s => {
+    const typ = {}; (s.bays || []).forEach(b => { const k = `${b.level}: ${fmt(b.span_x_ft, 2)}′ × ${fmt(b.span_y_ft, 2)}′, ${b.framing.beam}, girder ${b.framing.girder}, ${fmt(b.framing.depth_in, 1)} in`; typ[k] = (typ[k] || 0) + 1; });
+    h += `<h3 style="margin:16px 0 6px;font-size:15px">${esc(s.system.replace("_", " "))}</h3>
+      <div class="tbl"><table><thead><tr><th>Scheme</th><th style="text-align:left">Grid (bay spacing)</th><th>Columns</th><th>Max depth, in</th><th>Steel, tons</th><th>Cost, $/sf</th><th>kgCO₂e/sf</th></tr></thead>
+      <tbody>${gravRow(s, "Best")}${(s.alternates || []).map((a, i) => gravRow(a, "Alternate " + (i + 1))).join("")}</tbody></table></div>`;
+    const keys = Object.keys(typ);
+    if(keys.length) h += `<p class="small" style="margin:10px 0 4px">Bay framing, best scheme (count of bays):</p><ul class="plain">${keys.map(k => `<li>${esc(k)} (${typ[k]})</li>`).join("")}</ul>`;
+    if((s.warnings || []).length) h += `<details style="margin-top:8px"><summary class="small">${s.warnings.length} warning${s.warnings.length === 1 ? "" : "s"}</summary><ul class="plain">${s.warnings.map(w => `<li>${esc(w)}</li>`).join("")}</ul></details>`;
+  });
+  if((res.notes || []).length) h += `<p class="small" style="margin:12px 0 4px">Notes on what was sent:</p><ul class="plain">${res.notes.map(n => `<li>${esc(n)}</li>`).join("")}</ul>`;
+  $("gravOut").innerHTML = h;
+}
+$("gravRun").addEventListener("click", async () => {
+  const b = $("gravRun"); b.disabled = true; $("gravMsg").textContent = "Trying candidate grids…"; $("gravOut").innerHTML = "";
+  const n = id => { const v = parseFloat($(id).value); return isFinite(v) ? v : null; };
+  const constraints = {min_bay_ft: n("gvMinBay"), max_bay_ft: n("gvMaxBay"), min_ceiling_height_ft: n("gvCeil"), plenum_allowance_in: n("gvPlenum")};
+  Object.keys(constraints).forEach(k => { if(constraints[k] === null) delete constraints[k]; });
+  try{
+    const res = await post("/api/gravity", {state: window.BonesPad.state(), options: {constraints}});
+    $("gravMsg").textContent = ""; renderGravity(res);
+  }catch(e){ $("gravMsg").textContent = e.message; }
   finally{ b.disabled = false; }
 });
 $("toPad").addEventListener("click", () => {
@@ -541,7 +734,7 @@ function renderFound(){
     (u !== "ft" ? `<p class="small" style="margin:6px 0 0">Written in ${esc(u)}; the plan is converted to feet.</p>` : "") + `</div>`;
   h += `<div class="item"><div class="t">Stories <span class="${lvSrc === "sketch" || lvSrc === "entered" ? "b-good" : "warn"}">${lvSrc === "sketch" ? "from the sketch" : lvSrc === "entered" ? "entered" : "not on the sketch"}</span></div><div class="small">${m2.n} at ${fmt(m2.levels[0].h, 2)} ft. ${lvSrc.startsWith("default") ? "Set the real values in Stories below." : ""}</div></div>`;
   h += `<div class="item"><div class="t">Grid, columns and cores <span class="small">${nG + (B.columns||[]).length + (B.cores||[]).length ? "found" : "none drawn"}</span></div><div class="small">${nG} grid line${nG === 1 ? "" : "s"}, ${(B.columns||[]).length} column${(B.columns||[]).length === 1 ? "" : "s"}, ${(B.cores||[]).length} core${(B.cores||[]).length === 1 ? "" : "s"}.</div></div>`;
-  h += `<div class="item"><div class="t">Braced frames <span class="small">added later</span></div><div class="small">The reader does not look for frames. Draw them in the drawing pad.</div></div>`;
+  h += `<div class="item"><div class="t">Lines of resistance <span class="small">added later</span></div><div class="small">The reader does not look for walls or frames. Draw them in the drawing pad.</div></div>`;
   const notes = (P.warnings||[]).concat(res.changes||[]);
   if(notes.length) h += `<div class="item"><div class="t">Notes</div><ul class="plain">${notes.map(n => `<li>${esc(n)}</li>`).join("")}</ul></div>`;
   $("found").innerHTML = h;
@@ -562,6 +755,7 @@ $("rebuild").addEventListener("click", async () => {
 });
 
 health();
+occupancies();
 })();
 </script>
 </body>

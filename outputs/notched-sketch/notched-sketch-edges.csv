@@ -1,0 +1,7 @@
+edge,start,end,x1,y1,x2,y2,dx,dy,length,angle_deg,orientation,faces,normal_x,normal_y,dimension,length_source
+E1,C1,C2,0.0,200.0,300.0,200.0,300.0,0.0,300.0,0.0,horizontal,north,0.0,1.0,D1,written
+E2,C2,C3,300.0,200.0,300.0,100.0,0.0,-100.0,100.0,270.0,vertical,east,1.0,0.0,D5,same span as D5
+E3,C3,C4,300.0,100.0,500.0,100.0,200.0,0.0,200.0,0.0,horizontal,north,0.0,1.0,D2,same span as D2
+E4,C4,C5,500.0,100.0,500.0,0.0,0.0,-100.0,100.0,270.0,vertical,east,1.0,0.0,D6,written
+E5,C5,C6,500.0,0.0,0.0,0.0,-500.0,0.0,500.0,180.0,horizontal,south,0.0,-1.0,D3,written
+E6,C6,C1,0.0,0.0,0.0,200.0,0.0,200.0,200.0,90.0,vertical,west,-1.0,0.0,D4,written

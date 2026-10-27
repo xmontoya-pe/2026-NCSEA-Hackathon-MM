@@ -1,0 +1,80 @@
+SKETCH PLAN SUMMARY
+===================
+Source:  notched-sketch.png  (1542 x 1026 px)
+Read on: 2026-10-27  with read by hand in chat (example)
+Units:   ft; areas in ft2
+Origin:  lower-left of the plan; +x = east (right), +y = north (up)
+Shape:   6 corners, 500 x 200 ft overall
+
+1. DIMENSIONS WRITTEN ON THE SKETCH
+-----------------------------------
+ID   Written   Value (ft)   Direction    Solved   Check   Measures between
+D1   300'      300          horizontal   300      OK      C1 to C2, x 0 to 300 at y = 200
+D2   200'      200          horizontal   200      OK      x 300 to 500 at y = 200
+D3   500'      500          horizontal   500      OK      C6 to C5, x 0 to 500 at y = 0
+D4   200'      200          vertical     200      OK      C6 to C1, y 0 to 200 at x = 0
+D5   100'      100          vertical     100      OK      y 100 to 200 at x = 500
+D6   100'      100          vertical     100      OK      C5 to C4, y 0 to 100 at x = 500
+
+All dimensions agree with each other.
+
+2. CORNERS (VERTICES)
+---------------------
+ID   x (ft)   y (ft)   x (m)   y (m)   Corner type   Sketch position (px)
+C1   0        200      0       60.96   convex        (432, 345)
+C2   300      200      91.44   60.96   convex        (770, 345)
+C3   300      100      91.44   30.48   re-entrant    (780, 492)
+C4   500      100      152.4   30.48   convex        (1062, 478)
+C5   500      0        152.4   0       convex        (1075, 775)
+C6   0        0        0       0       convex        (452, 782)
+
+Outline order: C1 > C2 > C3 > C4 > C5 > C6 > back to C1 (clockwise)
+
+3. EDGES (LINES AS VECTORS)
+---------------------------
+ID   From > To   Start        End          Vector (dx, dy)   Unit vector   Outward normal   Length (ft)   Length (m)   Angle   Faces   Length set by
+E1   C1 > C2     (0, 200)     (300, 200)   (300, 0)          (1, 0)        (0, 1)           300           91.44        0°      north   D1 300' (written)
+E2   C2 > C3     (300, 200)   (300, 100)   (0, -100)         (0, -1)       (1, 0)           100           30.48        270°    east    D5 100' (same span as D5)
+E3   C3 > C4     (300, 100)   (500, 100)   (200, 0)          (1, 0)        (0, 1)           200           60.96        0°      north   D2 200' (same span as D2)
+E4   C4 > C5     (500, 100)   (500, 0)     (0, -100)         (0, -1)       (1, 0)           100           30.48        270°    east    D6 100' (written)
+E5   C5 > C6     (500, 0)     (0, 0)       (-500, 0)         (-1, 0)       (0, -1)          500           152.4        180°    south   D3 500' (written)
+E6   C6 > C1     (0, 0)       (0, 200)     (0, 200)          (0, 1)        (-1, 0)          200           60.96        90°     west    D4 200' (written)
+
+Midpoints: E1 (150, 200)  E2 (300, 150)  E3 (400, 100)  E4 (500, 50)  E5 (250, 0)  E6 (0, 100)
+
+4. FLOOR PLATE PROPERTIES
+-------------------------
+Floor area               80,000 ft2          (7,432.2 m2)
+Perimeter                1,400 ft            (426.72 m)
+Bounding box             500 x 200 ft        (x 0 to 500, y 0 to 200)
+Bounding box area        100,000 ft2
+Fill ratio               0.8                 (floor area / bounding box area)
+Aspect ratio             2.5 : 1
+Centroid                 (212.5, 87.5) ft
+Ixx about centroid       254,166,667 ft4
+Iyy about centroid       1,454,166,667 ft4
+Ixy about centroid       -187,500,000 ft4
+Vertices / edges         6 / 6
+Re-entrant corners       C3
+Gross area, all levels   80,000 ft2          (1 level)
+
+5. LEVELS
+---------
+Storeys          1
+Storey height    12 ft
+Slab thickness   0.83 ft
+Total height     12 ft
+Source           default (not on the sketch)
+
+6. NOTES AND CHECKS
+-------------------
+- No column grid, columns or core were drawn.
+- The sketch is not to scale (drawn scale varies 2.6x between dimensions). All coordinates come from the written dimensions, not the drawn proportions:
+      Dim   Written   Drawn    Drawn scale
+      D1    300'      338 px   1.13 px/ft
+      D2    200'      305 px   1.52 px/ft
+      D3    500'      623 px   1.25 px/ft
+      D4    200'      437 px   2.18 px/ft
+      D5    100'      140 px   1.4 px/ft
+      D6    100'      290 px   2.9 px/ft
+- Corner pixel positions are a visual reading of the image and may be off by a few pixels; this does not change the dimensioned coordinates.

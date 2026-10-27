@@ -13,6 +13,22 @@ The Bones web UI (steps 1 and 2) in front of Sketch Reader. Sketch Reader's code
 
 Options: `--port 9000`, `--out C:\path\to\outputs`, `--host 0.0.0.0` to let colleagues on your network use it. The API key never leaves the server.
 
+### With the gravity optimizer (FastAPI)
+
+`bones_service/api.py` serves the same UI and routes on FastAPI and adds the gravity optimizer. `server.py` still works, but without gravity.
+
+1. `pip install -r requirements.txt` (adds `fastapi`, `uvicorn`, `httpx`).
+2. If you edited anything in `static/src/`, rebuild the page: `python -m bones_service.build_ui`.
+3. `python -m bones_service.api` (same `--port`, `--host`, `--out` options), or `uvicorn bones_service.api:app --port 8765 --reload` while developing. Open http://127.0.0.1:8765; the API docs are at `/docs`.
+4. On step 3, pick an **Occupancy** for each load area on every floor (the roof is always roof Lr), then press **Find bay sizes** in the Gravity framing card. It shows the best steel grid, three alternates, the bay framing and the warnings.
+
+| Method | Path | Body | Does |
+|---|---|---|---|
+| GET | `/api/occupancies` | | Occupancy keys from `config/occupancies.json` |
+| POST | `/api/gravity` | `{state, options?}` | `state` is `BonesPad.state()`; `options` may hold `constraints`, `objective_weights`, `systems`. Returns `{input, notes, output}`: the gravity input built from the pad (`bones_service/gravity_bridge.py`), notes on what was and wasn't sent, and `gravity.run`'s output |
+
+What is sent, and what isn't, is listed in `docs/ASSUMPTIONS.md` (INT-1 to INT-6). In short: occupancies, not the typed LL/SDL; no roof snow yet (gravity reads it from config).
+
 ## What happens
 
 1. **Step 1:** the photo is uploaded and Sketch Reader reads it (15 to 60 seconds). Stories and story height are optional.
@@ -29,10 +45,23 @@ Options: `--port 9000`, `--out C:\path\to\outputs`, `--host 0.0.0.0` to let coll
    - S<sub>DS</sub>, S<sub>D1</sub> and I<sub>e</sub> are also written to the project's `sds`, `sd1` and `ie`, the fields the ELF app's module 1 reads. Hazards, snow and loads are saved under `bones.hazard`, `bones.snow` and `bones.loads`.
    - **Drawing pad:** **Open in the drawing pad** on step 2 loads the plan into Module 2's drawing pad (Lucas's code from the plan-import handoff, unchanged).
    - Draw braced frames column to column, load areas by level, and edit the outline, with the pad's own snapping, undo, dimensions, C.M. / C.R. markers and frame tables.
+   - **Lateral system:** **Steel braced frames** (the default) or **Concrete shear walls**, saved as the project's `lateral_system` (`braced_frame` / `shear_wall`), which the ELF engine reads.
+     - Shear walls: each wall you draw asks for its thickness (in), offering the last one entered. The wall gets it at every level, as `t` and `ts` (one value per story, story 1 first).
+     - The side panel lists the thickness of every wall at the pad's level; type a new one to change that level only. **Copy to all levels** and **Copy from** copy thicknesses too.
+     - The pad's C.R. treats each wall on its own, as the engine's point spring with its default inputs (I<sub>eff</sub> = 0.35 I<sub>g</sub>, shear on, h = roof). The analysis also joins walls that meet into cores.
+     - The 3D view draws one full-height panel per wall. The frame and stiffness tables under the pad still describe braced frames.
+     - R, C<sub>d</sub>, f′c and the other wall inputs are not on the pad: they go in the analysis request (`shear_walls` in `POST /analyze`, see `api.py`).
+   - Draw lines of resistance (walls or frames; the material is chosen in module 4) end to end, load areas by level, and edit the outline, with the pad's own snapping, undo, dimensions, C.M. / C.R. markers and frame tables.
    - **Lines of resistance** (above the pad) groups the frames by line in X and Y and says whether there are enough lines to resist torsion: at least one line in each direction and at least three in total.
-   - The 3D view draws every level with one brace per story per frame (single or 2X, following each frame's direction and alternate settings). Drag to rotate, Shift-drag to pan, click then scroll to zoom.
+   - Lines of resistance are drawn as shaded walls, in plan and in 3D (one panel per story), with no braces, so the drawing does not assume steel. The pad still keeps a stiffness area A per line to share load between lines until module 4 sets the material.
+   - The 3D view draws every level and every line of resistance. Drag to rotate, Shift-drag to pan, click then scroll to zoom.
    - Everything is saved in the browser as you draw. Going back to step 2 and changing stories or snow keeps the frames and load areas. **Download file** saves the project JSON that the ELF app opens with **Open…**.
-4. All Sketch Reader files (summary, plan JSON, CSV, DXF, SVG, overlay, reading) are still written to `outputs/<name>/` and linked on step 2.
+4. **Step 4, structural system** (a stand-in until the real module 4 is in): **Compare structural systems** on step 3 opens a side-by-side comparison of steel special concentrically braced frames, special reinforced concrete shear walls, and light-frame wood shear walls.
+   - Each card shows R, Ω<sub>0</sub> and C<sub>d</sub> and the height limit for the site's SDC (ASCE 7-22 Table 12.2-1), the seismic weight W (floor area × stories × self-weight), and C<sub>s</sub> and base shear V at T<sub>a</sub> = 0.02 h<sub>n</sub><sup>0.75</sup>, using S<sub>DS</sub>, S<sub>D1</sub> and I<sub>e</sub> from step 3. Without hazards it assumes S<sub>DS</sub> 1.0 and S<sub>D1</sub> 0.6.
+   - Self-weight, cost, schedule and embodied carbon are placeholder values (`SYSTEMS` in `app.html`).
+   - A system over its height limit, or wood over 5 stories, is marked not permitted.
+   - The chosen system is saved under `bones.material` (with `placeholder: true`) and goes out with **Download file**.
+5. All Sketch Reader files (summary, plan JSON, CSV, DXF, SVG, overlay, reading) are still written to `outputs/<name>/` and linked on step 2.
 
 ## The Module 2 file (`bones_service/convert.py`)
 
@@ -49,11 +78,13 @@ Checks before hand-off (section 4.5): at least 4 corners, every edge horizontal 
 
 ## The drawing pad inside Bones (`bones_service/build_ui.py`)
 
+The shear wall mode lives in `pad/glue-post.js`: it wraps the pad's `lfrsClick`, `renderTPanel`, `copyLevel`, `wallK`, `render`, `planStatsUI` and `hintUpdate`, so `pad/pad.verbatim.*` stay as handed off.
+
 `static/index.html` is assembled from `static/src/`: the Bones UI (`app.html`) plus the Module 2 code copied unchanged from the handoff (`pad/pad.verbatim.css`, `.html`, `.js`). When Lucas updates Module 2, paste the new code into those three files and run `python -m bones_service.build_ui`.
 
 - The pad's CSS is scoped to `#pad` so it cannot restyle the rest of Bones, and its dark-mode rules are dropped. `pad/theme.css` gives it the Bones colors.
 - `pad/glue-pre.js` stands in for the parts of the ELF app the handoff leaves out (modules 1, 3 and 9 to 12, and the 3D code).
-- `pad/glue-post.js` opens a step 2 plan (the handoff's section 5A path), computes the lines of resistance, and draws the 3D view.
+- `pad/glue-post.js` opens a step 2 plan (the handoff's section 5A path), computes the lines of resistance, and draws the 3D view. It also swaps the pad's "Braced frames" wording for "Lines of resistance" as the pad renders (the `WORDS` list), and `pad/theme.css` draws them as shaded walls, so the verbatim files stay unchanged.
 - With no module 3 in Bones yet, a level uses its load areas whenever it has some.
 
 ## Endpoints

@@ -456,7 +456,9 @@ def _connect_to(path: str) -> sqlite3.Connection:
         raise FileNotFoundError(
             f"bay study database not found at {path}; set GRAVITY_BAY_DB to its location"
         )
-    con = sqlite3.connect(f"{Path(path).as_uri()}?mode=ro", uri=True)
+    # One cached read-only connection. Web servers call run() from worker threads, so it may
+    # be used from a thread other than the one that opened it (callers serialize their runs).
+    con = sqlite3.connect(f"{Path(path).as_uri()}?mode=ro", uri=True, check_same_thread=False)
     con.row_factory = sqlite3.Row
     return con
 

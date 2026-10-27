@@ -6,6 +6,11 @@ Exposes ``run(input_dict) -> dict`` for the integration team (spec sections 1 an
 (grid -> bays -> columns -> score; ``optimizer.optimize``) for every requested system
 (steel, concrete, mass timber), and returns the best scheme per system with up to 3
 alternates. A requested system with no configuration is skipped with a warning.
+``run`` validates the input against ``models.GravityInput`` and runs the spec 4.7
+pipeline (grid -> bays -> columns -> score, ``optimizer.optimize``) for each requested
+system. Only steel is built; a requested system that is not built yet gets no scheme,
+and every returned scheme carries a warning saying so. ``stub_output.json`` is the old
+canned output, kept for reference.
 """
 
 from __future__ import annotations

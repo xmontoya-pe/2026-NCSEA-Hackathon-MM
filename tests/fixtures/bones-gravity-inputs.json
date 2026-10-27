@@ -1,0 +1,844 @@
+{
+  "schema": "bones.gravity-input",
+  "version": "0.1",
+  "generated": "2026-10-27",
+  "for": "Renee — gravity optimizer",
+  "status": "SAMPLE. Values come from the Bones UI prototype sample project. Fields set to null or marked _placeholder still need real project data.",
+  "units": {
+    "length": "ft",
+    "area": "sf",
+    "load": "psf",
+    "line_load": "plf",
+    "force": "kips",
+    "stress": "psi"
+  },
+  "conventions": {
+    "axes": "X to the right (east), Y up (north)",
+    "origin": "lower-left corner of the outline at (0, 0)",
+    "grid_lines": "letters A-E run along X; numbers 1-4 run along Y with line 1 at the north edge",
+    "levels": "Level 1 is the ground floor; elevated levels L2 to Roof are framed",
+    "compatibility": "plan.verts, plan.lfrs and each load map's la / laIds use the same shapes as the Module 2 handoff (section 4) so the files stay interchangeable"
+  },
+  "project": {
+    "name": "[PROJECT NAME]",
+    "address": "[STREET, CITY, STATE]",
+    "client": "[CLIENT NAME]",
+    "codes": {
+      "building_code": "[IBC EDITION, CONFIRM]",
+      "loads": "ASCE 7-22"
+    },
+    "occupancy": "Office over ground-floor retail",
+    "risk_category": "II"
+  },
+  "geometry": {
+    "plan": {
+      "verts": [
+        [
+          0,
+          0
+        ],
+        [
+          120,
+          0
+        ],
+        [
+          120,
+          90
+        ],
+        [
+          0,
+          90
+        ]
+      ],
+      "closed": true
+    },
+    "overall_ft": {
+      "x": 120,
+      "y": 90
+    },
+    "plate_area_sf": 10800,
+    "grid": {
+      "x": [
+        {
+          "label": "A",
+          "coord_ft": 0
+        },
+        {
+          "label": "B",
+          "coord_ft": 30
+        },
+        {
+          "label": "C",
+          "coord_ft": 60
+        },
+        {
+          "label": "D",
+          "coord_ft": 90
+        },
+        {
+          "label": "E",
+          "coord_ft": 120
+        }
+      ],
+      "y": [
+        {
+          "label": "1",
+          "coord_ft": 90
+        },
+        {
+          "label": "2",
+          "coord_ft": 60
+        },
+        {
+          "label": "3",
+          "coord_ft": 30
+        },
+        {
+          "label": "4",
+          "coord_ft": 0
+        }
+      ]
+    },
+    "bays": {
+      "x_ft": 30,
+      "y_ft": 30,
+      "count_x": 4,
+      "count_y": 3
+    },
+    "columns": [
+      {
+        "grid": "A1",
+        "x": 0,
+        "y": 90
+      },
+      {
+        "grid": "B1",
+        "x": 30,
+        "y": 90
+      },
+      {
+        "grid": "C1",
+        "x": 60,
+        "y": 90
+      },
+      {
+        "grid": "D1",
+        "x": 90,
+        "y": 90
+      },
+      {
+        "grid": "E1",
+        "x": 120,
+        "y": 90
+      },
+      {
+        "grid": "A2",
+        "x": 0,
+        "y": 60
+      },
+      {
+        "grid": "B2",
+        "x": 30,
+        "y": 60
+      },
+      {
+        "grid": "C2",
+        "x": 60,
+        "y": 60
+      },
+      {
+        "grid": "D2",
+        "x": 90,
+        "y": 60
+      },
+      {
+        "grid": "E2",
+        "x": 120,
+        "y": 60
+      },
+      {
+        "grid": "A3",
+        "x": 0,
+        "y": 30
+      },
+      {
+        "grid": "B3",
+        "x": 30,
+        "y": 30
+      },
+      {
+        "grid": "C3",
+        "x": 60,
+        "y": 30
+      },
+      {
+        "grid": "D3",
+        "x": 90,
+        "y": 30
+      },
+      {
+        "grid": "E3",
+        "x": 120,
+        "y": 30
+      },
+      {
+        "grid": "A4",
+        "x": 0,
+        "y": 0
+      },
+      {
+        "grid": "B4",
+        "x": 30,
+        "y": 0
+      },
+      {
+        "grid": "C4",
+        "x": 60,
+        "y": 0
+      },
+      {
+        "grid": "D4",
+        "x": 90,
+        "y": 0
+      },
+      {
+        "grid": "E4",
+        "x": 120,
+        "y": 0
+      }
+    ],
+    "core": {
+      "x1": 50,
+      "y1": 37,
+      "x2": 70,
+      "y2": 53,
+      "_placeholder": true,
+      "_note": "Approximate, read from the hand sketch. Treat as a slab opening for stairs and shafts; confirm with the architect."
+    },
+    "slab_edge_cantilever_ft": 0
+  },
+  "levels": [
+    {
+      "id": "L1",
+      "name": "Level 1 (ground)",
+      "elevation_ft": 0,
+      "story_height_below_ft": null,
+      "supported": "slab on grade (assumed)",
+      "loadMap": "ground"
+    },
+    {
+      "id": "L2",
+      "name": "Level 2",
+      "elevation_ft": 15,
+      "story_height_below_ft": 15,
+      "supported": "framed",
+      "loadMap": "typical"
+    },
+    {
+      "id": "L3",
+      "name": "Level 3",
+      "elevation_ft": 28,
+      "story_height_below_ft": 13,
+      "supported": "framed",
+      "loadMap": "typical"
+    },
+    {
+      "id": "L4",
+      "name": "Level 4",
+      "elevation_ft": 41,
+      "story_height_below_ft": 13,
+      "supported": "framed",
+      "loadMap": "typical"
+    },
+    {
+      "id": "L5",
+      "name": "Level 5",
+      "elevation_ft": 54,
+      "story_height_below_ft": 13,
+      "supported": "framed",
+      "loadMap": "typical"
+    },
+    {
+      "id": "L6",
+      "name": "Level 6",
+      "elevation_ft": 67,
+      "story_height_below_ft": 13,
+      "supported": "framed",
+      "loadMap": "typical"
+    },
+    {
+      "id": "L7",
+      "name": "Level 7",
+      "elevation_ft": 80,
+      "story_height_below_ft": 13,
+      "supported": "framed",
+      "loadMap": "typical"
+    },
+    {
+      "id": "L8",
+      "name": "Level 8",
+      "elevation_ft": 93,
+      "story_height_below_ft": 13,
+      "supported": "framed",
+      "loadMap": "typical"
+    },
+    {
+      "id": "R",
+      "name": "Roof",
+      "elevation_ft": 106,
+      "story_height_below_ft": 13,
+      "supported": "framed",
+      "loadMap": "roof"
+    }
+  ],
+  "stories_total": 8,
+  "building_height_ft": 106,
+  "_levels_note": "Story heights are placeholders (15 ft ground, 13 ft typical). Floor-to-floor will change by scheme once structural depth is known.",
+  "uses": [
+    {
+      "id": "office",
+      "name": "Office",
+      "LL_psf": 50,
+      "LL_source": "ASCE 7-22 Table 4.3-1, offices",
+      "LL_reducible": true,
+      "SDL_psf": 25,
+      "SDL_breakdown": {
+        "partitions": 15,
+        "ceiling_MEP": 7,
+        "finishes": 3
+      },
+      "_note": "Partition allowance of 15 psf is carried in SDL here; ASCE 7-22 4.3.2 treats it as live load. Move it if your method needs that."
+    },
+    {
+      "id": "retail",
+      "name": "Retail (ground floor)",
+      "LL_psf": 100,
+      "LL_source": "ASCE 7-22 Table 4.3-1, retail first floor",
+      "LL_reducible": true,
+      "SDL_psf": 15,
+      "SDL_breakdown": {
+        "ceiling_MEP": 10,
+        "finishes": 5
+      }
+    },
+    {
+      "id": "corridor",
+      "name": "Corridor",
+      "LL_psf": 80,
+      "LL_source": "ASCE 7-22 Table 4.3-1, office corridors above first floor",
+      "LL_reducible": true,
+      "SDL_psf": 15,
+      "SDL_breakdown": {
+        "ceiling_MEP": 10,
+        "finishes": 5
+      },
+      "_note": "First-floor corridors are 100 psf per Table 4.3-1. The ground floor map uses this same ID at 80 psf; confirm."
+    },
+    {
+      "id": "assembly",
+      "name": "Lobby / assembly",
+      "LL_psf": 100,
+      "LL_source": "ASCE 7-22 Table 4.3-1, lobbies",
+      "LL_reducible": false,
+      "SDL_psf": 20,
+      "SDL_breakdown": {
+        "ceiling_MEP": 10,
+        "finishes": 10
+      }
+    },
+    {
+      "id": "core",
+      "name": "Core / stair",
+      "LL_psf": 100,
+      "LL_source": "ASCE 7-22 Table 4.3-1, stairs and exits",
+      "LL_reducible": false,
+      "SDL_psf": 20,
+      "SDL_breakdown": {
+        "ceiling_MEP": 10,
+        "finishes": 10
+      }
+    },
+    {
+      "id": "mech",
+      "name": "Mechanical",
+      "LL_psf": 150,
+      "LL_source": "Engineer-defined allowance; replace with equipment weights when known",
+      "LL_reducible": false,
+      "SDL_psf": 30,
+      "SDL_breakdown": {
+        "housekeeping_pads": 15,
+        "ceiling_MEP": 15
+      }
+    },
+    {
+      "id": "roof",
+      "name": "Roof",
+      "LL_psf": 20,
+      "LL_source": "ASCE 7-22 Table 4.3-1, ordinary flat roof (Lr)",
+      "LL_reducible": true,
+      "SDL_psf": 20,
+      "SDL_breakdown": {
+        "roofing_insulation": 10,
+        "ceiling_MEP": 10
+      },
+      "_note": "Snow and rooftop equipment loads are pending; see hazard.snow and openQuestions."
+    }
+  ],
+  "loadMaps": {
+    "typical": {
+      "la": [
+        {
+          "id": "office",
+          "x1": 0,
+          "y1": 60,
+          "x2": 30,
+          "y2": 90,
+          "bay": "A-B / 1-2"
+        },
+        {
+          "id": "office",
+          "x1": 30,
+          "y1": 60,
+          "x2": 60,
+          "y2": 90,
+          "bay": "B-C / 1-2"
+        },
+        {
+          "id": "office",
+          "x1": 60,
+          "y1": 60,
+          "x2": 90,
+          "y2": 90,
+          "bay": "C-D / 1-2"
+        },
+        {
+          "id": "office",
+          "x1": 90,
+          "y1": 60,
+          "x2": 120,
+          "y2": 90,
+          "bay": "D-E / 1-2"
+        },
+        {
+          "id": "office",
+          "x1": 0,
+          "y1": 30,
+          "x2": 30,
+          "y2": 60,
+          "bay": "A-B / 2-3"
+        },
+        {
+          "id": "corridor",
+          "x1": 30,
+          "y1": 30,
+          "x2": 60,
+          "y2": 60,
+          "bay": "B-C / 2-3"
+        },
+        {
+          "id": "core",
+          "x1": 60,
+          "y1": 30,
+          "x2": 90,
+          "y2": 60,
+          "bay": "C-D / 2-3"
+        },
+        {
+          "id": "office",
+          "x1": 90,
+          "y1": 30,
+          "x2": 120,
+          "y2": 60,
+          "bay": "D-E / 2-3"
+        },
+        {
+          "id": "office",
+          "x1": 0,
+          "y1": 0,
+          "x2": 30,
+          "y2": 30,
+          "bay": "A-B / 3-4"
+        },
+        {
+          "id": "office",
+          "x1": 30,
+          "y1": 0,
+          "x2": 60,
+          "y2": 30,
+          "bay": "B-C / 3-4"
+        },
+        {
+          "id": "assembly",
+          "x1": 60,
+          "y1": 0,
+          "x2": 90,
+          "y2": 30,
+          "bay": "C-D / 3-4"
+        },
+        {
+          "id": "office",
+          "x1": 90,
+          "y1": 0,
+          "x2": 120,
+          "y2": 30,
+          "bay": "D-E / 3-4"
+        }
+      ],
+      "laIds": [
+        {
+          "id": "office",
+          "LL_psf": 50,
+          "SDL_psf": 25,
+          "psf": 75
+        },
+        {
+          "id": "corridor",
+          "LL_psf": 80,
+          "SDL_psf": 15,
+          "psf": 95
+        },
+        {
+          "id": "core",
+          "LL_psf": 100,
+          "SDL_psf": 20,
+          "psf": 120
+        },
+        {
+          "id": "assembly",
+          "LL_psf": 100,
+          "SDL_psf": 20,
+          "psf": 120
+        }
+      ],
+      "check": {
+        "area_covered_sf": 10800,
+        "plate_area_sf": 10800,
+        "covers_plate": true,
+        "overlaps": false,
+        "avg_LL_plus_SDL_psf": 84.2,
+        "total_LL_plus_SDL_kips": 909.0
+      }
+    },
+    "ground": {
+      "la": [
+        {
+          "id": "retail",
+          "x1": 0,
+          "y1": 60,
+          "x2": 30,
+          "y2": 90,
+          "bay": "A-B / 1-2"
+        },
+        {
+          "id": "retail",
+          "x1": 30,
+          "y1": 60,
+          "x2": 60,
+          "y2": 90,
+          "bay": "B-C / 1-2"
+        },
+        {
+          "id": "retail",
+          "x1": 60,
+          "y1": 60,
+          "x2": 90,
+          "y2": 90,
+          "bay": "C-D / 1-2"
+        },
+        {
+          "id": "retail",
+          "x1": 90,
+          "y1": 60,
+          "x2": 120,
+          "y2": 90,
+          "bay": "D-E / 1-2"
+        },
+        {
+          "id": "retail",
+          "x1": 0,
+          "y1": 30,
+          "x2": 30,
+          "y2": 60,
+          "bay": "A-B / 2-3"
+        },
+        {
+          "id": "corridor",
+          "x1": 30,
+          "y1": 30,
+          "x2": 60,
+          "y2": 60,
+          "bay": "B-C / 2-3"
+        },
+        {
+          "id": "core",
+          "x1": 60,
+          "y1": 30,
+          "x2": 90,
+          "y2": 60,
+          "bay": "C-D / 2-3"
+        },
+        {
+          "id": "retail",
+          "x1": 90,
+          "y1": 30,
+          "x2": 120,
+          "y2": 60,
+          "bay": "D-E / 2-3"
+        },
+        {
+          "id": "mech",
+          "x1": 0,
+          "y1": 0,
+          "x2": 30,
+          "y2": 30,
+          "bay": "A-B / 3-4"
+        },
+        {
+          "id": "assembly",
+          "x1": 30,
+          "y1": 0,
+          "x2": 60,
+          "y2": 30,
+          "bay": "B-C / 3-4"
+        },
+        {
+          "id": "retail",
+          "x1": 60,
+          "y1": 0,
+          "x2": 90,
+          "y2": 30,
+          "bay": "C-D / 3-4"
+        },
+        {
+          "id": "retail",
+          "x1": 90,
+          "y1": 0,
+          "x2": 120,
+          "y2": 30,
+          "bay": "D-E / 3-4"
+        }
+      ],
+      "laIds": [
+        {
+          "id": "retail",
+          "LL_psf": 100,
+          "SDL_psf": 15,
+          "psf": 115
+        },
+        {
+          "id": "corridor",
+          "LL_psf": 80,
+          "SDL_psf": 15,
+          "psf": 95
+        },
+        {
+          "id": "core",
+          "LL_psf": 100,
+          "SDL_psf": 20,
+          "psf": 120
+        },
+        {
+          "id": "mech",
+          "LL_psf": 150,
+          "SDL_psf": 30,
+          "psf": 180
+        },
+        {
+          "id": "assembly",
+          "LL_psf": 100,
+          "SDL_psf": 20,
+          "psf": 120
+        }
+      ],
+      "check": {
+        "area_covered_sf": 10800,
+        "plate_area_sf": 10800,
+        "covers_plate": true,
+        "overlaps": false,
+        "avg_LL_plus_SDL_psf": 119.6,
+        "total_LL_plus_SDL_kips": 1291.5
+      }
+    },
+    "roof": {
+      "la": [
+        {
+          "id": "roof",
+          "x1": 0,
+          "y1": 0,
+          "x2": 120,
+          "y2": 90,
+          "bay": "A-E / 1-4"
+        }
+      ],
+      "laIds": [
+        {
+          "id": "roof",
+          "LL_psf": 20,
+          "SDL_psf": 20,
+          "psf": 40
+        }
+      ],
+      "check": {
+        "area_covered_sf": 10800,
+        "plate_area_sf": 10800,
+        "covers_plate": true,
+        "overlaps": false,
+        "avg_LL_plus_SDL_psf": 40.0,
+        "total_LL_plus_SDL_kips": 432.0
+      }
+    }
+  },
+  "perimeter": {
+    "facade_type": "[CURTAIN WALL / PANELIZED, CONFIRM]",
+    "facade_weight_psf": 15,
+    "_placeholder": true,
+    "_note": "Apply as a line load on edge members: facade_weight_psf x story height."
+  },
+  "hazard": {
+    "source": "ASCE Hazard Tool (lookup not yet connected)",
+    "seismic": {
+      "site_class": null,
+      "SDS": null,
+      "SD1": null,
+      "SDC": null
+    },
+    "wind": {
+      "V_mph": null,
+      "exposure": null
+    },
+    "snow": {
+      "pg_psf": null
+    },
+    "_note": "Gravity needs snow for the roof. Seismic values are included so seismic weight is reported on the same basis Lucas uses."
+  },
+  "lateralSystem": {
+    "from": "Step 2, plan from image",
+    "lfrs": [
+      {
+        "label": "X1",
+        "x1": 0,
+        "y1": 0,
+        "x2": 30,
+        "y2": 0,
+        "confidence": "high"
+      },
+      {
+        "label": "X2",
+        "x1": 90,
+        "y1": 90,
+        "x2": 120,
+        "y2": 90,
+        "confidence": "high"
+      },
+      {
+        "label": "Y1",
+        "x1": 0,
+        "y1": 30,
+        "x2": 0,
+        "y2": 60,
+        "confidence": "high"
+      },
+      {
+        "label": "Y2",
+        "x1": 120,
+        "y1": 30,
+        "x2": 120,
+        "y2": 60,
+        "confidence": "low (kept by engineer in step 2)"
+      }
+    ],
+    "_note": "Columns and beams in these bays are part of braced frames in the steel scheme. In the concrete scheme the lateral system becomes shear walls, and in mass timber a concrete core; Lucas confirms the layout per scheme."
+  },
+  "schemes": [
+    {
+      "id": "concrete",
+      "name": "Concrete",
+      "gravity_system": "Two-way flat plate",
+      "lateral_system": "Special RC shear walls",
+      "materials": {
+        "fc_slab_psi": 5000,
+        "fc_columns_psi": 6000,
+        "rebar_fy_psi": 60000,
+        "unit_weight_pcf": 150
+      },
+      "options_to_study": [
+        "flat plate",
+        "post-tensioned flat plate"
+      ],
+      "construction_type": "IB (confirm)",
+      "fire_rating_hr": 2
+    },
+    {
+      "id": "steel",
+      "name": "Steel",
+      "gravity_system": "Composite beams on composite deck",
+      "lateral_system": "Special concentrically braced frames",
+      "materials": {
+        "Fy_beams_psi": 50000,
+        "deck": "[3 in. composite deck, CONFIRM]",
+        "topping": "[3.25 in. lightweight concrete, CONFIRM]",
+        "fc_topping_psi": 4000
+      },
+      "options_to_study": [
+        "beam spacing 10 ft",
+        "beam spacing 15 ft",
+        "framing direction X vs Y"
+      ],
+      "construction_type": "IB (confirm)",
+      "fire_rating_hr": 2
+    },
+    {
+      "id": "mass_timber",
+      "name": "Mass timber",
+      "gravity_system": "CLT panels on glulam beams and columns",
+      "lateral_system": "Concrete core",
+      "materials": {
+        "CLT": "[5-ply, CONFIRM grade]",
+        "glulam": "[24F-V4 beams, CONFIRM]",
+        "topping": "[concrete or gypsum topping, CONFIRM]"
+      },
+      "options_to_study": [
+        "CLT spanning 10 ft between beams",
+        "CLT spanning 15 ft"
+      ],
+      "construction_type": "IV-B (confirm)",
+      "fire_rating_hr": 2
+    }
+  ],
+  "criteria": {
+    "live_load_reduction": {
+      "apply": true,
+      "basis": "ASCE 7-22 Section 4.7"
+    },
+    "deflection_limits": {
+      "live": "L/360",
+      "total": "L/240"
+    },
+    "vibration": {
+      "check": true,
+      "basis": "AISC Design Guide 11 for steel; equivalent method for timber",
+      "target": "office, walking"
+    },
+    "construction_loads": "[CONFIRM]"
+  },
+  "expectedOutputs": {
+    "_note": "What the gravity optimizer should return per scheme, so Lateral (Lucas) and Outputs can use it.",
+    "per_scheme": [
+      "typical member sizes (slab or deck, beams, girders, columns by tier)",
+      "structural depth_ft, which sets floor-to-floor",
+      "structural self-weight_psf",
+      "seismic weight per level_kips (for Lucas)",
+      "quantities per sf: concrete_cy, steel_tons, timber_cf, rebar_tons",
+      "column axial loads at foundation_kips (for foundations)"
+    ]
+  },
+  "openQuestions": [
+    "Is the ground floor a slab on grade, or is there a basement or podium?",
+    "Real story heights by level.",
+    "Should the partition allowance stay in SDL or move to live load?",
+    "First-floor corridor live load: 100 psf per Table 4.3-1 vs 80 psf used.",
+    "Rooftop equipment weights and locations.",
+    "Core and shaft openings: confirm size and location with the architect.",
+    "Ground snow load once the hazard lookup is connected."
+  ]
+}

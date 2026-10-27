@@ -1,0 +1,78 @@
+{
+  "project": "IMG_1285",
+  "n": 1,
+  "levels": [
+    {
+      "name": "",
+      "h": 12.0,
+      "psf": 150,
+      "la": false
+    }
+  ],
+  "plan": {
+    "verts": [
+      [
+        0.0,
+        0.0
+      ],
+      [
+        200.0,
+        0.0
+      ],
+      [
+        200.0,
+        100.0
+      ],
+      [
+        130.0,
+        100.0
+      ],
+      [
+        130.0,
+        134.7746
+      ],
+      [
+        70.0,
+        134.7746
+      ],
+      [
+        70.0,
+        96.0252
+      ],
+      [
+        0.0,
+        96.0252
+      ]
+    ],
+    "closed": true,
+    "grid": 1,
+    "lfrs": []
+  },
+  "bones": {
+    "source": {
+      "image": "IMG_1285.jpeg",
+      "image_size_px": [
+        1623,
+        1133
+      ],
+      "read": "2026-10-27",
+      "model": "claude-opus-5-5"
+    },
+    "area_sf": 21808.24,
+    "grids": {
+      "x": [],
+      "y": []
+    },
+    "columns": [],
+    "cores": [],
+    "warnings": [
+      "1 span(s) have no dimension and were scaled from the drawing.",
+      "Left 70' dimension arrow ends short of the step corner (around x\u2248257). It is assumed to measure from the left edge to the left side of the upper projection.",
+      "No extension lines are drawn for the 100' dimension. It is assumed to measure the right wall height from the right step down to the bottom edge.",
+      "The left wall height is not dimensioned, and the top-left edge is drawn slightly lower than the top-right edge. The two are probably meant to be equal at 100'.",
+      "The height of the upper projection (60' wide) is not dimensioned.",
+      "The horizontal dimensions are consistent: 70 + 60 + 70 = 200 ft."
+    ],
+    "snow": null
+  }
+}

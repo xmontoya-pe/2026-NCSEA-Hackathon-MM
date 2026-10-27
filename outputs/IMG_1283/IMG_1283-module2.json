@@ -1,0 +1,80 @@
+{
+  "project": "IMG_1283",
+  "n": 3,
+  "levels": [
+    {
+      "name": "",
+      "h": 12.0,
+      "psf": 150,
+      "la": false
+    },
+    {
+      "name": "",
+      "h": 24.0,
+      "psf": 150,
+      "la": false
+    },
+    {
+      "name": "",
+      "h": 36.0,
+      "psf": 150,
+      "la": false
+    }
+  ],
+  "plan": {
+    "verts": [
+      [
+        0.0,
+        0.0
+      ],
+      [
+        500.0,
+        0.0
+      ],
+      [
+        500.0,
+        100.0
+      ],
+      [
+        300.0,
+        100.0
+      ],
+      [
+        300.0,
+        200.0
+      ],
+      [
+        0.0,
+        200.0
+      ]
+    ],
+    "closed": true,
+    "grid": 1,
+    "lfrs": []
+  },
+  "bones": {
+    "source": {
+      "image": "IMG_1283.jpeg",
+      "image_size_px": [
+        1542,
+        1026
+      ],
+      "read": "2026-10-27",
+      "model": "claude-sonnet-5-5"
+    },
+    "area_sf": 80000.0,
+    "grids": {
+      "x": [],
+      "y": []
+    },
+    "columns": [],
+    "cores": [],
+    "warnings": [
+      "The left vertical dimension is written with a leading digit that looks like '1' or an underlined '2'. I read it as 200', which matches the two 100' dimensions on the right.",
+      "The hand-drawn outline lines do not quite meet at the corners. The top edge slopes up toward the right, and the notch corners are approximated by line intersections.",
+      "The outline is an L-shape, with a 200' x 100' notch cut from the top-right corner.",
+      "The dimension endpoints p1 and p2 are estimated from the tick positions and the building edges."
+    ],
+    "snow": null
+  }
+}

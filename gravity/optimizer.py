@@ -12,6 +12,13 @@ the scheme; its alternates may be other structural systems of the same family.
 
 ``scheme`` turns one evaluated candidate into the spec 3.1 scheme dict
 (docs/ASSUMPTIONS.md O-*).
+Ranking (docs/ASSUMPTIONS.md B-2): candidates with fewer infeasible bays always rank
+first, then fewer bays over the allowable depth (spec 4.3 / 4.4: penalized, never
+dropped), then the weighted score of ``scoring.weighted_scores``, then fewest columns,
+then grid id. Cost and carbon include the columns.
+
+Output shaping (docs/ASSUMPTIONS.md OUT-*): bays with no DB framing are left out of
+``bays`` (the contract requires framing) and named in the warnings.
 """
 
 from __future__ import annotations
