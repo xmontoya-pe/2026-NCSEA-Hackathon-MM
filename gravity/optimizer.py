@@ -129,7 +129,8 @@ def optimize(inp: GravityInput, system: str = "steel") -> SystemResult:
     )
     for e, s in zip(evaluated, scores):
         e.score = s
-        e.rank_score = s + scoring.penalty(e.candidate.n_infeasible, e.candidate.n_over_depth)
+        c = e.candidate
+        e.rank_score = s + scoring.penalty(c.n_infeasible, c.n_over_depth, c.over_depth_in)
     evaluated.sort(key=Evaluated.rank_key)
     return SystemResult(system, zone_map, evaluated, zone_map.warnings + grid_warnings)
 

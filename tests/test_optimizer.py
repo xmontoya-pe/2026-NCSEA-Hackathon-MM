@@ -44,9 +44,15 @@ class TestScoring(unittest.TestCase):
                          [0.0, 0.0])
 
     def test_penalties_outweigh_any_score(self):
-        self.assertGreaterEqual(penalty(0, 1), 1.0)  # one bay over depth > max score of 1
-        self.assertGreater(penalty(1, 0), penalty(0, 99))
+        self.assertGreaterEqual(penalty(0, 1, 0.01), 1.0)  # one bay over depth > max score of 1
+        self.assertGreater(penalty(1, 0), penalty(0, 36, 36 * 20.0))  # 36 bays 20 in over
         self.assertEqual(penalty(0, 0), 0.0)
+
+    def test_over_depth_penalty_grows_with_inches(self):
+        # 1.0 per bay + 1.0 per inch over: one bay 2 in over = 3.0, two bays 0.5 in over = 3.0
+        self.assertAlmostEqual(penalty(0, 1, 2.0), 3.0)
+        self.assertAlmostEqual(penalty(0, 2, 1.0), 3.0)
+        self.assertGreater(penalty(0, 1, 20.0), penalty(0, 3, 3.0))
 
 
 @unittest.skipUnless(HAS_DATA, "bay study DB or shapes CSV not present")
@@ -64,7 +70,8 @@ class TestOptimizeSimpleRect(unittest.TestCase):
     def test_rank_score_is_score_plus_penalty(self):
         for e in self.result.ranked:
             c = e.candidate
-            self.assertAlmostEqual(e.rank_score, e.score + penalty(c.n_infeasible, c.n_over_depth))
+            self.assertAlmostEqual(
+                e.rank_score, e.score + penalty(c.n_infeasible, c.n_over_depth, c.over_depth_in))
             self.assertTrue(0.0 <= e.score <= 1.0)
 
     def test_best_is_feasible_and_within_depth(self):

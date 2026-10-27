@@ -90,9 +90,10 @@
     }
   },
   "scoring": {
-    "infeasible_bay_penalty": 100.0,
+    "infeasible_bay_penalty": 1000.0,
     "over_depth_bay_penalty": 1.0,
-    "note": "Added to the 0..1 weighted score per bay (spec 4.3, 4.4: penalize, never remove). Both exceed any score difference, so a clean candidate always ranks first; an infeasible bay weighs as much as 100 bays over depth. docs/ASSUMPTIONS.md S-2."
+    "over_depth_penalty_per_in": 1.0,
+    "note": "Added to the 0..1 weighted score (spec 4.3, 4.4: penalize, never remove). Each bay over depth adds over_depth_bay_penalty + over_depth_penalty_per_in x inches over; each infeasible bay adds infeasible_bay_penalty. Every penalty exceeds any score difference, so a clean candidate always ranks first. docs/ASSUMPTIONS.md S-2."
   },
   "db_systems": {
     "STL_COMP": {

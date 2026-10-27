@@ -133,6 +133,8 @@ class TestMassTimberRows(unittest.TestCase):
         o = by_row(framing_options("mass_timber", "floor", 30, 30, 65, 10, criterion=WALKING), 6535)
         self.assertEqual(o.criterion, "Walking β=0.03 (office)")
         self.assertEqual(o.beam, "6-3/4 x 40.5 @ 15ft")
+        # Flush framing (ASSUMPTIONS W-6): 46.5 in girder + 6.875 CLT + 3 topping.
+        self.assertAlmostEqual(o.depth_in, 46.5 + 6.875 + 3.0)
         self.assertAlmostEqual(o.self_wt_psf, 65.826, places=3)
         self.assertAlmostEqual(o.cost_breakdown["glulam"], 18.543, places=3)
         self.assertAlmostEqual(o.cost_breakdown["clt"], 25.781, places=3)
