@@ -1,7 +1,7 @@
 {
   "_meta": {
     "description": "Maps optimizer systems to bay study DB systems and holds the design values the DB stores only as text. Spec sections 2.3 and 4.5; docs/ASSUMPTIONS.md.",
-    "systems_covered": "Steel only. Concrete and mass timber are added when those systems are built."
+    "systems_covered": "Steel is built. Concrete and mass timber column properties are in place (decisions log); a system runs only once it also has a 'systems' entry (prompt 8)."
   },
   "systems": {
     "steel": {
@@ -23,6 +23,25 @@
       "cladding_note": "Perimeter cladding line load per framed level (plf of perimeter). 0 for the hackathon; a warning says so.",
       "carbon_material": "hot_rolled_sections",
       "max_self_weight_iterations": 5
+    },
+    "concrete": {
+      "fc_ksi": 5.0,
+      "fy_ksi": 60.0,
+      "rho_g": 0.01,
+      "min_size_in": 16,
+      "size_increment_in": 2,
+      "phi": 0.65,
+      "alpha_max": 0.80,
+      "unit_weight_pcf": 150.0,
+      "note": "Square tied column, phiPn,max = 0.80*0.65*[0.85 f'c (Ag - Ast) + fy Ast] (spec 4.5). Slenderness ignored and flagged. Flat plates report the DB column_in as the column size (decision H) and flag it when axial sizing needs larger."
+    },
+    "mass_timber": {
+      "fc_psi": 2300.0,
+      "emin_psi": 850000.0,
+      "grade_note": "Placeholder, about DF glulam combination 2 (decisions log). Verify against NDS Supplement Table 5B for the grade specified.",
+      "c": 0.9,
+      "widths_in": [6.75, 8.75, 10.75, 12.25],
+      "note": "Square glulam, NDS 3.7.1 column stability factor Cp with c = 0.9 (glulam), K = 1.0, L = story height. Preliminary; flagged in warnings."
     }
   },
   "scoring": {
