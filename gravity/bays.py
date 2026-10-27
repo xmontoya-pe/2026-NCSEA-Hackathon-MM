@@ -8,5 +8,7 @@ Spec sections 4.3 and 4.4. Will:
   candidate rather than crash.
 - Check ``allowable_depth_in = (floor_to_floor_ft - min_ceiling_height_ft)*12
   - plenum_allowance_in`` (overridden by ``max_structure_depth_in`` if given);
-  exceedances get a heavy penalty, not removal.
+  exceedances get a heavy penalty, not removal. ``floor_to_floor_ft`` is that of the
+  story BELOW the framed level, whose ceiling the framing sits in (framing at L2 uses
+  L1's height; roof framing uses the top story's) (decisions log, spec section 7).
 """

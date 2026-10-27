@@ -54,6 +54,25 @@ class TestFixtures(unittest.TestCase):
         result = gravity.run(load_json(FIXTURES / "simple_rect.json"))
         self.assertEqual(result, load_json(SAMPLE_OUTPUT))
 
+    def test_stub_pu_is_governing_asce_combo(self):
+        # Keeps the canned numbers honest: Pu = max of the ASCE 7-22 2.3.1 combos,
+        # and governing_combo names the one that produced it.
+        result = gravity.run(load_json(FIXTURES / "simple_rect.json"))
+        for column in result["schemes"][0]["columns"]:
+            for seg in column["stack"]:
+                D, L = seg["Pd_kips"], seg["Pl_kips"]
+                Lr, S = seg["Plr_kips"], seg["Psnow_kips"]
+                combos = {
+                    "1.4D": 1.4 * D,
+                    "1.2D+1.6L+0.5Lr": 1.2 * D + 1.6 * L + 0.5 * Lr,
+                    "1.2D+1.6L+0.5S": 1.2 * D + 1.6 * L + 0.5 * S,
+                    "1.2D+1.6Lr+1.0L": 1.2 * D + 1.6 * Lr + 1.0 * L,
+                    "1.2D+1.6S+1.0L": 1.2 * D + 1.6 * S + 1.0 * L,
+                }
+                with self.subTest(column=column["id"], level=seg["level"]):
+                    self.assertAlmostEqual(seg["Pu_kips"], max(combos.values()), places=2)
+                    self.assertAlmostEqual(combos[seg["governing_combo"]], seg["Pu_kips"], places=2)
+
     def test_every_scheme_has_warnings_list(self):
         result = gravity.run(load_json(FIXTURES / "simple_rect.json"))
         for scheme in result["schemes"]:
@@ -90,6 +109,7 @@ class TestSpecExamples(unittest.TestCase):
     def test_spec_3_1_output_example(self):
         # Section 3.1 example verbatim, except "alternates", which the spec shows as a
         # placeholder string ("...top 3 runner-up grids, same shape, slimmer...").
+        # The 3.1 example in the spec must be kept in sync with this copy.
         example = {
             "schemes": [
                 {
@@ -98,7 +118,8 @@ class TestSpecExamples(unittest.TestCase):
                     "grid": {"x_ft": [0, 30, 60, 90, 120, 150], "y_ft": [0, 30, 60, 90]},
                     "columns": [
                         {"id": "B-2", "x_ft": 30, "y_ft": 30, "stack": [
-                            {"level": "L1", "size": "W12x65", "Pu_kips": 410, "Pd_kips": 180, "Pl_kips": 95}
+                            {"level": "L1", "size": "W12x65", "Pu_kips": 410, "Pd_kips": 180, "Pl_kips": 95,
+                             "Plr_kips": 8, "Psnow_kips": 0, "governing_combo": "1.2D+1.6L+0.5Lr"}
                         ]}
                     ],
                     "bays": [
@@ -111,7 +132,7 @@ class TestSpecExamples(unittest.TestCase):
                         {"level": "L2", "seismic_weight_kips": 1420, "center_of_mass_ft": [75.0, 45.0],
                          "max_structure_depth_in": 27.25, "clear_height_ft": 9.4}
                     ],
-                    "foundation_reactions": [{"column_id": "B-2", "D_kips": 180, "L_kips": 95, "Lr_kips": 8}],
+                    "foundation_reactions": [{"column_id": "B-2", "D_kips": 180, "L_kips": 95, "Lr_kips": 8, "S_kips": 0}],
                     "quantities": {"steel_tons": 142, "concrete_cy": 610, "timber_cf": 0},
                     "totals": {"cost_usd": 3150000, "cost_per_sf": 24.5, "carbon_kgco2e": 410000,
                                "carbon_per_sf": 31.9, "max_depth_in": 27.25},

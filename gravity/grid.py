@@ -9,6 +9,8 @@ grids per system from ``db_adapter.available_spans(system)`` within
 - Strategy B: uniform grids filling the bounding box (one odd end bay allowed).
 
 Then clip to the outline (drop columns outside, flag columns within 2 ft of an
-outline edge for a perimeter line) and remove columns inside ``no_columns`` zones,
-merging the affected bays into a long-span bay.
+outline edge for a perimeter line) and remove columns strictly inside ``no_columns``
+zones, merging the affected bays into a long-span bay. Columns on a zone's boundary
+(within floating-point tolerance only) are kept. A ``no_columns`` zone on level Ln
+governs the story from Ln up to the next level (decisions log, spec section 7).
 """

@@ -4,9 +4,11 @@ Spec section 4.1, with inputs from 2.1 (zone notes) and 2.2 (config files). Will
 
 - Read occupancy LL / partition / reducibility from ``config/occupancies.json`` and
   SDL per system from ``config/sdl.json`` (editable by engineers, not hardcoded).
-- Copy typical zones up to all levels when ``typical_zones_apply_to_all_levels``;
-  explicit zones on a level override the copy. Uncovered floor area gets
-  ``default_occupancy`` (config, default ``office``) plus a warning.
+- Copy typical zones when ``typical_zones_apply_to_all_levels`` to the framed floors
+  only: not to the lowest level (treated as slab-on-grade) and not to the roof (which
+  always uses the ``roof`` occupancy). An explicit zone on a level replaces copied
+  zones only where it overlaps them. Uncovered floor area gets ``default_occupancy``
+  (config, default ``office``) plus a warning (decisions log, spec section 7).
 - Map each bay polygon to overlapping zones (shapely intersection); governing load is
   the max LL of any overlapping zone, with area fractions kept for later refinement.
 - Apply ASCE 7-22 section 4.7 live load reduction

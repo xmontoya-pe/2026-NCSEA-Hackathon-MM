@@ -56,9 +56,9 @@ Other teammates own: input screens, floor plan recognizer, lateral analysis, and
 
 Notes:
 - `dimension_lines` are what the recognizer read off the sketch. The grid generator should **prefer** these lines but is allowed to subdivide or skip them.
-- Zones may be drawn on one level and copied up (`typical_zones_apply_to_all_levels`). Explicit zones on a level override the copy.
+- Zones may be drawn on one level and copied up (`typical_zones_apply_to_all_levels`). The copy goes to the framed floors only: not to the lowest level (treated as slab-on-grade) and not to the roof (always `roof` occupancy). An explicit zone on a level overrides the copy only where it overlaps it.
 - Any part of a floor plate not covered by a zone gets `default_occupancy` (config, default `office`) and a warning.
-- `no_columns: true` zones force a long-span solution over that area (or flag a transfer if spans exceed the DB).
+- `no_columns: true` zones force a long-span solution over that area (or flag a transfer if spans exceed the DB). A `no_columns` zone on level Ln applies to the story from Ln up to the next level, so the framing at the next level spans over it. Only columns strictly inside the zone are removed; columns on its boundary stay.
 
 ### 2.2 `config/occupancies.json` (editable by engineers, not hardcoded)
 
@@ -110,7 +110,8 @@ def available_loads(system: str) -> tuple[list[float], list[float]]   # LL and S
       "grid": {"x_ft": [0,30,60,90,120,150], "y_ft": [0,30,60,90]},
       "columns": [
         {"id": "B-2", "x_ft": 30, "y_ft": 30, "stack": [
-          {"level": "L1", "size": "W12x65", "Pu_kips": 410, "Pd_kips": 180, "Pl_kips": 95}
+          {"level": "L1", "size": "W12x65", "Pu_kips": 410, "Pd_kips": 180, "Pl_kips": 95,
+           "Plr_kips": 8, "Psnow_kips": 0, "governing_combo": "1.2D+1.6L+0.5Lr"}
         ]}
       ],
       "bays": [
@@ -123,7 +124,7 @@ def available_loads(system: str) -> tuple[list[float], list[float]]   # LL and S
         {"level": "L2", "seismic_weight_kips": 1420, "center_of_mass_ft": [75.0, 45.0],
          "max_structure_depth_in": 27.25, "clear_height_ft": 9.4}
       ],
-      "foundation_reactions": [{"column_id": "B-2", "D_kips": 180, "L_kips": 95, "Lr_kips": 8}],
+      "foundation_reactions": [{"column_id": "B-2", "D_kips": 180, "L_kips": 95, "Lr_kips": 8, "S_kips": 0}],
       "quantities": {"steel_tons": 142, "concrete_cy": 610, "timber_cf": 0},
       "totals": {"cost_usd": 3150000, "cost_per_sf": 24.5, "carbon_kgco2e": 410000,
                  "carbon_per_sf": 31.9, "max_depth_in": 27.25},
@@ -133,6 +134,8 @@ def available_loads(system: str) -> tuple[list[float], list[float]]   # LL and S
   ]
 }
 ```
+
+`governing_combo` is one of `1.4D`, `1.2D+1.6L+0.5Lr`, `1.2D+1.6L+0.5S`, `1.2D+1.6Lr+1.0L`, `1.2D+1.6S+1.0L` (section 4.5).
 
 ### 3.2 What the lateral team needs from us (agree on this early)
 
@@ -185,7 +188,7 @@ tests/
 - Strategy A: snap to recognized `dimension_lines`, optionally subdividing a dimension span into 2 or 3 equal bays.
 - Strategy B: uniform grids that fill the bounding box (allow one odd end bay).
 - Clip to the outline; drop columns outside, flag columns within 2 ft of the outline edge for a perimeter line.
-- Remove columns inside `no_columns` zones; the merged bay becomes a long-span bay.
+- Remove columns strictly inside `no_columns` zones (columns on the zone boundary stay); the merged bay becomes a long-span bay.
 - Keep the candidate count small (dozens, not thousands). Brute force is fine.
 
 ### 4.3 `bays.py`
@@ -194,19 +197,21 @@ tests/
 - If no DB row fits: mark the bay `infeasible`, attach a warning, and penalize the whole candidate rather than crash.
 
 ### 4.4 Depth constraint
-`allowable_depth_in = (floor_to_floor_ft - min_ceiling_height_ft)*12 - plenum_allowance_in`, overridden by `max_structure_depth_in` if given. Candidates exceeding it at any bay get a heavy penalty, not removal, so we can still show "best you can do."
+`allowable_depth_in = (floor_to_floor_ft - min_ceiling_height_ft)*12 - plenum_allowance_in`, overridden by `max_structure_depth_in` if given. `floor_to_floor_ft` is that of the story **below** the framed level, whose ceiling the framing sits in (framing at L2 uses L1's height; roof framing uses the top story's). Candidates exceeding it at any bay get a heavy penalty, not removal, so we can still show "best you can do."
 
 ### 4.5 `columns.py` (simplified sizing — the DB has no columns)
 
 **Loads**
 - Tributary area by half-bay method (Voronoi is overkill for orthogonal grids). Edge and corner columns get the partial area automatically.
-- Accumulate D, L (reduced per 4.1 using cumulative AT and KLL from ASCE 7-22 Table 4.7-1), and Lr from the roof down.
+- Accumulate D, L (reduced per 4.1 using cumulative AT and KLL from ASCE 7-22 Table 4.7-1), Lr, and S (flat roof snow; see decisions log) from the roof down.
 - D = framing self-weight from the DB row's `self_wt_psf` (only if the DB table doesn't already include it in its load basis — confirm in section 6 step 2) + SDL + partitions where applicable (partitions are treated as live for reduction purposes only if the team agrees; default: carry as dead, conservative) + column self-weight from the previous iteration + a perimeter cladding line load from `config/systems.json` (default 0 for the hackathon, flagged).
 - Factored axial = max of the ASCE 7-22 §2.3.1 gravity combos:
   - `1.4D`
   - `1.2D + 1.6L + 0.5Lr`
+  - `1.2D + 1.6L + 0.5S`
   - `1.2D + 1.6Lr + 1.0L`
-- Report Pd, Pl, Plr, Pu, and governing combo per column per level.
+  - `1.2D + 1.6S + 1.0L`
+- Report Pd, Pl, Plr, Psnow, Pu, and governing combo per column per level (output fields `Pd_kips`, `Pl_kips`, `Plr_kips`, `Psnow_kips`, `Pu_kips`, `governing_combo`), and S in the foundation reactions (`S_kips`).
 
 **Steel (build first)**
 - Shapes: W12 and W14 column shapes only, Fy = 50 ksi, E = 29,000 ksi.
@@ -280,3 +285,7 @@ Review each step's output before moving on — especially step 2 (DB units and l
 | Lateral picks its own frame lines vs. we propose them | Open — default: lateral picks |
 | Roof snow load source | Open — default: flat input in `config`, 0 if not given, flagged |
 | DB loads are service vs factored; self-weight included or not | Open — answered in section 6 step 2 |
+| Column stack entries carry `Plr_kips`, `Psnow_kips` and `governing_combo`; foundation reactions carry `S_kips`; snow combos `1.2D+1.6L+0.5S` and `1.2D+1.6S+1.0L` added to 4.5 | **Settled** |
+| `no_columns` zones remove only columns strictly inside the zone; columns on its boundary stay. A zone on level Ln applies to the story from Ln up to the next level | **Settled** |
+| Depth limit at a framed level uses the floor-to-floor height of the story below it (4.4) | **Settled** |
+| Typical zones copy to framed floors only (lowest level is slab-on-grade, roof is always `roof` occupancy); an explicit zone overrides copied zones only where it overlaps them | **Settled** |

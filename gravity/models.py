@@ -22,6 +22,15 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 SystemName = Literal["steel", "concrete", "mass_timber"]
 
+# ASCE 7-22 section 2.3.1 gravity combinations (spec 4.5, decisions log section 7).
+LoadCombo = Literal[
+    "1.4D",
+    "1.2D+1.6L+0.5Lr",
+    "1.2D+1.6L+0.5S",
+    "1.2D+1.6Lr+1.0L",
+    "1.2D+1.6S+1.0L",
+]
+
 # [x_ft, y_ft] in plan.
 Point = tuple[float, float]
 # Polygon vertices in feet; closing vertex optional.
@@ -127,6 +136,9 @@ class ColumnStackEntry(_Model):
     Pu_kips: float
     Pd_kips: float
     Pl_kips: float
+    Plr_kips: float
+    Psnow_kips: float
+    governing_combo: LoadCombo
 
 
 class Column(_Model):
@@ -170,6 +182,7 @@ class FoundationReaction(_Model):
     D_kips: float
     L_kips: float
     Lr_kips: float
+    S_kips: float
 
 
 class Quantities(_Model):
