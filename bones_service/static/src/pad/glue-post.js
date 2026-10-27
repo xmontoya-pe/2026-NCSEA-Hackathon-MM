@@ -21,10 +21,9 @@ function bonesOpen(project){
     S.bones = Object.assign({}, d.bones, ...Object.keys(keep).filter(k => keep[k]).map(k => ({[k]: keep[k]})));
     ensureLevels(S);
   } else {
-    const sys = S.lateral_system;   // a new plan keeps the lateral system picked on step 3, unless the file has one
     S = normalize(Object.assign(fresh(), d)); S.n = S.levels.length;
-    if(!d.lateral_system && sys) S.lateral_system = sys;
   }
+  syncSystem();   // the lateral system follows step 4's material
   renderInputs(); renderT1(); renderT3(); update(); planReset(); save();
   return same;
 }
@@ -89,7 +88,14 @@ function setHazard(h){
   save();
 }
 function setSnow(sn){ bonesData().snow = sn; save(); renderLoads(); }
-function setMaterial(m){ bonesData().material = m; save(); }   // step 4's structural system, a stand-in for module 4
+// step 4's structural system, a stand-in for module 4. Concrete makes the lines shear walls; steel and wood leave them
+// as braced frames, the ELF engine's other system (see syncSystem).
+function setMaterial(m){
+  bonesData().material = m;
+  syncSystem();
+  if(isWalls()) PL().lfrs.forEach(l => { if(!Array.isArray(l.ts) || !l.ts.length) l.ts = Array(nLv()).fill(wallTDef()); });
+  save(); changed();
+}
 const lineKey = v => Math.round(v * 1000) / 1000;
 function bonesLines(){
   const el = document.getElementById('bonesLines'); if(!el) return;
@@ -102,9 +108,6 @@ function bonesLines(){
   const list = (d, axis) => Object.keys(groups[d]).sort((a, b) => a - b).map(at =>
     `<li><span>${axis} = ${fmt(+at, at % 1 ? 2 : 0)} ft</span><span>${groups[d][at].map(esc).join(', ')}</span></li>`).join('');
   let verdict, cls;
-  if(!nx && !ny){ verdict = isWalls() ? 'No shear walls yet. Choose Shear walls, then click one end of a wall and then the other.'
-                                      : 'No braced frames yet. Choose Braced frames, then click one column and the other column of a braced bay.'; cls = 'b-warn'; }
-  else if(!nx || !ny){ verdict = `${isWalls() ? 'Walls' : 'Frames'} are needed in both directions; there are none in ${nx ? 'Y' : 'X'}.`; cls = 'b-bad'; }
   if(!nx && !ny){ verdict = 'No lines of resistance yet. Choose Lines of resistance on the pad, then click one end of a wall or frame and then the other.'; cls = 'b-warn'; }
   else if(!nx || !ny){ verdict = `Lines of resistance are needed in both directions; there are none in ${nx ? 'Y' : 'X'}.`; cls = 'b-bad'; }
   else if(nx + ny < 3){ verdict = 'Only one line in each direction: the lines meet at a point, so the plan cannot resist torsion. Add a third line.'; cls = 'b-bad'; }
@@ -116,8 +119,6 @@ function bonesLines(){
   window.dispatchEvent(new CustomEvent('bones:lines', {detail: {nx, ny, ok, frames: (S.plan.lfrs || []).length}}));
 }
 
-/* 3D view: every level of the typical plan, columns at the corners and frame columns, one brace per story
-   (shear walls: one panel per wall, full height) */
 /* 3D view: every level of the typical plan, columns at the corners, each line of resistance shaded as a wall */
 function render3D(){
   const svg = document.getElementById('m3d'); if(!svg) return;
@@ -136,33 +137,9 @@ function render3D(){
   const ox = 500 - (mnx + mxx) / 2 * k + V3.px, oy = 300 - (mny + mxy) / 2 * k + V3.py;
   const T = (x, y, z) => { const q = P(x, y, z); return (ox + q[0] * k).toFixed(1) + ' ' + (oy + q[1] * k).toFixed(1); };
   const ring = z => 'M' + V.map(p => T(p[0], p[1], z)).join('L') + 'Z';
-  let floors = '', cols = '', braces = '', beams = '', labels = '', panels = '';
   let floors = '', cols = '', walls = '', labels = '';
   hs.slice(1, -1).forEach(z => floors += ring(z));
   (pl.lfrs || []).forEach(l => {
-    const a = [l.x1, l.y1], b = [l.x2, l.y2], x2 = l.type === 'x2';
-    if(isWalls()){
-      panels += 'M' + T(a[0], a[1], 0) + 'L' + T(b[0], b[1], 0) + 'L' + T(b[0], b[1], top) + 'L' + T(a[0], a[1], top) + 'Z';
-      hs.slice(1, -1).forEach(z => { beams += 'M' + T(a[0], a[1], z) + 'L' + T(b[0], b[1], z); });
-      const q = T((a[0] + b[0]) / 2, (a[1] + b[1]) / 2, top).split(' ');
-      labels += `<text x="${q[0]}" y="${+q[1] - 10}" text-anchor="middle" font-size="15" font-weight="700" fill="#E3A3AD">${esc(l.label)}</text>`;
-      return;
-    }
-    const L = lLen(l), t = x2 && num(l.L1) > 0 && num(l.L1) < L ? num(l.L1) / L : 0.5;
-    const m = [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
-    colPts.push(a, b); if(x2) colPts.push(m);
-    hs.slice(1).forEach((z, i) => {
-      const z0 = hs[i], flip = l.alt && i % 2 === 1;
-      beams += 'M' + T(a[0], a[1], z) + 'L' + T(b[0], b[1], z);
-      if(x2){
-        const atTop = (l.mid !== 'bot') !== (i % 2 === 1);    // Λ then V, alternating each story
-        braces += atTop ? 'M' + T(a[0], a[1], z0) + 'L' + T(m[0], m[1], z) + 'L' + T(b[0], b[1], z0)
-                        : 'M' + T(a[0], a[1], z) + 'L' + T(m[0], m[1], z0) + 'L' + T(b[0], b[1], z);
-      } else {
-        const toB = (l.up !== 'a') !== flip;                   // story 1 rises to the 'up' end
-        const lo = toB ? a : b, hi = toB ? b : a;
-        braces += 'M' + T(lo[0], lo[1], z0) + 'L' + T(hi[0], hi[1], z);
-      }
     const a = [l.x1, l.y1], b = [l.x2, l.y2];
     hs.slice(1).forEach((z, i) => {   // one shaded panel per story, so the floor lines still read across the wall
       walls += 'M' + T(a[0], a[1], hs[i]) + 'L' + T(b[0], b[1], hs[i]) + 'L' + T(b[0], b[1], z) + 'L' + T(a[0], a[1], z) + 'Z';
@@ -174,12 +151,6 @@ function render3D(){
   svg.innerHTML = `<path d="${ring(0)}" fill="#fff" fill-opacity=".05" stroke="#5A5A61"/>
     <path d="${floors}" fill="#fff" fill-opacity=".03" stroke="#fff" stroke-opacity=".45"/>
     <path d="${cols}" stroke="#fff" stroke-opacity=".35"/>
-    <path d="${beams}" stroke="#D0566A" stroke-opacity=".7" stroke-width="2"/>
-    <path d="${braces}" stroke="#D0566A" stroke-width="2.6" fill="none" stroke-linejoin="round"/>
-    <path d="${panels}" fill="#D0566A" fill-opacity=".22" stroke="#D0566A" stroke-width="1.6" stroke-linejoin="round"/>
-    <path d="${ring(top)}" fill="none" stroke="#fff" stroke-width="1.6"/>${labels}`;
-  const sum = document.getElementById('m3dSum'), nl = (pl.lfrs || []).length;
-  if(sum) sum.textContent = `${S.levels.length} level${S.levels.length === 1 ? '' : 's'}, ${nl} ${isWalls() ? 'shear wall' : 'braced frame'}${nl === 1 ? '' : 's'}`;
     <path d="${walls}" fill="#D0566A" fill-opacity=".38" stroke="#D0566A" stroke-width="1.6" stroke-linejoin="round"/>
     <path d="${ring(top)}" fill="none" stroke="#fff" stroke-width="1.6"/>${labels}`;
   const sum = document.getElementById('m3dSum'), nL = (pl.lfrs || []).length;
@@ -202,10 +173,40 @@ function render3D(){
   w.addEventListener('contextmenu', e => e.preventDefault());
   w.addEventListener('wheel', e => { if(document.activeElement !== w) return; e.preventDefault(); V3.zoom = Math.max(0.3, Math.min(6, V3.zoom * (e.deltaY < 0 ? 1.12 : 1 / 1.12))); render3D(); }, {passive: false});
 })();
-/* ---- Shear walls (S.lateral_system = 'shear_wall'): the same lines, as concrete walls with a thickness per story ----
-   The pad's own code is unchanged; these wrappers swap the brace inputs for wall thickness. lateral_system and each
-   wall's ts (in, story 1 first) are saved with the project, and the ELF engine (elf_engine.py) reads both. */
-function isWalls(){ return S.lateral_system === 'shear_wall'; }
+/* Wording: the pad's frames stand for walls or frames of any material (chosen in module 4), so its brace wording
+   is swapped for "lines of resistance" as it renders, leaving pad.verbatim.* unchanged. Specific phrases first. */
+const WORDS = [
+  ['Click the first column of a braced bay (the line runs column to column)', 'Click one end of the wall or frame'],
+  ['click the two columns of each braced bay', 'click both ends of each wall or frame'],
+  ['Columns, beams and one brace per story are drawn for every frame.', 'Each line of resistance is shaded as a wall at every story.'],
+  ['Frame selected:', 'Line selected:'], ['New frames, A', 'New lines, A'], [' to add frames', ' to add them'],
+  ['Braced frames', 'Lines of resistance'], ['braced frames', 'lines of resistance'],
+  ['Braced frame', 'Line of resistance'], ['braced frame', 'line of resistance']];
+const reword = s => WORDS.reduce((t, [a, b]) => t.split(a).join(b), s);
+function rewordTree(n){
+  if(n.nodeType === 3){
+    if(n.parentElement && !n.parentElement.closest('svg')){ const t = reword(n.nodeValue); if(t !== n.nodeValue) n.nodeValue = t; }
+    return;
+  }
+  if(n.nodeType !== 1 || n.closest('svg')) return;   // the plan and 3D drawings carry no wording, and redraw often
+  ['aria-label', 'title'].forEach(a => { const v = n.getAttribute(a); if(v){ const t = reword(v); if(t !== v) n.setAttribute(a, t); } });
+  n.childNodes.forEach(rewordTree);
+}
+const FOOT_LINES = 'Each line is a wall or frame that resists lateral load; its material is chosen in Module 4. Until then, A (in²) only sets how the load is shared between lines.';
+(function wireWording(){
+  const pad = document.getElementById('pad'); if(!pad) return;
+  const foot = pad.querySelector('.tpanel:not(.lapanel) .tp-foot');
+  if(foot) foot.innerHTML = FOOT_LINES;
+  rewordTree(pad);
+  new MutationObserver(ms => ms.forEach(m => m.type === 'characterData' ? rewordTree(m.target) : m.addedNodes.forEach(rewordTree)))
+    .observe(pad, {childList: true, subtree: true, characterData: true});
+})();
+/* ---- Shear walls: when step 4's material is concrete, the lines are concrete walls with a thickness per story ----
+   The pad's own code is unchanged; these wrappers swap the brace inputs for wall thickness. S.lateral_system follows
+   the material ('shear_wall' for concrete, 'braced_frame' otherwise), and it and each wall's ts (in, story 1 first) are
+   saved with the project for the ELF engine (elf_engine.py). */
+function isWalls(){ return ((S.bones || {}).material || {}).key === 'concrete'; }
+function syncSystem(){ S.lateral_system = isWalls() ? 'shear_wall' : 'braced_frame'; }
 function wallTDef(){ const v = num(bonesData().wallT); return v > 0 ? v : 8; }   // the last thickness entered, in
 // thickness of wall l in story i (in): that story's, else the nearest story below that has one, else t (as the engine fills it)
 function wallT(l, i){
@@ -238,7 +239,7 @@ function askThickness(l){
   const dlg = document.getElementById('wallDlg'), inp = document.getElementById('wallDlgIn');
   if(!dlg || !dlg.showModal) return;
   const t0 = wallTDef();
-  document.getElementById('wallDlgMsg').textContent = `${l.label}: ${lDir(l)} direction, ${ft(lLen(l))} long. Every level gets this thickness; change one level in the Shear walls panel.`;
+  document.getElementById('wallDlgMsg').textContent = `${l.label}: ${lDir(l)} direction, ${ft(lLen(l))} long. Every level gets this thickness; change one level in the side panel.`;
   document.getElementById('wallDlgKeep').textContent = `Keep ${+t0.toFixed(2)} in`;
   inp.value = t0;
   dlg.onclose = () => {
@@ -260,7 +261,7 @@ renderTPanel = function(){
   const L = PL().lfrs, el = $('#tpList'); if(!el) return;
   if(document.activeElement && el.contains(document.activeElement) && document.activeElement.tagName === 'INPUT') return;   // do not rebuild while typing
   if(document.activeElement !== $('#aDef')) $('#aDef').value = wallTDef();
-  if(!L.length){ el.innerHTML = '<div class="tp-empty">Draw shear walls to list them here.</div>'; return; }
+  if(!L.length){ el.innerHTML = '<div class="tp-empty">Draw walls to list them here.</div>'; return; }
   const lv = padLv(), ord = L.map((l,i) => ({l,i})).sort((a,b) => lDir(a.l).localeCompare(lDir(b.l)) || a.l.label.localeCompare(b.l.label, undefined, {numeric:true}));
   el.innerHTML = ord.map(({l,i}) => `<label class="tp-row${sel && sel.type==='lfrs' && sel.idx===i ? ' on' : ''}"><b>${esc(l.label)}</b><span class="muted">${ft(lLen(l))}</span>
     <input class="in" type="number" min="0" step="0.5" data-tt="${i}" value="${esc(wallT(l, lv))}" aria-label="Thickness of ${esc(l.label)} at ${esc(label(lv))}, in inches"><span class="muted">in</span></label>`).join('');
@@ -271,7 +272,7 @@ $('#tpList').addEventListener('change', e => {
   if(!(v > 0)){ t.value = wallT(l, padLv()); return; }
   pushHist(); fillTs(l); l.ts[padLv() - 1] = v; t.blur(); changed();
 });
-// "New walls, t": the thickness offered for the next wall (the pad's own handler keeps the brace area)
+// "New lines, t": the thickness offered for the next wall (the pad's own handler keeps the brace area)
 $('#aDef').addEventListener('change', e => {
   if(!isWalls()) return;
   e.stopImmediatePropagation();
@@ -287,16 +288,6 @@ copyLevel = function(from, to){
 // no brace-direction arrows on walls
 const renderFrames = render;
 render = function(){ const o = OPT(), b = o.bdir; if(isWalls()) o.bdir = false; try{ renderFrames(); } finally{ o.bdir = b; } };
-const hintFrames = hintUpdate;
-hintUpdate = function(){
-  hintFrames();
-  if(!isWalls()) return;
-  const el = $('#planHint');
-  el.innerHTML = el.innerHTML
-    .replace('Click the first column of a braced bay (the line runs column to column).', 'Click one end of a wall, then the other; it asks for the wall thickness.')
-    .replace('<b>Braced frames</b> to add frames', '<b>Shear walls</b> to add walls')
-    .replace('Frame selected:', 'Wall selected:').replace('the frame moves', 'the wall moves');
-};
 const planStatsFrames = planStatsUI;
 planStatsUI = function(){
   planStatsFrames();
@@ -305,7 +296,7 @@ planStatsUI = function(){
   $('#ps-n').textContent = `${nx} X · ${L.length - nx} Y walls`;
   $('#ps-Rn').textContent = `${label(padLv())} (drawing pad level), walls below it, each on its own`;
 };
-// labels that name braced frames
+// the side panel's wording for thickness instead of brace area
 let chromeFor = null;
 function wallsChrome(){
   const w = isWalls(); if(chromeFor === w) return; chromeFor = w;
@@ -314,60 +305,19 @@ function wallsChrome(){
     const nodes = [...e.childNodes].filter(n => n.nodeType === 3 && n.textContent.trim());
     const n = i < 0 ? nodes[nodes.length - 1] : nodes[i]; if(n) n.textContent = w ? walls : frames;
   };
-  text('[data-mode="lfrs"]', 0, '2 · Braced frames', '2 · Shear walls');
-  text('.tpanel:not(.lapanel) .tp-head', 0, 'Braced frames ', 'Shear walls ');
-  text('.tp-def', 0, 'New frames, A ', 'New walls, t ');
+  text('.tp-def', 0, 'New lines, A ', 'New lines, t ');
   text('.tp-def', -1, ' in²', ' in');
   const foot = document.querySelector('#pad .tpanel:not(.lapanel) .tp-foot');
-  if(foot){ if(!foot.dataset.frames) foot.dataset.frames = foot.innerHTML;
-    foot.innerHTML = w ? 't = wall thickness (in) in the story below this level. Each new wall asks for its thickness. The pad’s C.R. treats every wall on its own; the analysis joins walls that meet into cores.' : foot.dataset.frames; }
-  const tp = document.querySelector('#pad .tpanel:not(.lapanel)'); if(tp) tp.setAttribute('aria-label', w ? 'Shear walls' : 'Braced frames');
-  const ps = $('#ps-n'); if(ps && ps.previousElementSibling) ps.previousElementSibling.textContent = w ? 'Shear walls' : 'Braced frames';
+  if(foot) foot.innerHTML = w ? 'Concrete is chosen in Module 4, so each line is a shear wall. t = wall thickness (in) in the story below this level; each new wall asks for it. The pad’s C.R. treats every wall on its own; the analysis joins walls that meet into cores.' : FOOT_LINES;
   const bd = document.querySelector('#pad [data-opt="bdir"]'); if(bd) bd.closest('label').hidden = w;
   const what = w ? 'wall thicknesses' : 'brace areas';
   $('#lvCopyAll').title = `Copy this level's ${what} and load areas to every other level`;
   $('#lvCopyFrom').setAttribute('aria-label', `Copy ${what} and load areas from another level`);
-  document.querySelectorAll('[data-sys]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.sys === (w ? 'shear_wall' : 'braced_frame'))));
 }
-function setSystem(sys){
-  S.lateral_system = sys === 'shear_wall' ? 'shear_wall' : 'braced_frame';
-  if(isWalls()) PL().lfrs.forEach(l => { if(!Array.isArray(l.ts) || !l.ts.length) l.ts = Array(nLv()).fill(wallTDef()); });
-  save(); changed();
-}
-document.querySelectorAll('[data-sys]').forEach(b => b.addEventListener('click', () => setSystem(b.dataset.sys)));
-
-window.BonesPad = {open: bonesOpen, state: () => S, bones: () => bonesData(), setHazard, setSnow, copyLoadsToFloors, renderLoads, setSystem,
+window.BonesPad = {open: bonesOpen, state: () => S, bones: () => bonesData(), setHazard, setSnow, setMaterial, copyLoadsToFloors, renderLoads,
   system: () => S.lateral_system || 'braced_frame',
-/* Wording: the pad's frames stand for walls or frames of any material (chosen in module 4), so its brace wording
-   is swapped for "lines of resistance" as it renders, leaving pad.verbatim.* unchanged. Specific phrases first. */
-const WORDS = [
-  ['Click the first column of a braced bay (the line runs column to column)', 'Click one end of the wall or frame'],
-  ['click the two columns of each braced bay', 'click both ends of each wall or frame'],
-  ['Columns, beams and one brace per story are drawn for every frame.', 'Each line of resistance is shaded as a wall at every story.'],
-  ['Frame selected:', 'Line selected:'], ['New frames, A', 'New lines, A'], [' to add frames', ' to add them'],
-  ['Braced frames', 'Lines of resistance'], ['braced frames', 'lines of resistance'],
-  ['Braced frame', 'Line of resistance'], ['braced frame', 'line of resistance']];
-const reword = s => WORDS.reduce((t, [a, b]) => t.split(a).join(b), s);
-function rewordTree(n){
-  if(n.nodeType === 3){
-    if(n.parentElement && !n.parentElement.closest('svg')){ const t = reword(n.nodeValue); if(t !== n.nodeValue) n.nodeValue = t; }
-    return;
-  }
-  if(n.nodeType !== 1 || n.closest('svg')) return;   // the plan and 3D drawings carry no wording, and redraw often
-  ['aria-label', 'title'].forEach(a => { const v = n.getAttribute(a); if(v){ const t = reword(v); if(t !== v) n.setAttribute(a, t); } });
-  n.childNodes.forEach(rewordTree);
-}
-(function wireWording(){
-  const pad = document.getElementById('pad'); if(!pad) return;
-  const foot = pad.querySelector('.tpanel:not(.lapanel) .tp-foot');
-  if(foot) foot.innerHTML = 'Each line is a wall or frame that resists lateral load; its material is chosen in Module 4. Until then, A (in²) only sets how the load is shared between lines.';
-  rewordTree(pad);
-  new MutationObserver(ms => ms.forEach(m => m.type === 'characterData' ? rewordTree(m.target) : m.addedNodes.forEach(rewordTree)))
-    .observe(pad, {childList: true, subtree: true, characterData: true});
-})();
-window.BonesPad = {open: bonesOpen, state: () => S, bones: () => bonesData(), setHazard, setSnow, setMaterial, copyLoadsToFloors,
-window.BonesPad = {open: bonesOpen, state: () => S, bones: () => bonesData(), setHazard, setSnow, copyLoadsToFloors, renderLoads,
   toScreen: (x, y) => { const r = document.getElementById('plan').getBoundingClientRect(), p = toS([x, y]); return [r.left + p[0], r.top + p[1]]; }, fit: () => { sizePlan(); fit(); render(); }, refresh: () => { bonesLines(); render3D(); }};
 bonesReady = true;
+syncSystem();
 renderTPanel(); planStatsUI(); render();   // the pad drew itself before the wrappers above existed
 bonesLines(); render3D(); renderLoads();

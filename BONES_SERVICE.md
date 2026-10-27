@@ -44,14 +44,12 @@ What is sent, and what isn't, is listed in `docs/ASSUMPTIONS.md` (INT-1 to INT-6
    - **Gravity loads by load area:** one row per load area drawn on the pad, for the pad's current level: LL and SDL (editable; defaults 50 / 15 psf on floors, L<sub>r</sub> 20 / 20 psf at the roof) and SL at the roof. **Copy to every floor level** copies the rows.
    - S<sub>DS</sub>, S<sub>D1</sub> and I<sub>e</sub> are also written to the project's `sds`, `sd1` and `ie`, the fields the ELF app's module 1 reads. Hazards, snow and loads are saved under `bones.hazard`, `bones.snow` and `bones.loads`.
    - **Drawing pad:** **Open in the drawing pad** on step 2 loads the plan into Module 2's drawing pad (Lucas's code from the plan-import handoff, unchanged).
-   - Draw braced frames column to column, load areas by level, and edit the outline, with the pad's own snapping, undo, dimensions, C.M. / C.R. markers and frame tables.
-   - **Lateral system:** **Steel braced frames** (the default) or **Concrete shear walls**, saved as the project's `lateral_system` (`braced_frame` / `shear_wall`), which the ELF engine reads.
-     - Shear walls: each wall you draw asks for its thickness (in), offering the last one entered. The wall gets it at every level, as `t` and `ts` (one value per story, story 1 first).
+   - Draw lines of resistance (walls or frames; the material is chosen in module 4) end to end, load areas by level, and edit the outline, with the pad's own snapping, undo, dimensions, C.M. / C.R. markers and frame tables.
+   - **Shear walls:** choosing concrete in step 4 makes the lines concrete shear walls. The project's `lateral_system`, which the ELF engine reads, follows the material: `shear_wall` for concrete, `braced_frame` for steel and wood.
+     - Each wall drawn while concrete is chosen asks for its thickness (in), offering the last one entered. The wall gets it at every level, as `t` and `ts` (one value per story, story 1 first). Lines drawn before concrete was chosen get the default (8 in, or the last one entered).
      - The side panel lists the thickness of every wall at the pad's level; type a new one to change that level only. **Copy to all levels** and **Copy from** copy thicknesses too.
      - The pad's C.R. treats each wall on its own, as the engine's point spring with its default inputs (I<sub>eff</sub> = 0.35 I<sub>g</sub>, shear on, h = roof). The analysis also joins walls that meet into cores.
-     - The 3D view draws one full-height panel per wall. The frame and stiffness tables under the pad still describe braced frames.
-     - R, C<sub>d</sub>, f′c and the other wall inputs are not on the pad: they go in the analysis request (`shear_walls` in `POST /analyze`, see `api.py`).
-   - Draw lines of resistance (walls or frames; the material is chosen in module 4) end to end, load areas by level, and edit the outline, with the pad's own snapping, undo, dimensions, C.M. / C.R. markers and frame tables.
+     - R, C<sub>d</sub>, f′c and the other wall inputs are not on the pad: they go in the analysis request (`shear_walls` in `POST /analyze`, see `api.py`). The frame and stiffness tables under the pad still describe braced frames.
    - **Lines of resistance** (above the pad) groups the frames by line in X and Y and says whether there are enough lines to resist torsion: at least one line in each direction and at least three in total.
    - Lines of resistance are drawn as shaded walls, in plan and in 3D (one panel per story), with no braces, so the drawing does not assume steel. The pad still keeps a stiffness area A per line to share load between lines until module 4 sets the material.
    - The 3D view draws every level and every line of resistance. Drag to rotate, Shift-drag to pan, click then scroll to zoom.
@@ -60,7 +58,7 @@ What is sent, and what isn't, is listed in `docs/ASSUMPTIONS.md` (INT-1 to INT-6
    - Each card shows R, Ω<sub>0</sub> and C<sub>d</sub> and the height limit for the site's SDC (ASCE 7-22 Table 12.2-1), the seismic weight W (floor area × stories × self-weight), and C<sub>s</sub> and base shear V at T<sub>a</sub> = 0.02 h<sub>n</sub><sup>0.75</sup>, using S<sub>DS</sub>, S<sub>D1</sub> and I<sub>e</sub> from step 3. Without hazards it assumes S<sub>DS</sub> 1.0 and S<sub>D1</sub> 0.6.
    - Self-weight, cost, schedule and embodied carbon are placeholder values (`SYSTEMS` in `app.html`).
    - A system over its height limit, or wood over 5 stories, is marked not permitted.
-   - The chosen system is saved under `bones.material` (with `placeholder: true`) and goes out with **Download file**.
+   - The chosen system is saved under `bones.material` (with `placeholder: true`) and goes out with **Download file**. Choosing concrete turns the pad's lines into shear walls (see step 3).
 5. All Sketch Reader files (summary, plan JSON, CSV, DXF, SVG, overlay, reading) are still written to `outputs/<name>/` and linked on step 2.
 
 ## The Module 2 file (`bones_service/convert.py`)
@@ -78,7 +76,7 @@ Checks before hand-off (section 4.5): at least 4 corners, every edge horizontal 
 
 ## The drawing pad inside Bones (`bones_service/build_ui.py`)
 
-The shear wall mode lives in `pad/glue-post.js`: it wraps the pad's `lfrsClick`, `renderTPanel`, `copyLevel`, `wallK`, `render`, `planStatsUI` and `hintUpdate`, so `pad/pad.verbatim.*` stay as handed off.
+The shear wall mode lives in `pad/glue-post.js`: it wraps the pad's `lfrsClick`, `renderTPanel`, `copyLevel`, `wallK`, `render` and `planStatsUI`, so `pad/pad.verbatim.*` stay as handed off. It is on while `bones.material.key` is `concrete` (`setMaterial`, called by step 4).
 
 `static/index.html` is assembled from `static/src/`: the Bones UI (`app.html`) plus the Module 2 code copied unchanged from the handoff (`pad/pad.verbatim.css`, `.html`, `.js`). When Lucas updates Module 2, paste the new code into those three files and run `python -m bones_service.build_ui`.
 

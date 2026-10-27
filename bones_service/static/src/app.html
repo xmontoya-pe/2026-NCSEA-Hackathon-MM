@@ -308,11 +308,6 @@ ul.plain{margin:6px 0 0;padding-left:18px;font-size:13.5px;color:var(--muted)}
           </div>
         </div>
         <div class="b-card">
-          <h2>Lateral system</h2>
-          <div class="b-seg" role="group" aria-label="Lateral system"><button type="button" data-sys="braced_frame" aria-pressed="true">Steel braced frames</button><button type="button" data-sys="shear_wall" aria-pressed="false">Concrete shear walls</button></div>
-          <p class="small" style="margin:8px 0 0">Shear walls: each wall you draw asks for its thickness. R, C<sub>d</sub>, f′c and the other wall inputs go with the analysis request.</p>
-        </div>
-        <div class="b-card">
           <h2>Lines of resistance</h2>
           <div id="bonesLines" class="lines"></div>
         </div>
@@ -520,7 +515,8 @@ function sysRender(){
   const c = rows.find(r => r.key === chosen);
   $("sysPicked").innerHTML = c
     ? `<p style="margin:0 0 6px"><b>${c.name}</b>${c.allowed ? "" : ' <span class="b-bad">(no longer permitted for this building)</span>'}</p>
-       <p class="small" style="margin:0">R = ${c.R}, Ω<sub>0</sub> = ${c.O}, C<sub>d</sub> = ${c.Cd}. C<sub>s</sub> = ${c.Cs.toFixed(3)}, W = ${fmt(c.W, 0)} k, V = ${fmt(c.V, 0)} k. Saved in the project file.</p>`
+       <p class="small" style="margin:0">R = ${c.R}, Ω<sub>0</sub> = ${c.O}, C<sub>d</sub> = ${c.Cd}. C<sub>s</sub> = ${c.Cs.toFixed(3)}, W = ${fmt(c.W, 0)} k, V = ${fmt(c.V, 0)} k. Saved in the project file.</p>` +
+      (c.key === "concrete" ? `<p class="small" style="margin:6px 0 0">The lines on the drawing pad are now shear walls: set each wall’s thickness in its side panel (${fmt(window.BonesPad.bones().wallT || 8, 1)} in until you change it). Each wall you draw from now on asks for its thickness.</p>` : "")
     : '<p class="small" style="margin:0">None yet. Choose one of the three systems above.</p>';
 }
 $("sysCards").addEventListener("click", e => {

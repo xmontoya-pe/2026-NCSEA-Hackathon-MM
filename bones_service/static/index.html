@@ -125,6 +125,25 @@ ul.plain{margin:6px 0 0;padding-left:18px;font-size:13.5px;color:var(--muted)}
 #wallDlg h2{margin:0 0 6px;font-size:17px;font-weight:600}
 #wallDlg .small{margin:0 0 12px}
 .dlg-btns{display:flex;gap:10px;margin-top:16px}
+
+.sys-basis{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px}
+.sys-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin-top:20px}
+.sys-card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:20px;display:flex;flex-direction:column;gap:12px}
+.sys-card.on{border-color:var(--wine);box-shadow:0 0 0 1px var(--wine)}
+.sys-card h3{margin:0;font-size:16px;font-weight:600;line-height:1.3}
+.sys-top{display:flex;justify-content:space-between;align-items:center;gap:8px;min-height:22px}
+.sys-mat{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--wine)}
+.badge{font-size:11.5px;font-weight:600;padding:2px 8px;border-radius:999px;background:var(--wine-l);color:var(--wine)}
+.badge.ok{background:#E7F3EC;color:var(--ok)}
+.sys-big{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.sys-dl{margin:0;display:flex;flex-direction:column;gap:8px;font-size:13.5px}
+.sys-dl > div{display:grid;grid-template-columns:1fr auto;gap:3px 8px;align-items:baseline}
+.sys-dl dt{color:var(--muted)}
+.sys-dl dd{margin:0;font-weight:600;text-align:right}
+.bar{grid-column:1 / -1;height:4px;border-radius:2px;background:#ECECE8;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--wine)}
+.sys-card .btn{margin-top:auto}
+@media (max-width:1000px){.sys-grid{grid-template-columns:1fr}.sys-basis{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media (max-width:640px){header,nav{padding-left:16px;padding-right:16px} main{padding:24px 16px 48px} h1{font-size:28px} .b-stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
 </style>
 <style id="pad-css">
@@ -420,6 +439,13 @@ ul.plain{margin:6px 0 0;padding-left:18px;font-size:13.5px;color:var(--muted)}
 #pad #m3dWrap .plan-hint{position:absolute;left:12px;bottom:10px;top:auto;color:#A1A1A8;background:transparent;border:0;font-size:12.5px;padding:0;box-shadow:none}
 #pad #m3d{display:block;width:100%;height:auto}
 #pad label.cb:has(#m3dF){display:none}
+/* lines of resistance: a shaded wall band instead of a brace line, with no columns or brace arrows (material is module 4's) */
+#pad #plan .lf{stroke-width:10;stroke-opacity:.45;stroke-linecap:butt}
+#pad #plan .lfsel,#pad #plan .lfhov{stroke-width:18}
+#pad #plan .bfcol,#pad #plan .bfdir,#pad #plan .bfalt{display:none}
+#pad label.cb:has([data-opt="bdir"]){display:none}
+#pad #tpList .xbtn{display:none}
+#pad .tp-row{grid-template-columns:34px 1fr 60px}
 
 </style>
 </head>
@@ -436,7 +462,7 @@ ul.plain{margin:6px 0 0;padding-left:18px;font-size:13.5px;color:var(--muted)}
   <button class="step" id="nav1" type="button" aria-current="step"><i>1</i>Sketch</button>
   <button class="step later" id="nav2" type="button" disabled><i>2</i>Plan and 3D</button>
   <button class="step later" id="nav3" type="button" disabled><i>3</i>Drawing pad and loads</button>
-  <span class="step later"><i>4</i>Analysis</span>
+  <button class="step later" id="nav4" type="button" disabled><i>4</i>Structural system</button>
   <span class="step later"><i>5</i>Client view</span>
 </nav>
 
@@ -533,7 +559,7 @@ ul.plain{margin:6px 0 0;padding-left:18px;font-size:13.5px;color:var(--muted)}
           <h2>Hand-off</h2>
           <button class="btn b-primary" id="toPad" type="button" style="width:100%">Open in the drawing pad</button>
           <a class="btn ghost b-sm" id="dlM2" style="width:100%;margin-top:10px">Download Module 2 file</a>
-          <p class="small" style="margin:8px 0 0">Add braced frames and load areas next. The file also opens in the ELF app with <b>Open…</b>.</p>
+          <p class="small" style="margin:8px 0 0">Add lines of resistance and load areas next. The file also opens in the ELF app with <b>Open…</b>.</p>
           <div class="files" id="files"></div>
         </div>
         <button class="btn ghost" id="back" type="button">Read another sketch</button>
@@ -544,7 +570,7 @@ ul.plain{margin:6px 0 0;padding-left:18px;font-size:13.5px;color:var(--muted)}
   <!-- STEP 3 -->
   <section id="s3" hidden>
     <h1>Lateral system, loads and hazards</h1>
-    <p class="lede">Pull the site hazards, draw braced frames and load areas, and set LL, SDL and SL for each area. Everything is saved in this browser as you go.</p>
+    <p class="lede">Pull the site hazards, draw lines of resistance and load areas, and set LL, SDL and SL for each area. Everything is saved in this browser as you go.</p>
     <div class="row" style="margin-bottom:20px">
       <div class="b-card grow" style="flex-basis:620px" id="hazCard">
         <div class="headrow"><h2>Site hazards, ASCE 7</h2><a class="small" href="https://ascehazardtool.org/" target="_blank" rel="noopener">Open the ASCE Hazard Tool</a></div>
@@ -575,7 +601,7 @@ ul.plain{margin:6px 0 0;padding-left:18px;font-size:13.5px;color:var(--muted)}
       <aside class="side">
         <div class="b-card">
           <h2>Project file</h2>
-          <p class="small" style="margin:0 0 12px">The same file the ELF app opens, with your frames and load areas.</p>
+          <p class="small" style="margin:0 0 12px">The same file the ELF app opens, with your lines of resistance and load areas.</p>
           <div style="display:flex;gap:10px;flex-wrap:wrap">
             <button class="btn b-primary" id="btnSave" type="button" style="flex:1;white-space:nowrap">Download file</button>
             <button class="btn ghost" id="btnOpen" type="button" style="flex:1">Open…</button>
@@ -583,14 +609,10 @@ ul.plain{margin:6px 0 0;padding-left:18px;font-size:13.5px;color:var(--muted)}
           </div>
         </div>
         <div class="b-card">
-          <h2>Lateral system</h2>
-          <div class="b-seg" role="group" aria-label="Lateral system"><button type="button" data-sys="braced_frame" aria-pressed="true">Steel braced frames</button><button type="button" data-sys="shear_wall" aria-pressed="false">Concrete shear walls</button></div>
-          <p class="small" style="margin:8px 0 0">Shear walls: each wall you draw asks for its thickness. R, C<sub>d</sub>, f′c and the other wall inputs go with the analysis request.</p>
-        </div>
-        <div class="b-card">
           <h2>Lines of resistance</h2>
           <div id="bonesLines" class="lines"></div>
         </div>
+        <button class="btn b-primary" id="toSys" type="button">Compare structural systems</button>
         <button class="btn ghost" id="back3" type="button">Back to the plan</button>
       </aside>
     </div>
@@ -753,6 +775,29 @@ ul.plain{margin:6px 0 0;padding-left:18px;font-size:13.5px;color:var(--muted)}
         <div class="dlg-btns"><button class="btn b-primary b-sm" value="ok">Set thickness</button><button class="btn ghost b-sm" type="button" id="wallDlgKeep">Keep</button></div>
       </form>
     </dialog>
+  </section>
+
+  <!-- STEP 4 -->
+  <section id="s4" hidden>
+    <h1>Structural system</h1>
+    <p class="lede">Compare steel, concrete and wood for this building, then choose one. The plan, stories and site hazards come from the earlier steps.</p>
+    <div class="b-card">
+      <div class="headrow"><h2>Basis</h2><span class="small" id="sysSrc"></span></div>
+      <div class="sys-basis" id="sysBasis"></div>
+    </div>
+    <div class="sys-grid" id="sysCards"></div>
+    <p class="small" style="margin:12px 0 0">R, Ω<sub>0</sub>, C<sub>d</sub> and height limits: ASCE 7-22 Table 12.2-1. V = C<sub>s</sub>W, with T<sub>a</sub> = 0.02 h<sub>n</sub><sup>0.75</sup> (Eq. 12.8-7). Self-weight, cost, schedule and carbon are placeholder values until Module 4 is in.</p>
+    <div class="row" style="margin-top:20px">
+      <div class="b-card grow"><h2>Chosen system</h2><div id="sysPicked"></div></div>
+      <aside class="side">
+        <div class="b-card">
+          <h2>Project file</h2>
+          <p class="small" style="margin:0 0 12px">The same file as step 3, now with the chosen system under <code>bones.material</code>.</p>
+          <button class="btn b-primary" id="sysSave" type="button" style="width:100%">Download file</button>
+        </div>
+        <button class="btn ghost" id="back4" type="button">Back to the drawing pad</button>
+      </aside>
+    </div>
   </section>
 </main>
 <script id="pad-js">
@@ -2000,14 +2045,13 @@ function bonesOpen(project){
     const old = S.levels;
     S.levels = d.levels.map((L, j) => Object.assign({}, L, {name: (old[j] || {}).name || ''}));
     S.n = S.levels.length; S.project = d.project || S.project;
-    const keep = {hazard: (S.bones || {}).hazard, snow: (S.bones || {}).snow, loads: (S.bones || {}).loads};
+    const keep = {hazard: (S.bones || {}).hazard, snow: (S.bones || {}).snow, loads: (S.bones || {}).loads, material: (S.bones || {}).material};
     S.bones = Object.assign({}, d.bones, ...Object.keys(keep).filter(k => keep[k]).map(k => ({[k]: keep[k]})));
     ensureLevels(S);
   } else {
-    const sys = S.lateral_system;   // a new plan keeps the lateral system picked on step 3, unless the file has one
     S = normalize(Object.assign(fresh(), d)); S.n = S.levels.length;
-    if(!d.lateral_system && sys) S.lateral_system = sys;
   }
+  syncSystem();   // the lateral system follows step 4's material
   renderInputs(); renderT1(); renderT3(); update(); planReset(); save();
   return same;
 }
@@ -2072,6 +2116,14 @@ function setHazard(h){
   save();
 }
 function setSnow(sn){ bonesData().snow = sn; save(); renderLoads(); }
+// step 4's structural system, a stand-in for module 4. Concrete makes the lines shear walls; steel and wood leave them
+// as braced frames, the ELF engine's other system (see syncSystem).
+function setMaterial(m){
+  bonesData().material = m;
+  syncSystem();
+  if(isWalls()) PL().lfrs.forEach(l => { if(!Array.isArray(l.ts) || !l.ts.length) l.ts = Array(nLv()).fill(wallTDef()); });
+  save(); changed();
+}
 const lineKey = v => Math.round(v * 1000) / 1000;
 function bonesLines(){
   const el = document.getElementById('bonesLines'); if(!el) return;
@@ -2084,9 +2136,8 @@ function bonesLines(){
   const list = (d, axis) => Object.keys(groups[d]).sort((a, b) => a - b).map(at =>
     `<li><span>${axis} = ${fmt(+at, at % 1 ? 2 : 0)} ft</span><span>${groups[d][at].map(esc).join(', ')}</span></li>`).join('');
   let verdict, cls;
-  if(!nx && !ny){ verdict = isWalls() ? 'No shear walls yet. Choose Shear walls, then click one end of a wall and then the other.'
-                                      : 'No braced frames yet. Choose Braced frames, then click one column and the other column of a braced bay.'; cls = 'b-warn'; }
-  else if(!nx || !ny){ verdict = `${isWalls() ? 'Walls' : 'Frames'} are needed in both directions; there are none in ${nx ? 'Y' : 'X'}.`; cls = 'b-bad'; }
+  if(!nx && !ny){ verdict = 'No lines of resistance yet. Choose Lines of resistance on the pad, then click one end of a wall or frame and then the other.'; cls = 'b-warn'; }
+  else if(!nx || !ny){ verdict = `Lines of resistance are needed in both directions; there are none in ${nx ? 'Y' : 'X'}.`; cls = 'b-bad'; }
   else if(nx + ny < 3){ verdict = 'Only one line in each direction: the lines meet at a point, so the plan cannot resist torsion. Add a third line.'; cls = 'b-bad'; }
   else { verdict = `${nx + ny} lines of resistance, ${nx} in X and ${ny} in Y: enough to resist torsion.`; cls = 'b-good'; }
   el.innerHTML = `<p class="${cls}" style="margin:0 0 10px">${verdict}</p>` +
@@ -2096,8 +2147,7 @@ function bonesLines(){
   window.dispatchEvent(new CustomEvent('bones:lines', {detail: {nx, ny, ok, frames: (S.plan.lfrs || []).length}}));
 }
 
-/* 3D view: every level of the typical plan, columns at the corners and frame columns, one brace per story
-   (shear walls: one panel per wall, full height) */
+/* 3D view: every level of the typical plan, columns at the corners, each line of resistance shaded as a wall */
 function render3D(){
   const svg = document.getElementById('m3d'); if(!svg) return;
   const pl = S.plan, V = pl.verts || [];
@@ -2115,47 +2165,24 @@ function render3D(){
   const ox = 500 - (mnx + mxx) / 2 * k + V3.px, oy = 300 - (mny + mxy) / 2 * k + V3.py;
   const T = (x, y, z) => { const q = P(x, y, z); return (ox + q[0] * k).toFixed(1) + ' ' + (oy + q[1] * k).toFixed(1); };
   const ring = z => 'M' + V.map(p => T(p[0], p[1], z)).join('L') + 'Z';
-  let floors = '', cols = '', braces = '', beams = '', labels = '', panels = '';
+  let floors = '', cols = '', walls = '', labels = '';
   hs.slice(1, -1).forEach(z => floors += ring(z));
-  const colPts = V.map(p => p.slice());
   (pl.lfrs || []).forEach(l => {
-    const a = [l.x1, l.y1], b = [l.x2, l.y2], x2 = l.type === 'x2';
-    if(isWalls()){
-      panels += 'M' + T(a[0], a[1], 0) + 'L' + T(b[0], b[1], 0) + 'L' + T(b[0], b[1], top) + 'L' + T(a[0], a[1], top) + 'Z';
-      hs.slice(1, -1).forEach(z => { beams += 'M' + T(a[0], a[1], z) + 'L' + T(b[0], b[1], z); });
-      const q = T((a[0] + b[0]) / 2, (a[1] + b[1]) / 2, top).split(' ');
-      labels += `<text x="${q[0]}" y="${+q[1] - 10}" text-anchor="middle" font-size="15" font-weight="700" fill="#E3A3AD">${esc(l.label)}</text>`;
-      return;
-    }
-    const L = lLen(l), t = x2 && num(l.L1) > 0 && num(l.L1) < L ? num(l.L1) / L : 0.5;
-    const m = [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
-    colPts.push(a, b); if(x2) colPts.push(m);
-    hs.slice(1).forEach((z, i) => {
-      const z0 = hs[i], flip = l.alt && i % 2 === 1;
-      beams += 'M' + T(a[0], a[1], z) + 'L' + T(b[0], b[1], z);
-      if(x2){
-        const atTop = (l.mid !== 'bot') !== (i % 2 === 1);    // Λ then V, alternating each story
-        braces += atTop ? 'M' + T(a[0], a[1], z0) + 'L' + T(m[0], m[1], z) + 'L' + T(b[0], b[1], z0)
-                        : 'M' + T(a[0], a[1], z) + 'L' + T(m[0], m[1], z0) + 'L' + T(b[0], b[1], z);
-      } else {
-        const toB = (l.up !== 'a') !== flip;                   // story 1 rises to the 'up' end
-        const lo = toB ? a : b, hi = toB ? b : a;
-        braces += 'M' + T(lo[0], lo[1], z0) + 'L' + T(hi[0], hi[1], z);
-      }
+    const a = [l.x1, l.y1], b = [l.x2, l.y2];
+    hs.slice(1).forEach((z, i) => {   // one shaded panel per story, so the floor lines still read across the wall
+      walls += 'M' + T(a[0], a[1], hs[i]) + 'L' + T(b[0], b[1], hs[i]) + 'L' + T(b[0], b[1], z) + 'L' + T(a[0], a[1], z) + 'Z';
     });
     const mid = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2], q = T(mid[0], mid[1], top).split(' ');
     labels += `<text x="${q[0]}" y="${+q[1] - 10}" text-anchor="middle" font-size="15" font-weight="700" fill="#E3A3AD">${esc(l.label)}</text>`;
   });
-  colPts.forEach(p => cols += 'M' + T(p[0], p[1], 0) + 'L' + T(p[0], p[1], top));
+  V.forEach(p => cols += 'M' + T(p[0], p[1], 0) + 'L' + T(p[0], p[1], top));
   svg.innerHTML = `<path d="${ring(0)}" fill="#fff" fill-opacity=".05" stroke="#5A5A61"/>
     <path d="${floors}" fill="#fff" fill-opacity=".03" stroke="#fff" stroke-opacity=".45"/>
     <path d="${cols}" stroke="#fff" stroke-opacity=".35"/>
-    <path d="${beams}" stroke="#D0566A" stroke-opacity=".7" stroke-width="2"/>
-    <path d="${braces}" stroke="#D0566A" stroke-width="2.6" fill="none" stroke-linejoin="round"/>
-    <path d="${panels}" fill="#D0566A" fill-opacity=".22" stroke="#D0566A" stroke-width="1.6" stroke-linejoin="round"/>
+    <path d="${walls}" fill="#D0566A" fill-opacity=".38" stroke="#D0566A" stroke-width="1.6" stroke-linejoin="round"/>
     <path d="${ring(top)}" fill="none" stroke="#fff" stroke-width="1.6"/>${labels}`;
-  const sum = document.getElementById('m3dSum'), nl = (pl.lfrs || []).length;
-  if(sum) sum.textContent = `${S.levels.length} level${S.levels.length === 1 ? '' : 's'}, ${nl} ${isWalls() ? 'shear wall' : 'braced frame'}${nl === 1 ? '' : 's'}`;
+  const sum = document.getElementById('m3dSum'), nL = (pl.lfrs || []).length;
+  if(sum) sum.textContent = `${S.levels.length} level${S.levels.length === 1 ? '' : 's'}, ${nL} line${nL === 1 ? '' : 's'} of resistance`;
 }
 (function wire3D(){
   const views = {v3iso: [-35, 28], v3plan: [0, 90], v3front: [0, 0], v3side: [-90, 0]};
@@ -2174,10 +2201,40 @@ function render3D(){
   w.addEventListener('contextmenu', e => e.preventDefault());
   w.addEventListener('wheel', e => { if(document.activeElement !== w) return; e.preventDefault(); V3.zoom = Math.max(0.3, Math.min(6, V3.zoom * (e.deltaY < 0 ? 1.12 : 1 / 1.12))); render3D(); }, {passive: false});
 })();
-/* ---- Shear walls (S.lateral_system = 'shear_wall'): the same lines, as concrete walls with a thickness per story ----
-   The pad's own code is unchanged; these wrappers swap the brace inputs for wall thickness. lateral_system and each
-   wall's ts (in, story 1 first) are saved with the project, and the ELF engine (elf_engine.py) reads both. */
-function isWalls(){ return S.lateral_system === 'shear_wall'; }
+/* Wording: the pad's frames stand for walls or frames of any material (chosen in module 4), so its brace wording
+   is swapped for "lines of resistance" as it renders, leaving pad.verbatim.* unchanged. Specific phrases first. */
+const WORDS = [
+  ['Click the first column of a braced bay (the line runs column to column)', 'Click one end of the wall or frame'],
+  ['click the two columns of each braced bay', 'click both ends of each wall or frame'],
+  ['Columns, beams and one brace per story are drawn for every frame.', 'Each line of resistance is shaded as a wall at every story.'],
+  ['Frame selected:', 'Line selected:'], ['New frames, A', 'New lines, A'], [' to add frames', ' to add them'],
+  ['Braced frames', 'Lines of resistance'], ['braced frames', 'lines of resistance'],
+  ['Braced frame', 'Line of resistance'], ['braced frame', 'line of resistance']];
+const reword = s => WORDS.reduce((t, [a, b]) => t.split(a).join(b), s);
+function rewordTree(n){
+  if(n.nodeType === 3){
+    if(n.parentElement && !n.parentElement.closest('svg')){ const t = reword(n.nodeValue); if(t !== n.nodeValue) n.nodeValue = t; }
+    return;
+  }
+  if(n.nodeType !== 1 || n.closest('svg')) return;   // the plan and 3D drawings carry no wording, and redraw often
+  ['aria-label', 'title'].forEach(a => { const v = n.getAttribute(a); if(v){ const t = reword(v); if(t !== v) n.setAttribute(a, t); } });
+  n.childNodes.forEach(rewordTree);
+}
+const FOOT_LINES = 'Each line is a wall or frame that resists lateral load; its material is chosen in Module 4. Until then, A (in²) only sets how the load is shared between lines.';
+(function wireWording(){
+  const pad = document.getElementById('pad'); if(!pad) return;
+  const foot = pad.querySelector('.tpanel:not(.lapanel) .tp-foot');
+  if(foot) foot.innerHTML = FOOT_LINES;
+  rewordTree(pad);
+  new MutationObserver(ms => ms.forEach(m => m.type === 'characterData' ? rewordTree(m.target) : m.addedNodes.forEach(rewordTree)))
+    .observe(pad, {childList: true, subtree: true, characterData: true});
+})();
+/* ---- Shear walls: when step 4's material is concrete, the lines are concrete walls with a thickness per story ----
+   The pad's own code is unchanged; these wrappers swap the brace inputs for wall thickness. S.lateral_system follows
+   the material ('shear_wall' for concrete, 'braced_frame' otherwise), and it and each wall's ts (in, story 1 first) are
+   saved with the project for the ELF engine (elf_engine.py). */
+function isWalls(){ return ((S.bones || {}).material || {}).key === 'concrete'; }
+function syncSystem(){ S.lateral_system = isWalls() ? 'shear_wall' : 'braced_frame'; }
 function wallTDef(){ const v = num(bonesData().wallT); return v > 0 ? v : 8; }   // the last thickness entered, in
 // thickness of wall l in story i (in): that story's, else the nearest story below that has one, else t (as the engine fills it)
 function wallT(l, i){
@@ -2210,7 +2267,7 @@ function askThickness(l){
   const dlg = document.getElementById('wallDlg'), inp = document.getElementById('wallDlgIn');
   if(!dlg || !dlg.showModal) return;
   const t0 = wallTDef();
-  document.getElementById('wallDlgMsg').textContent = `${l.label}: ${lDir(l)} direction, ${ft(lLen(l))} long. Every level gets this thickness; change one level in the Shear walls panel.`;
+  document.getElementById('wallDlgMsg').textContent = `${l.label}: ${lDir(l)} direction, ${ft(lLen(l))} long. Every level gets this thickness; change one level in the side panel.`;
   document.getElementById('wallDlgKeep').textContent = `Keep ${+t0.toFixed(2)} in`;
   inp.value = t0;
   dlg.onclose = () => {
@@ -2232,7 +2289,7 @@ renderTPanel = function(){
   const L = PL().lfrs, el = $('#tpList'); if(!el) return;
   if(document.activeElement && el.contains(document.activeElement) && document.activeElement.tagName === 'INPUT') return;   // do not rebuild while typing
   if(document.activeElement !== $('#aDef')) $('#aDef').value = wallTDef();
-  if(!L.length){ el.innerHTML = '<div class="tp-empty">Draw shear walls to list them here.</div>'; return; }
+  if(!L.length){ el.innerHTML = '<div class="tp-empty">Draw walls to list them here.</div>'; return; }
   const lv = padLv(), ord = L.map((l,i) => ({l,i})).sort((a,b) => lDir(a.l).localeCompare(lDir(b.l)) || a.l.label.localeCompare(b.l.label, undefined, {numeric:true}));
   el.innerHTML = ord.map(({l,i}) => `<label class="tp-row${sel && sel.type==='lfrs' && sel.idx===i ? ' on' : ''}"><b>${esc(l.label)}</b><span class="muted">${ft(lLen(l))}</span>
     <input class="in" type="number" min="0" step="0.5" data-tt="${i}" value="${esc(wallT(l, lv))}" aria-label="Thickness of ${esc(l.label)} at ${esc(label(lv))}, in inches"><span class="muted">in</span></label>`).join('');
@@ -2243,7 +2300,7 @@ $('#tpList').addEventListener('change', e => {
   if(!(v > 0)){ t.value = wallT(l, padLv()); return; }
   pushHist(); fillTs(l); l.ts[padLv() - 1] = v; t.blur(); changed();
 });
-// "New walls, t": the thickness offered for the next wall (the pad's own handler keeps the brace area)
+// "New lines, t": the thickness offered for the next wall (the pad's own handler keeps the brace area)
 $('#aDef').addEventListener('change', e => {
   if(!isWalls()) return;
   e.stopImmediatePropagation();
@@ -2259,16 +2316,6 @@ copyLevel = function(from, to){
 // no brace-direction arrows on walls
 const renderFrames = render;
 render = function(){ const o = OPT(), b = o.bdir; if(isWalls()) o.bdir = false; try{ renderFrames(); } finally{ o.bdir = b; } };
-const hintFrames = hintUpdate;
-hintUpdate = function(){
-  hintFrames();
-  if(!isWalls()) return;
-  const el = $('#planHint');
-  el.innerHTML = el.innerHTML
-    .replace('Click the first column of a braced bay (the line runs column to column).', 'Click one end of a wall, then the other; it asks for the wall thickness.')
-    .replace('<b>Braced frames</b> to add frames', '<b>Shear walls</b> to add walls')
-    .replace('Frame selected:', 'Wall selected:').replace('the frame moves', 'the wall moves');
-};
 const planStatsFrames = planStatsUI;
 planStatsUI = function(){
   planStatsFrames();
@@ -2277,7 +2324,7 @@ planStatsUI = function(){
   $('#ps-n').textContent = `${nx} X · ${L.length - nx} Y walls`;
   $('#ps-Rn').textContent = `${label(padLv())} (drawing pad level), walls below it, each on its own`;
 };
-// labels that name braced frames
+// the side panel's wording for thickness instead of brace area
 let chromeFor = null;
 function wallsChrome(){
   const w = isWalls(); if(chromeFor === w) return; chromeFor = w;
@@ -2286,32 +2333,20 @@ function wallsChrome(){
     const nodes = [...e.childNodes].filter(n => n.nodeType === 3 && n.textContent.trim());
     const n = i < 0 ? nodes[nodes.length - 1] : nodes[i]; if(n) n.textContent = w ? walls : frames;
   };
-  text('[data-mode="lfrs"]', 0, '2 · Braced frames', '2 · Shear walls');
-  text('.tpanel:not(.lapanel) .tp-head', 0, 'Braced frames ', 'Shear walls ');
-  text('.tp-def', 0, 'New frames, A ', 'New walls, t ');
+  text('.tp-def', 0, 'New lines, A ', 'New lines, t ');
   text('.tp-def', -1, ' in²', ' in');
   const foot = document.querySelector('#pad .tpanel:not(.lapanel) .tp-foot');
-  if(foot){ if(!foot.dataset.frames) foot.dataset.frames = foot.innerHTML;
-    foot.innerHTML = w ? 't = wall thickness (in) in the story below this level. Each new wall asks for its thickness. The pad’s C.R. treats every wall on its own; the analysis joins walls that meet into cores.' : foot.dataset.frames; }
-  const tp = document.querySelector('#pad .tpanel:not(.lapanel)'); if(tp) tp.setAttribute('aria-label', w ? 'Shear walls' : 'Braced frames');
-  const ps = $('#ps-n'); if(ps && ps.previousElementSibling) ps.previousElementSibling.textContent = w ? 'Shear walls' : 'Braced frames';
+  if(foot) foot.innerHTML = w ? 'Concrete is chosen in Module 4, so each line is a shear wall. t = wall thickness (in) in the story below this level; each new wall asks for it. The pad’s C.R. treats every wall on its own; the analysis joins walls that meet into cores.' : FOOT_LINES;
   const bd = document.querySelector('#pad [data-opt="bdir"]'); if(bd) bd.closest('label').hidden = w;
   const what = w ? 'wall thicknesses' : 'brace areas';
   $('#lvCopyAll').title = `Copy this level's ${what} and load areas to every other level`;
   $('#lvCopyFrom').setAttribute('aria-label', `Copy ${what} and load areas from another level`);
-  document.querySelectorAll('[data-sys]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.sys === (w ? 'shear_wall' : 'braced_frame'))));
 }
-function setSystem(sys){
-  S.lateral_system = sys === 'shear_wall' ? 'shear_wall' : 'braced_frame';
-  if(isWalls()) PL().lfrs.forEach(l => { if(!Array.isArray(l.ts) || !l.ts.length) l.ts = Array(nLv()).fill(wallTDef()); });
-  save(); changed();
-}
-document.querySelectorAll('[data-sys]').forEach(b => b.addEventListener('click', () => setSystem(b.dataset.sys)));
-
-window.BonesPad = {open: bonesOpen, state: () => S, bones: () => bonesData(), setHazard, setSnow, copyLoadsToFloors, renderLoads, setSystem,
+window.BonesPad = {open: bonesOpen, state: () => S, bones: () => bonesData(), setHazard, setSnow, setMaterial, copyLoadsToFloors, renderLoads,
   system: () => S.lateral_system || 'braced_frame',
   toScreen: (x, y) => { const r = document.getElementById('plan').getBoundingClientRect(), p = toS([x, y]); return [r.left + p[0], r.top + p[1]]; }, fit: () => { sizePlan(); fit(); render(); }, refresh: () => { bonesLines(); render3D(); }};
 bonesReady = true;
+syncSystem();
 renderTPanel(); planStatsUI(); render();   // the pad drew itself before the wrappers above existed
 bonesLines(); render3D(); renderLoads();
 
@@ -2378,16 +2413,12 @@ $("example").addEventListener("click", async () => {
 
 /* ---------- navigation ---------- */
 function go(n){
-  $("s1").hidden = n !== 1; $("s2").hidden = n !== 2; $("s3").hidden = n !== 3;
-  $("nav3").setAttribute("aria-current", n === 3 ? "step" : "false");
-  $("nav3").className = "step" + (S.padOpen ? (n === 3 ? "" : " done") : " later");
-  $("nav3").disabled = !S.padOpen;
-  if(n === 3 && window.BonesPad) requestAnimationFrame(() => window.BonesPad.fit());
-  $("nav1").setAttribute("aria-current", n === 1 ? "step" : "false");
-  $("nav2").setAttribute("aria-current", n === 2 ? "step" : "false");
+  const open = {2: !!S.result, 3: !!S.padOpen, 4: !!S.sysOpen};
+  [1, 2, 3, 4].forEach(i => { $("s" + i).hidden = n !== i; $("nav" + i).setAttribute("aria-current", n === i ? "step" : "false"); });
   $("nav1").className = "step" + (n >= 2 ? " done" : "");
-  $("nav2").className = "step" + (S.result ? (n === 2 ? "" : n === 3 ? " done" : " done") : " later");
-  $("nav2").disabled = !S.result;
+  [2, 3, 4].forEach(i => { $("nav" + i).disabled = !open[i]; $("nav" + i).className = "step" + (!open[i] ? " later" : n === i ? "" : " done"); });
+  if(n === 3 && window.BonesPad) requestAnimationFrame(() => window.BonesPad.fit());
+  if(n === 4) sysRender();
   window.scrollTo(0, 0);
 }
 $("nav1").addEventListener("click", () => go(1));
@@ -2395,6 +2426,89 @@ $("nav2").addEventListener("click", () => S.result && go(2));
 $("back").addEventListener("click", () => go(1));
 $("nav3").addEventListener("click", () => S.padOpen && go(3));
 $("back3").addEventListener("click", () => go(2));
+$("nav4").addEventListener("click", () => S.sysOpen && go(4));
+$("toSys").addEventListener("click", () => { S.sysOpen = true; go(4); });
+$("back4").addEventListener("click", () => go(3));
+
+/* ---------- step 4: structural system (stand-in for module 4) ---------- */
+// R, Ω0, Cd, row and height limits (ft, by SDC; absent = not limited) are ASCE 7-22 Table 12.2-1.
+// psf (self-weight), cost ($/sf), weeks per floor and carbon (kg CO2e/m²) are placeholders until module 4 is in.
+const SYSTEMS = [
+  {key: "steel", short: "Steel", name: "Steel special concentrically braced frames", row: "B.2", R: 6, O: 2, Cd: 5,
+   limit: {D: 160, E: 160, F: 100}, psf: 85, cost: 42, wk: 1.5, carbon: 180,
+   note: "Light and quick to erect, with open bays between frames. Needs fireproofing and detailed brace connections."},
+  {key: "concrete", short: "Concrete", name: "Special reinforced concrete shear walls", row: "B.4", R: 6, O: 2.5, Cd: 5,
+   limit: {D: 160, E: 160, F: 100}, psf: 150, cost: 36, wk: 2.5, carbon: 260,
+   note: "Stiff walls with fire rating built in. The heaviest option, so the seismic weight and foundations go up."},
+  {key: "wood", short: "Wood", name: "Light-frame wood walls sheathed with wood structural panels", row: "A.15", R: 6.5, O: 3, Cd: 4,
+   limit: {D: 65, E: 65, F: 65}, psf: 30, cost: 26, wk: 1, carbon: 90, maxStories: 5,
+   note: "The lightest and lowest-carbon option, with many short shear walls. Limited in height and story count."}
+];
+function sdcOf(sds, sd1, rc){   // ASCE 7 Tables 11.6-1 and 11.6-2
+  const iv = rc === "IV", cat = (v, l) => v < l[0] ? "A" : v < l[1] ? (iv ? "C" : "B") : v < l[2] ? (iv ? "D" : "C") : "D";
+  return [cat(sds, [0.167, 0.33, 0.5]), cat(sd1, [0.067, 0.133, 0.2])].sort().pop();
+}
+function sysBasis(){
+  const P = window.BonesPad.state(), h = window.BonesPad.bones().hazard || {}, v = h.values || {}, V = P.plan.verts || [];
+  let A = 0; V.forEach((p, i) => { const q = V[(i + 1) % V.length]; A += p[0] * q[1] - q[0] * p[1]; });
+  const hs = (P.levels || []).map(L => +L.h).filter(isFinite), has = v.sds != null && v.sd1 != null;
+  const sds = has ? +v.sds : 1.0, sd1 = has ? +v.sd1 : 0.6, rc = (h.query || {}).risk_category || "II";
+  return {A: Math.abs(A) / 2, n: hs.length, hn: hs.length ? Math.max(...hs) : 0, sds, sd1, ie: +v.ie || 1.0, rc, has,
+          sdc: (has && v.sdc ? String(v.sdc).toUpperCase() : sdcOf(sds, sd1, rc))};
+}
+function sysCalc(s, b){
+  const W = b.A * b.n * s.psf / 1000, Ta = 0.02 * Math.pow(b.hn, 0.75), RI = s.R / b.ie;
+  const Cs = Math.max(Math.min(b.sds / RI, Ta > 0 ? b.sd1 / (Ta * RI) : Infinity), 0.044 * b.sds * b.ie, 0.01);
+  const lim = s.limit[b.sdc], why = [], sf = b.A * b.n;
+  if(lim != null && b.hn > lim) why.push(`${fmt(b.hn, 0)} ft is over the ${lim} ft height limit for SDC ${b.sdc}.`);
+  if(s.maxStories && b.n > s.maxStories) why.push(`${b.n} stories is more than light-frame wood usually allows (about ${s.maxStories}).`);
+  return Object.assign({}, s, {W, Ta, Cs, V: Cs * W, lim, why, allowed: !why.length,
+    total: sf * s.cost, weeks: b.n * s.wk, tCO2: sf * 0.0929 * s.carbon / 1000});
+}
+const money = v => "$" + (v >= 1e6 ? (v / 1e6).toFixed(1) + "M" : Math.round(v / 1e3) + "k");
+function sysRender(){
+  if(!window.BonesPad) return;
+  const b = sysBasis(), chosen = (window.BonesPad.bones().material || {}).key, rows = SYSTEMS.map(s => sysCalc(s, b));
+  const ok = rows.filter(r => r.allowed), best = ok.length ? ok.reduce((p, q) => q.total < p.total ? q : p) : null;
+  const greenest = ok.length ? ok.reduce((p, q) => q.tCO2 < p.tCO2 ? q : p) : null;
+  const max = k => Math.max(...rows.map(r => r[k])) || 1, bar = (r, k) => `<span class="bar"><i style="width:${(r[k] / max(k) * 100).toFixed(0)}%"></i></span>`;
+  const stat = (l, v) => `<div class="b-stat"><div>${l}</div><div>${v}</div></div>`;
+  $("sysBasis").innerHTML = stat("Floor area", fmt(b.A, 0) + " sf") + stat("Stories", b.n) + stat("Roof height h<sub>n</sub>", fmt(b.hn, 1) + " ft") +
+    stat("S<sub>DS</sub> / S<sub>D1</sub>", b.sds.toFixed(2) + " / " + b.sd1.toFixed(2)) + stat("SDC", b.sdc) + stat("I<sub>e</sub>, Risk Cat. " + esc(b.rc), b.ie.toFixed(2));
+  $("sysSrc").innerHTML = b.has ? "Site hazards from step 3" : '<span class="b-warn">No site hazards yet: S<sub>DS</sub> 1.0 and S<sub>D1</sub> 0.6 assumed. Pull them in step 3.</span>';
+  $("sysCards").innerHTML = rows.map(r => { const on = r.key === chosen;
+    const badges = (r === best ? '<span class="badge ok">Lowest cost</span>' : "") + (r === greenest && r !== best ? '<span class="badge ok">Lowest carbon</span>' : "") + (!r.allowed ? '<span class="badge">Not permitted</span>' : "");
+    return `<div class="sys-card${on ? " on" : ""}">
+      <div class="sys-top"><span class="sys-mat">${r.short}</span><span>${badges}</span></div>
+      <h3>${r.name}</h3>
+      <div class="sys-big">${stat("Base shear V", fmt(r.V, 0) + " k")}${stat("Seismic weight W", fmt(r.W, 0) + " k")}</div>
+      <dl class="sys-dl">
+        <div><dt>R / Ω<sub>0</sub> / C<sub>d</sub> <span class="muted">(Table 12.2-1, ${r.row})</span></dt><dd>${r.R} / ${r.O} / ${r.Cd}</dd></div>
+        <div><dt>C<sub>s</sub> at T<sub>a</sub> = ${r.Ta.toFixed(2)} s</dt><dd>${r.Cs.toFixed(3)}</dd>${bar(r, "V")}</div>
+        <div><dt>Height limit, SDC ${b.sdc}</dt><dd class="${r.lim != null && b.hn > r.lim ? "b-bad" : "b-good"}">${r.lim == null ? "Not limited" : r.lim + " ft"}</dd></div>
+        <div><dt>Self-weight</dt><dd>${r.psf} psf</dd></div>
+        <div><dt>Structure cost</dt><dd>${money(r.total)}</dd>${bar(r, "total")}</div>
+        <div><dt>Frame schedule</dt><dd>${fmt(r.weeks, 1)} weeks</dd>${bar(r, "weeks")}</div>
+        <div><dt>Embodied carbon</dt><dd>${fmt(r.tCO2, 0)} t CO<sub>2</sub>e</dd>${bar(r, "tCO2")}</div>
+      </dl>
+      ${r.allowed ? `<p class="small" style="margin:0">${r.note}</p>` : `<p class="small b-bad" style="margin:0">${r.why.join(" ")}</p>`}
+      <button class="btn ${on ? "black" : "b-primary"} b-sm" type="button" data-sys="${r.key}"${r.allowed ? "" : " disabled"}>${on ? "Chosen" : "Choose " + r.short.toLowerCase()}</button>
+    </div>`; }).join("");
+  const c = rows.find(r => r.key === chosen);
+  $("sysPicked").innerHTML = c
+    ? `<p style="margin:0 0 6px"><b>${c.name}</b>${c.allowed ? "" : ' <span class="b-bad">(no longer permitted for this building)</span>'}</p>
+       <p class="small" style="margin:0">R = ${c.R}, Ω<sub>0</sub> = ${c.O}, C<sub>d</sub> = ${c.Cd}. C<sub>s</sub> = ${c.Cs.toFixed(3)}, W = ${fmt(c.W, 0)} k, V = ${fmt(c.V, 0)} k. Saved in the project file.</p>` +
+      (c.key === "concrete" ? `<p class="small" style="margin:6px 0 0">The lines on the drawing pad are now shear walls: set each wall’s thickness in its side panel (${fmt(window.BonesPad.bones().wallT || 8, 1)} in until you change it). Each wall you draw from now on asks for its thickness.</p>` : "")
+    : '<p class="small" style="margin:0">None yet. Choose one of the three systems above.</p>';
+}
+$("sysCards").addEventListener("click", e => {
+  const btn = e.target.closest("[data-sys]"); if(!btn || btn.disabled) return;
+  const r = sysCalc(SYSTEMS.find(s => s.key === btn.dataset.sys), sysBasis()), r3 = v => Math.round(v * 1000) / 1000;
+  window.BonesPad.setMaterial({key: r.key, material: r.short, system: r.name, table_12_2_1: r.row, R: r.R, omega0: r.O, Cd: r.Cd,
+    self_weight_psf: r.psf, Ta_s: r3(r.Ta), Cs: r3(r.Cs), W_kips: Math.round(r.W), V_kips: Math.round(r.V), placeholder: true});
+  sysRender();
+});
+$("sysSave").addEventListener("click", () => $("btnSave").click());
 /* ---------- step 3: site hazards and snow ---------- */
 const hz = id => $(id);
 function hzFill(){
@@ -2598,7 +2712,7 @@ function renderFound(){
     (u !== "ft" ? `<p class="small" style="margin:6px 0 0">Written in ${esc(u)}; the plan is converted to feet.</p>` : "") + `</div>`;
   h += `<div class="item"><div class="t">Stories <span class="${lvSrc === "sketch" || lvSrc === "entered" ? "b-good" : "warn"}">${lvSrc === "sketch" ? "from the sketch" : lvSrc === "entered" ? "entered" : "not on the sketch"}</span></div><div class="small">${m2.n} at ${fmt(m2.levels[0].h, 2)} ft. ${lvSrc.startsWith("default") ? "Set the real values in Stories below." : ""}</div></div>`;
   h += `<div class="item"><div class="t">Grid, columns and cores <span class="small">${nG + (B.columns||[]).length + (B.cores||[]).length ? "found" : "none drawn"}</span></div><div class="small">${nG} grid line${nG === 1 ? "" : "s"}, ${(B.columns||[]).length} column${(B.columns||[]).length === 1 ? "" : "s"}, ${(B.cores||[]).length} core${(B.cores||[]).length === 1 ? "" : "s"}.</div></div>`;
-  h += `<div class="item"><div class="t">Braced frames <span class="small">added later</span></div><div class="small">The reader does not look for frames. Draw them in the drawing pad.</div></div>`;
+  h += `<div class="item"><div class="t">Lines of resistance <span class="small">added later</span></div><div class="small">The reader does not look for walls or frames. Draw them in the drawing pad.</div></div>`;
   const notes = (P.warnings||[]).concat(res.changes||[]);
   if(notes.length) h += `<div class="item"><div class="t">Notes</div><ul class="plain">${notes.map(n => `<li>${esc(n)}</li>`).join("")}</ul></div>`;
   $("found").innerHTML = h;
