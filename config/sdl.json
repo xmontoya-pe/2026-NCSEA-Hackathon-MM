@@ -1,7 +1,9 @@
 {
   "_meta": {
-    "description": "Superimposed dead load per system (spec 2.2): ceiling, MEP and floor finish for floors; roofing, insulation and MEP for roofs. Partitions are separate (config/occupancies.json).",
-    "status": "PLACEHOLDER. Set equal to the bay study design SDL (15 psf) so lookups need no SDL adjustment; replace with project values. SDL above the design SDL is added to LL for the bay lookup (docs/ASSUMPTIONS.md L-1)."
+    "description": "Superimposed dead load per system family (spec 2.2): ceiling, MEP and floor finish for floors; roofing, insulation and MEP for roofs. Partitions are separate (config/occupancies.json).",
+    "status": "PLACEHOLDER. Each family is set equal to its bay study's design SDL (steel 15/15, concrete 15/20, mass timber 10/15 psf floor/roof) so lookups need no SDL adjustment; replace with project values. SDL above the design SDL is added to LL for the bay lookup (docs/ASSUMPTIONS.md L-1, Z-7)."
   },
-  "steel": {"floor_psf": 15.0, "roof_psf": 15.0}
+  "steel": {"floor_psf": 15.0, "roof_psf": 15.0},
+  "concrete": {"floor_psf": 15.0, "roof_psf": 20.0},
+  "mass_timber": {"floor_psf": 10.0, "roof_psf": 15.0}
 }

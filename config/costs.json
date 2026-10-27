@@ -84,6 +84,11 @@
       "applies_to": "Post-tensioning (DB pt_psf, lb per sq ft)",
       "note": "Unbonded 0.5 in. monostrand, installed and stressed, including anchors"
     },
+    "stud_rails_usd_per_sf": {
+      "value": 1.0, "low": 0.5, "high": 2.0,
+      "applies_to": "Flat plate rows with stud rails (DB shear_studs = 'Yes'), per sq ft of floor",
+      "note": "Allowance: the bay study gives no rail count"
+    },
     "column_formwork_usd_per_sfca": {
       "value": 18.0, "low": 14.0, "high": 24.0,
       "applies_to": "Square concrete columns sized by columns.py, per sq ft of contact area",

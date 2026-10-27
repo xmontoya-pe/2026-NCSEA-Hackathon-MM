@@ -1,6 +1,7 @@
 """Bay framing lookup for each bay of a candidate grid, plus the depth constraint.
 
-Spec sections 4.3 and 4.4 (decisions log, spec section 7; docs/ASSUMPTIONS.md B-*). Steel only.
+Spec sections 4.3 and 4.4 (decisions log, spec section 7; docs/ASSUMPTIONS.md B-*). Works
+for any structural system in config/systems.json (steel, the concrete systems, mass timber).
 
 For each framed level and bay of a ``grid.GridLayout``:
 
@@ -152,7 +153,7 @@ def evaluate_all(
 
 
 def _evaluate_bay(inp, zone_map, level, use, rect, allow, system, cache) -> BayResult:
-    loads = bay_loads(zone_map, level, rect.polygon, system)
+    loads = bay_loads(zone_map, level, rect.polygon, db_adapter.family(system))
     area = rect.polygon.area
     tag = f"{level} bay {rect.bay_id}"
     warnings = [f"{tag}: {w}" for w in loads.warnings]
@@ -214,17 +215,18 @@ def _choose(options: list[BayFraming], allow: float, weights) -> BayFraming:
 def _infeasible_reason(system, use, rect, loads: BayLoads) -> str:
     beams, girders = db_adapter.available_spans(system, use)
     lls, _ = db_adapter.available_loads(system, use)
+    name = system.replace("_", " ")
     sx, sy = rect.span_x_ft, rect.span_y_ft
     fits = (sx <= max(beams) and sy <= max(girders)) or (sy <= max(beams) and sx <= max(girders))
     spans = f"{sx:g} x {sy:g} ft"
     if not fits:
         return (
-            f"{spans} exceeds the steel bay study (beam <= {max(beams):g} ft, girder <= "
+            f"{spans} exceeds the {name} bay study (span 1 <= {max(beams):g} ft, span 2 <= "
             f"{max(girders):g} ft); long-span or transfer framing needed"
         )
     if loads.lookup_ll_psf > max(lls):
         return (
-            f"LL {loads.lookup_ll_psf:g} psf ({loads.governing_occupancy}) exceeds the steel "
+            f"LL {loads.lookup_ll_psf:g} psf ({loads.governing_occupancy}) exceeds the {name} "
             f"bay study (max {max(lls):g} psf); infeasible"
         )
-    return f"no solved steel design for {spans} at LL {loads.lookup_ll_psf:g} psf; infeasible"
+    return f"no solved {name} design for {spans} at LL {loads.lookup_ll_psf:g} psf; infeasible"

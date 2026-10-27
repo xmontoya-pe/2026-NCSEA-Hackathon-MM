@@ -9,6 +9,12 @@ Public API:
 - ``framing_options(system, use, span_x_ft, span_y_ft, ll_psf, sdl_psf, criterion=None)``
 - ``available_spans(system, use)``
 - ``available_loads(system, use)``
+- ``family(system)``, ``variants(family)``, ``label(system)`` (config/systems.json)
+
+A ``system`` is one uniform structural system (``steel``, ``concrete_pt_fp``,
+``mass_timber``, ...); its ``family`` is the output system it competes in. Concrete DB
+systems hold floor and roof rows under one ``system_id``, told apart by the ``use``
+column (``shared_floor_roof`` in config).
 
 Lookups never interpolate: spans and loads round UP to the next value in the table
 (spec 1). An empty list from ``framing_options`` means no DB row fits; the caller marks
@@ -48,21 +54,22 @@ class BayFraming:
     orientation: str  # "beams_span_x" or "beams_span_y"
     beam_span_ft: float  # DB span_1_ft (rounded-up table value)
     girder_span_ft: float  # DB span_2_ft (rounded-up table value)
-    spacing_ft: float
+    spacing_ft: float | None  # None for flat plates and pan joists
     criterion: str  # DB criterion of the row used
     design_ll_psf: float  # LL the row was designed for
     lookup_ll_psf: float  # LL requested, after the SDL rule (ASSUMPTIONS L-1)
     slab: str
-    beam: str  # e.g. "W12X22 @ 10ft"
+    beam: str  # e.g. "W12X22 @ 10ft"; concrete and timber members as named in the DB
     girder: str
     depth_in: float
-    steel_psf: float  # beams/joists + girders only
-    slab_deck_psf: float
-    self_wt_psf: float  # steel_psf + slab_deck_psf (ASSUMPTIONS W-1)
+    steel_psf: float  # steel: beams/joists + girders; concrete: rebar + PT; timber: 0
+    slab_deck_psf: float  # steel deck/slab, concrete equivalent thickness, CLT (+ topping)
+    self_wt_psf: float  # member weight + slab_deck_psf (ASSUMPTIONS W-1, W-3)
     cost_per_sf: float  # from config/costs.json (placeholder rates)
     cost_breakdown: dict[str, float] = field(default_factory=dict)  # USD per sf
     carbon_kgco2e_per_sf: float = 0.0  # DB gwp_kgco2e_per_ft2, excludes columns
     concrete_cy_per_sf: float = 0.0
+    timber_cf_per_sf: float = 0.0  # glulam + CLT, cubic feet per sq ft of floor
     warnings: list[str] = field(default_factory=list)
 
 
@@ -90,7 +97,8 @@ def framing_options(
     """
     options: list[BayFraming] = []
     for db_system in _db_systems(system, use):
-        design_sdl = _db_system_config(db_system)["design_sdl_psf"]
+        use_filter = _use_filter(db_system, use)
+        design_sdl = _design_sdl(db_system, use)
         excess = max(0.0, sdl_psf - design_sdl)
         lookup_ll = ll_psf + excess
         notes = []
@@ -100,10 +108,11 @@ def framing_options(
                 f"the {excess:g} psf excess is added to LL for the lookup "
                 f"(LL {ll_psf:g} -> {lookup_ll:g} psf)"
             )
-        if criterion not in (None, STRENGTH) and criterion not in _criteria(db_system):
-            raise ValueError(f"criterion {criterion!r} not in bay study for {db_system}")
+        db_criterion, note = _map_criterion(db_system, use_filter, criterion)
+        if note:
+            notes.append(note)
 
-        spans_1, spans_2 = _spans(db_system)
+        spans_1, spans_2 = _spans(db_system, use_filter)
         orientations = [("beams_span_x", span_x_ft, span_y_ft)]
         if span_x_ft != span_y_ft:
             orientations.append(("beams_span_y", span_y_ft, span_x_ft))
@@ -112,9 +121,8 @@ def framing_options(
             span_2 = _round_up(girder_span, spans_2)
             if span_1 is None or span_2 is None:
                 continue
-            options.extend(
-                _options_at(db_system, orientation, span_1, span_2, lookup_ll, criterion, notes)
-            )
+            options.extend(_options_at(db_system, use_filter, orientation, span_1, span_2,
+                                       lookup_ll, db_criterion, notes))
 
     return sorted(
         options, key=lambda o: (o.cost_per_sf, o.depth_in, o.db_system, o.db_row, o.orientation)
@@ -126,7 +134,7 @@ def available_spans(system: str, use: str) -> tuple[list[float], list[float]]:
     spans_1: set[float] = set()
     spans_2: set[float] = set()
     for db_system in _db_systems(system, use):
-        s1, s2 = _spans(db_system)
+        s1, s2 = _spans(db_system, _use_filter(db_system, use))
         spans_1.update(s1)
         spans_2.update(s2)
     return sorted(spans_1), sorted(spans_2)
@@ -137,9 +145,31 @@ def available_loads(system: str, use: str) -> tuple[list[float], list[float]]:
     lls: set[float] = set()
     sdls: set[float] = set()
     for db_system in _db_systems(system, use):
-        lls.update(_strength_lls(db_system))
-        sdls.add(_db_system_config(db_system)["design_sdl_psf"])
+        lls.update(_strength_lls(db_system, _use_filter(db_system, use)))
+        sdls.add(_design_sdl(db_system, use))
     return sorted(lls), sorted(sdls)
+
+
+def family(system: str) -> str:
+    """Output system (steel, concrete, mass_timber) a structural system competes in."""
+    try:
+        return _config("systems.json")["systems"][system].get("family", system)
+    except KeyError:
+        raise ValueError(f"unknown system {system!r} (config/systems.json)") from None
+
+
+def variants(family_name: str) -> list[str]:
+    """Structural systems of one family, in config order (e.g. the four concrete systems)."""
+    systems = _config("systems.json")["systems"]
+    return [name for name, entry in systems.items() if entry.get("family", name) == family_name]
+
+
+def label(system: str) -> str:
+    return _config("systems.json")["systems"][system].get("label", system)
+
+
+def material(db_system: str) -> str:
+    return _db_system_config(db_system).get("material", "steel")
 
 
 # ---------------------------------------------------------------------------
@@ -147,8 +177,28 @@ def available_loads(system: str, use: str) -> tuple[list[float], list[float]]:
 # ---------------------------------------------------------------------------
 
 
+def _map_criterion(
+    db_system: str, use_filter: str | None, criterion: str | None
+) -> tuple[str | None, str | None]:
+    """The DB's name for a vibration criterion (config ``criteria``), and a note when the
+    DB system has none: its Strength rows are used instead (ASSUMPTIONS V-1)."""
+    if criterion in (None, STRENGTH):
+        return criterion, None
+    mapping = _db_system_config(db_system).get("criteria")
+    if mapping is None:  # names as stored in the DB (steel)
+        if criterion not in _criteria(db_system, use_filter):
+            raise ValueError(f"criterion {criterion!r} not in bay study for {db_system}")
+        return criterion, None
+    mapped = mapping.get(criterion)
+    if mapped is None or mapped not in _criteria(db_system, use_filter):
+        return None, (f"{db_system} has no '{criterion}' rows; Strength rows used "
+                      "(floor vibration not checked)")
+    return mapped, None
+
+
 def _options_at(
     db_system: str,
+    use_filter: str | None,
     orientation: str,
     span_1: float,
     span_2: float,
@@ -156,9 +206,10 @@ def _options_at(
     criterion: str | None,
     notes: list[str],
 ) -> list[BayFraming]:
-    strength_ll = _round_up(lookup_ll, _strength_lls(db_system))
+    strength_ll = _round_up(lookup_ll, _strength_lls(db_system, use_filter))
     strength_rows = (
-        _rows(db_system, span_1, span_2, category=STRENGTH, live_load=strength_ll)
+        _rows(db_system, span_1, span_2, use_filter=use_filter, category=STRENGTH,
+              live_load=strength_ll)
         if strength_ll is not None
         else []
     )
@@ -171,7 +222,7 @@ def _options_at(
 
     strength_by_spacing = {row["spacing_ft"]: row for row in strength_rows}
     options = []
-    for row in _rows(db_system, span_1, span_2, criterion=criterion):
+    for row in _rows(db_system, span_1, span_2, use_filter=use_filter, criterion=criterion):
         if row["live_load_psf"] >= lookup_ll:
             # Vibration rows also satisfy strength at their own LL (DB assumptions).
             options.append(_to_framing(row, db_system, orientation, lookup_ll, list(notes)))
@@ -182,7 +233,7 @@ def _options_at(
         # Decision 2 (ASSUMPTIONS L-6): use the heavier of the two rows and warn.
         heavier = max(
             (strength, row),
-            key=lambda r: (r["steel_psf"], r["structural_depth_in"], r is strength),
+            key=lambda r: (_member_psf(r, db_system), r["structural_depth_in"], r is strength),
         )
         note = (
             f"Envelope: no DB row is designed for both '{criterion}' (LL "
@@ -203,22 +254,48 @@ def _round_up(value: float, table: list[float]) -> float | None:
     return None
 
 
+def _member_psf(row: sqlite3.Row, db_system: str) -> float:
+    """Weight of the framing members alone (psf): steel framing, glulam; 0 for concrete,
+    whose members are in its equivalent thickness."""
+    cfg = _db_system_config(db_system)
+    kind = cfg.get("material", "steel")
+    if kind == "concrete":
+        return (row["concrete_equiv_thickness_in"] or 0.0) / 12.0 * cfg["concrete_pcf"]
+    if kind == "mass_timber":
+        return (row["timber_bf_per_sf"] or 0.0) * cfg["glulam_pcf"] / 12.0
+    return row["steel_psf"] or 0.0
+
+
 def _to_framing(
     row: sqlite3.Row, db_system: str, orientation: str, lookup_ll: float, warnings: list[str]
 ) -> BayFraming:
+    cfg = _db_system_config(db_system)
+    kind = cfg.get("material", "steel")
     slab = row["deck_or_slab"]
     spacing = row["spacing_ft"]
-    steel_psf = row["steel_psf"]
-    slab_deck_psf = _db_system_config(db_system)["slab_deck_psf"]
     deck_key = None
-    if slab_deck_psf is None:  # roof systems: deck weight per row
-        deck_key, blank_gauge = _roof_deck_key(slab)
-        slab_deck_psf = _roof_deck_weight(deck_key)
-        if blank_gauge:
-            warnings.append(
-                f"bay_id {row['bay_id']}: deck '{slab.strip()}' has no gauge; weighed and "
-                f"priced as {deck_key} (conservative)"
-            )
+    timber_cf = 0.0
+    if kind == "concrete":  # ASSUMPTIONS W-3: equivalent thickness x unit weight
+        slab_deck_psf = _member_psf(row, db_system)
+        member_psf = 0.0
+        steel_psf = (row["rebar_psf"] or 0.0) + (row["pt_psf"] or 0.0)
+    elif kind == "mass_timber":  # W-4: CLT (+ topping) from config, glulam from bf
+        slab_deck_psf = cfg["slab_deck_psf"]
+        member_psf = _member_psf(row, db_system)
+        steel_psf = 0.0
+        timber_cf = ((row["timber_bf_per_sf"] or 0.0) + (row["clt_thickness_in"] or 0.0)) / 12.0
+    else:
+        steel_psf = row["steel_psf"]
+        member_psf = steel_psf
+        slab_deck_psf = cfg["slab_deck_psf"]
+        if slab_deck_psf is None:  # roof systems: deck weight per row
+            deck_key, blank_gauge = _roof_deck_key(slab)
+            slab_deck_psf = _roof_deck_weight(deck_key)
+            if blank_gauge:
+                warnings.append(
+                    f"bay_id {row['bay_id']}: deck '{slab.strip()}' has no gauge; weighed and "
+                    f"priced as {deck_key} (conservative)"
+                )
     breakdown = _cost_breakdown(row, db_system, deck_key, warnings)
 
     return BayFraming(
@@ -232,16 +309,17 @@ def _to_framing(
         design_ll_psf=row["live_load_psf"],
         lookup_ll_psf=lookup_ll,
         slab=slab,
-        beam=f"{row['member_1']} @ {spacing:g}ft",
-        girder=row["member_2"],
+        beam=f"{row['member_1']} @ {spacing:g}ft" if spacing else str(row["member_1"]),
+        girder=str(row["member_2"] or ""),
         depth_in=row["structural_depth_in"],
         steel_psf=steel_psf,
         slab_deck_psf=slab_deck_psf,
-        self_wt_psf=steel_psf + slab_deck_psf,
+        self_wt_psf=member_psf + slab_deck_psf,
         cost_per_sf=sum(breakdown.values()),
         cost_breakdown=breakdown,
-        carbon_kgco2e_per_sf=row["gwp_kgco2e_per_ft2"],
+        carbon_kgco2e_per_sf=row["gwp_kgco2e_per_ft2"] or 0.0,
         concrete_cy_per_sf=row["concrete_cy_per_sf"] or 0.0,
+        timber_cf_per_sf=timber_cf,
         warnings=warnings,
     )
 
@@ -254,6 +332,11 @@ def _to_framing(
 def _cost_breakdown(
     row: sqlite3.Row, db_system: str, deck_key: str | None, warnings: list[str]
 ) -> dict[str, float]:
+    kind = _db_system_config(db_system).get("material", "steel")
+    if kind == "concrete":
+        return _concrete_cost(row, db_system)
+    if kind == "mass_timber":
+        return _timber_cost(row)
     steel = _costs()["steel"]
 
     def rate(key: str) -> float:
@@ -296,6 +379,41 @@ def _cost_breakdown(
     }
 
 
+def _concrete_cost(row: sqlite3.Row, db_system: str) -> dict[str, float]:
+    """Concrete, formwork, rebar, PT and stud rails per sq ft (ASSUMPTIONS C-6)."""
+    rates = _costs()["concrete"]
+
+    def rate(key: str) -> float:
+        return rates[key]["value"]
+
+    out = {
+        "concrete": (row["concrete_cy_per_sf"] or 0.0) * rate("structural_concrete_usd_per_cy"),
+        "formwork": rate(_db_system_config(db_system)["formwork_cost_key"]),
+        "rebar": (row["rebar_psf"] or 0.0) / LB_PER_TON * rate("rebar_usd_per_ton"),
+    }
+    if row["pt_psf"]:
+        out["pt"] = row["pt_psf"] * rate("pt_strand_usd_per_lb")
+    if row["shear_studs"] == "Yes":
+        out["stud_rails"] = rate("stud_rails_usd_per_sf")
+    return out
+
+
+def _timber_cost(row: sqlite3.Row) -> dict[str, float]:
+    """Glulam, CLT and topping per sq ft (ASSUMPTIONS C-7)."""
+    rates = _costs()["mass_timber"]
+
+    def rate(key: str) -> float:
+        return rates[key]["value"]
+
+    out = {
+        "glulam": (row["timber_bf_per_sf"] or 0.0) * rate("glulam_framing_usd_per_bf"),
+        "clt": (row["clt_thickness_in"] or 0.0) / 12.0 * rate("clt_panels_usd_per_cf"),
+    }
+    if (row["concrete_cy_per_sf"] or 0.0) > 0:
+        out["topping"] = rate("concrete_topping_usd_per_sf")
+    return out
+
+
 _DECK_RE = re.compile(r"^\s*(\S+)\s+(\d*)\s*ga\b")
 
 
@@ -315,10 +433,13 @@ def _roof_deck_key(deck_or_slab: str) -> tuple[str, bool]:
 # ---------------------------------------------------------------------------
 
 _ROW_COLUMNS = (
-    "bay_id, system_id, source_table, source_design_id, span_1_ft, span_2_ft, spacing_ft, "
-    "criterion_category, criterion, live_load_psf, deck_or_slab, member_1, member_2, "
-    "structural_depth_in, steel_psf, concrete_cy_per_sf, gwp_kgco2e_per_ft2"
+    "bay_id, system_id, source_table, source_design_id, use, span_1_ft, span_2_ft, "
+    "spacing_ft, criterion_category, criterion, live_load_psf, deck_or_slab, member_1, "
+    "member_2, structural_depth_in, steel_psf, rebar_psf, pt_psf, "
+    "concrete_equiv_thickness_in, timber_bf_per_sf, clt_thickness_in, shear_studs, "
+    "concrete_cy_per_sf, gwp_kgco2e_per_ft2"
 )
+_USE_NAMES = {"floor": "Floor", "roof": "Roof"}  # bay_designs.use values
 
 
 def db_path() -> Path:
@@ -340,11 +461,16 @@ def _connect_to(path: str) -> sqlite3.Connection:
     return con
 
 
+def _use_clause(use_filter: str | None) -> tuple[str, tuple]:
+    return ("", ()) if use_filter is None else (" AND use = ?", (use_filter,))
+
+
 def _rows(
     db_system: str,
     span_1: float,
     span_2: float,
     *,
+    use_filter: str | None = None,
     category: str | None = None,
     criterion: str | None = None,
     live_load: float | None = None,
@@ -354,6 +480,9 @@ def _rows(
         "WHERE system_id = ? AND span_1_ft = ? AND span_2_ft = ? AND solved = 1"
     )
     params: list[Any] = [db_system, span_1, span_2]
+    if use_filter is not None:
+        sql += " AND use = ?"
+        params.append(use_filter)
     if category is not None:
         sql += " AND criterion_category = ?"
         params.append(category)
@@ -367,30 +496,36 @@ def _rows(
 
 
 @lru_cache(maxsize=None)
-def _spans(db_system: str) -> tuple[list[float], list[float]]:
+def _spans(db_system: str, use_filter: str | None = None) -> tuple[list[float], list[float]]:
     con = _connect()
+    clause, extra = _use_clause(use_filter)
     s1 = [r[0] for r in con.execute(
-        "SELECT DISTINCT span_1_ft FROM bay_designs WHERE system_id = ? ORDER BY 1", (db_system,)
+        f"SELECT DISTINCT span_1_ft FROM bay_designs WHERE system_id = ?{clause} ORDER BY 1",
+        (db_system, *extra),
     )]
     s2 = [r[0] for r in con.execute(
-        "SELECT DISTINCT span_2_ft FROM bay_designs WHERE system_id = ? ORDER BY 1", (db_system,)
+        f"SELECT DISTINCT span_2_ft FROM bay_designs WHERE system_id = ?{clause} ORDER BY 1",
+        (db_system, *extra),
     )]
     return s1, s2
 
 
 @lru_cache(maxsize=None)
-def _strength_lls(db_system: str) -> list[float]:
+def _strength_lls(db_system: str, use_filter: str | None = None) -> list[float]:
+    clause, extra = _use_clause(use_filter)
     return [r[0] for r in _connect().execute(
         "SELECT DISTINCT live_load_psf FROM bay_designs "
-        "WHERE system_id = ? AND criterion_category = ? ORDER BY 1",
-        (db_system, STRENGTH),
+        f"WHERE system_id = ? AND criterion_category = ?{clause} ORDER BY 1",
+        (db_system, STRENGTH, *extra),
     )]
 
 
 @lru_cache(maxsize=None)
-def _criteria(db_system: str) -> frozenset[str]:
+def _criteria(db_system: str, use_filter: str | None = None) -> frozenset[str]:
+    clause, extra = _use_clause(use_filter)
     return frozenset(r[0] for r in _connect().execute(
-        "SELECT DISTINCT criterion FROM bay_designs WHERE system_id = ?", (db_system,)
+        f"SELECT DISTINCT criterion FROM bay_designs WHERE system_id = ?{clause}",
+        (db_system, *extra),
     ))
 
 
@@ -513,3 +648,13 @@ def _db_systems(system: str, use: str) -> list[str]:
 
 def _db_system_config(db_system: str) -> dict[str, Any]:
     return _config("systems.json")["db_systems"][db_system]
+
+
+def _use_filter(db_system: str, use: str) -> str | None:
+    """'Floor' / 'Roof' for DB systems that hold both under one system_id, else None."""
+    return _USE_NAMES[use] if _db_system_config(db_system).get("shared_floor_roof") else None
+
+
+def _design_sdl(db_system: str, use: str) -> float:
+    value = _db_system_config(db_system)["design_sdl_psf"]
+    return float(value[use] if isinstance(value, dict) else value)
