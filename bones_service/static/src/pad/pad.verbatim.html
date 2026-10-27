@@ -1,0 +1,128 @@
+<section class="card" id="planCard">
+  <h2><span class="num">2</span>Typical Floor Plan &amp; Lateral System</h2>
+  <div class="toolbar no-print">
+    <div class="seg" role="group" aria-label="Drawing tool">
+      <button data-mode="outline">1 · Outline</button>
+      <button data-mode="lfrs">2 · Braced frames</button>
+      <button data-mode="select">Select / move</button>
+      <button data-mode="loads">Load areas</button>
+    </div>
+    <div class="tb-group">
+      <button id="btnUndo" title="Undo (Ctrl+Z)">Undo</button>
+      <button id="btnFit" title="Zoom to fit">Fit</button>
+      <button id="btnZin" title="Zoom in">+</button>
+      <button id="btnZout" title="Zoom out">−</button>
+      <button id="btnClearPlan">Clear</button>
+    </div>
+    <details class="fill pop">
+      <summary>Quick rectangle…</summary>
+      <div class="fill-body">
+        <label class="field">Width, X (ft)<input id="rectW" type="number" step="any" value="100"></label>
+        <label class="field">Depth, Y (ft)<input id="rectD" type="number" step="any" value="60"></label>
+        <button id="btnRect">Create</button>
+      </div>
+    </details>
+    <div class="lv-pick">
+      <label class="mini-field lv-lab">Level <select id="padLv" class="mini" aria-label="Level shown on the drawing pad"></select></label>
+      <button class="sm" id="lvCopyAll" title="Copy this level's brace areas and load areas to every other level">Copy to all levels</button>
+      <label class="mini-field">Copy from <select id="lvCopyFrom" class="mini" aria-label="Copy brace areas and load areas from another level"></select></label>
+    </div>
+  </div>
+  <div class="toolbar2 no-print">
+    <label class="mini-field">Snap grid
+      <select id="gridSel" class="mini">
+        <option value="0.5">0.5 ft</option><option value="1">1 ft</option><option value="2">2 ft</option><option value="5">5 ft</option><option value="10">10 ft</option>
+      </select></label>
+    <label class="cb"><input type="checkbox" data-opt="chain"><span>Outline dimensions</span></label>
+    <label class="cb"><input type="checkbox" data-opt="lfdim"><span>LFRS dimensions</span></label>
+    <label class="cb"><input type="checkbox" data-opt="nums"><span>Vertex numbers</span></label>
+    <label class="cb"><input type="checkbox" data-opt="cm"><span>Center of mass</span></label>
+    <label class="cb"><input type="checkbox" data-opt="cr"><span>Center of rigidity</span></label>
+    <label class="cb"><input type="checkbox" data-opt="bdir"><span>Brace direction</span></label>
+  </div>
+  <div class="plan-row">
+  <div id="planWrap" tabindex="0" aria-label="Floor plan drawing canvas">
+    <svg id="plan" role="img" aria-label="Typical floor plan"></svg>
+    <div class="plan-tl"><div class="plan-hint" id="planHint"></div><label class="la-show no-print"><input type="checkbox" data-opt="la"><span>Show loading areas</span></label></div>
+    <div class="plan-readout" id="planReadout"></div>
+    <div class="plan-typed" id="planTyped" hidden></div>
+    <div class="plan-msg" id="planMsg" hidden></div>
+  </div>
+  <div class="pside">
+  <aside class="tpanel" aria-label="Braced frames">
+    <div class="tp-head tp-head2">Braced frames <span class="lvtag" data-lvtag></span></div>
+    <label class="tp-def">New frames, A <input id="aDef" class="in" type="number" min="0" step="0.01"> in²</label>
+    <div class="tp-list" id="tpList"></div>
+    <div class="tp-foot">A = brace area (in²). Arrow = the end the story-1 brace rises to (click to flip). <b>2X</b> = two-bay X frame: Λ / V = story-1 braces meet at the middle column at the top / bottom. Set the middle column (L<sub>1</sub>) in the frame table.</div>
+  </aside>
+  <aside class="tpanel lapanel" aria-label="Loading areas">
+    <div class="tp-head la-head">Loading areas <span class="lvtag" data-lvtag></span><button class="sm" id="laAdd" title="Add a load area ID">+ ID</button></div>
+    <div class="la-row la-hdr"><span></span><span>ID</span><span>psf</span><span>Area, ft²</span><span></span></div>
+    <div class="tp-list" id="laList"></div>
+    <div class="tp-foot" id="laFoot"></div>
+  </aside>
+  </div>
+  </div>
+  <div class="stats">
+    <div class="stat"><div class="l">Floor area</div><div class="v" id="ps-A"></div></div>
+    <div class="stat"><div class="l">Perimeter</div><div class="v" id="ps-P"></div></div>
+    <div class="stat"><div class="l">Overall, L<sub>x</sub> × L<sub>y</sub></div><div class="v" id="ps-L"></div></div>
+    <div class="stat"><div class="l">Centroid (x, y)</div><div class="v" id="ps-C"></div></div>
+    <div class="stat"><div class="l">Braced frames</div><div class="v" id="ps-n"></div></div>
+    <div class="stat"><div class="l">Center of rigidity (x, y)</div><div class="v" id="ps-R"></div><small id="ps-Rn"></small></div>
+    <div class="stat"><div class="l">Eccentricity e<sub>x</sub>, e<sub>y</sub></div><div class="v" id="ps-e"></div><small>CM − CR</small></div>
+  </div>
+  <div id="msgsP" class="msgs"></div>
+  <details class="sub-d" data-key="plan-tables"><summary>Vertex &amp; braced frame tables <span class="muted">(exact coordinates, bays, brace areas and directions)</span></summary><div class="sub-body">
+  <div class="plan-tables">
+    <div>
+      <h3>Outline vertices</h3>
+      <div class="table-wrap"><table id="tv">
+        <thead><tr><th>#</th><th>X (ft)</th><th>Y (ft)</th><th>Edge to next</th></tr></thead><tbody></tbody>
+      </table></div>
+    </div>
+    <div>
+      <h3>Braced frames <span class="muted">(bay = column to column)</span></h3>
+      <div class="table-wrap"><table id="tl" class="tight">
+        <thead><tr><th>Label</th><th>Dir.</th><th>X start<br><span>ft</span></th><th>Y start<br><span>ft</span></th><th>Length, L<br><span>ft</span></th><th>Type<br><span>2X: middle col. L<sub>1</sub>, ft</span></th><th>Brace A<br><span>in², this level</span></th><th>Story-1 brace<br><span>rises to · 2X: meets</span></th><th>Alternate<br><span>each story</span></th><th>k, story <span class="kst"></span><br><span>kip/in</span></th><th>End<br><span>x, y (ft)</span></th><th></th></tr></thead><tbody></tbody>
+      </table></div>
+    </div>
+  </div>
+  </div></details>
+  <details class="sub-d" data-key="stiff" id="stiffWrap"><summary>Frame stiffness <span class="muted">· <span id="stSum"></span></span></summary><div class="sub-body">
+  <p class="note">Relative lateral stiffness of each braced frame, story by story, for the rigid-diaphragm distribution (section 9). One pinned diagonal per story; its axial stiffness projected to the horizontal:</p>
+  <div class="eqn">
+    Brace length L<sub>br</sub> = √(L<sub>b</sub>² + h²), &nbsp; cos θ = L<sub>b</sub> / L<sub>br</sub> &nbsp;(θ = brace angle from horizontal)<br>
+    Lateral stiffness <b>k = (A·E / L<sub>br</sub>)·cos²θ = A·E·L<sub>b</sub>² / L<sub>br</sub>³</b> &nbsp;(one cos θ for the force, one for the displacement)<br>
+    <b>Two-bay X (2X):</b> both braces in a story see the same drift (beams and columns axially rigid), so they act in parallel: <b>k = k₁ + k₂</b>, each with its own bay length (L₁ or L₂) and the story height. The story shear splits between them k₁ : k₂.<br>
+    E = 29,000 ksi is the same for every brace, so only the ratios matter. k is shown in kip/in for reference. h is each story's own height (section 3), so the share of each frame can change from story to story.
+  </div>
+  <div class="grid">
+    <label class="field"><span>Level <small>(its braces are the story below it; independent of the drawing pad level)</small></span><select id="kStory"></select></label>
+    <div class="field"><span>Center of rigidity, this story</span><input id="kCR" readonly></div>
+  </div>
+  <div class="table-wrap"><table id="tK" class="tight"><thead></thead><tbody></tbody></table></div>
+  <h3 class="sub">Assumptions</h3>
+  <ol class="assume">
+    <li>Single frames: one diagonal brace per story. Two-bay X frames (2X): one brace per bay per story, meeting at the middle column (Λ in one story, V in the next; together an X over two stories). All braces pinned at both ends; beams and columns pinned (no frame action).</li>
+    <li>Work points at the column centerlines and floor lines. No gussets and no rigid offsets: L<sub>br</sub> is the calculated work-point length.</li>
+    <li>The brace is elastic in tension and compression, with the same E for every brace.</li>
+    <li>Columns and beams are axially rigid (column axial deformation is ignored for now).</li>
+    <li>One brace area A per frame, used at every story. Each story uses its own height h from section 3.</li>
+    <li>The diaphragm force at each level is distributed with the stiffness of the story directly below that level (sections 9 to 11). Story shears in section 12 are distributed with the stiffness of that story.</li>
+  </ol>
+  </div></details>
+  <details class="sub-d" data-key="m3d-lr" open><summary>3D model <span class="muted">· <span id="m3dSum">typical plan at every level</span></span></summary><div class="sub-body">
+  <div class="toolbar no-print">
+    <div class="seg" role="group" aria-label="View">
+      <button id="v3iso">Iso</button><button id="v3plan">Plan</button><button id="v3front">Front (X-Z)</button><button id="v3side">Side (Y-Z)</button>
+    </div>
+    <label class="cb"><input id="m3dF" type="checkbox"><span>Show story forces <span class="muted">(direction from section 9)</span></span></label>
+    <span class="muted" style="font-size:13px">Columns, beams and one brace per story are drawn for every frame.</span>
+  </div>
+  <div id="m3dWrap" tabindex="0" aria-label="3D model view">
+    <svg id="m3d" viewBox="0 0 1000 600" role="img" aria-label="3D model of floors and braced frames"></svg>
+    <div class="plan-hint">Drag to rotate · Shift-drag or right-drag to pan · click, then scroll to zoom</div>
+  </div>
+  </div></details>
+</section>
