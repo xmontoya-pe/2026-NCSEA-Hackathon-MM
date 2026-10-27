@@ -1,0 +1,16 @@
+/* Bones palette for the Module 2 drawing pad (overrides the pad's own tokens; light only) */
+#pad{
+  --bg:#F5F5F4; --card:#FFFFFF; --ink:#0E0E10; --muted:#5F5F66; --line:#E4E4E1; --line-strong:#B8B8B4;
+  --accent:#7A1F2E; --accent-soft:#F3E6E8;
+  --input:#0E0E10; --input-bg:#F7F7F5; --input-line:#D6D6D2;
+  --ok:#2E6B45; --ok-bg:#E7F3EC; --warn:#8A5A00; --warn-bg:#FBF3E4;
+  --bar:#7A1F2E; --fill:rgba(122,31,46,.06); --stroke:#0E0E10; --grid:#ECECE8; --shadow:none;
+  background:transparent; color:var(--ink); font-family:"Geist",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+#pad .card{border-radius:16px;border-color:#E4E4E1}
+#pad h2 .num{display:none}
+#pad #m3dWrap{position:relative;background:#0E0E10;border-radius:12px;overflow:hidden;touch-action:none;cursor:grab}
+#pad #m3dWrap:active{cursor:grabbing}
+#pad #m3dWrap .plan-hint{position:absolute;left:12px;bottom:10px;top:auto;color:#A1A1A8;background:transparent;border:0;font-size:12.5px;padding:0;box-shadow:none}
+#pad #m3d{display:block;width:100%;height:auto}
+#pad label.cb:has(#m3dF){display:none}
