@@ -13,11 +13,11 @@
     "kll": {
       "interior_column": 4,
       "edge_column": 2,
-      "corner_column": 2,
+      "corner_column": 4,
       "interior_beam": 2,
       "edge_beam": 2
     },
-    "kll_note": "Spec 4.1 values. ASCE 7-22 Table 4.7-1 allows KLL = 4 for exterior (edge and corner) columns without cantilever slabs; 2 is conservative. Pending confirmation."
+    "kll_note": "Corner columns: ASCE 7-22 Table 4.7-1, exterior column without cantilever slabs = 4 (decisions log). Edge columns: spec 4.1 value 2, conservative; ASCE allows 4 without cantilever slabs. With cantilever slabs ASCE gives edge 3, corner 2."
   },
   "occupancies": {
     "office": {"ll_psf": 50, "partitions_psf": 15, "ll_reducible": true, "criterion": "Walking b=0.03"},

@@ -1,7 +1,8 @@
 """Output writers.
 
-Spec sections 3.1 and 3.2. Writes ``output.json`` from ``models.GravityOutput`` and a
-plain-text ``warnings.log`` collecting every scheme's ``warnings`` for investigation.
+Spec sections 3.1 and 3.2. Writes ``output.json`` from ``models.GravityOutput``, a
+plain-text ``warnings.log`` collecting every scheme's ``warnings`` for investigation,
+and JSON Schema files for the input and output contracts (for the integration team).
 
 Planned: an optional lateral-team format (grid lines and column locations, seismic
 weight and center of mass per level, diaphragm type, gravity column axial loads) once
@@ -16,6 +17,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from gravity.models import GravityInput, GravityOutput
+
 
 def write_output(result: dict[str, Any], output_dir: Path) -> Path:
     """Write ``result`` (spec 3.1) to ``<output_dir>/output.json``."""
@@ -23,6 +26,25 @@ def write_output(result: dict[str, Any], output_dir: Path) -> Path:
     path = output_dir / "output.json"
     path.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
     return path
+
+
+def schemas() -> dict[str, dict[str, Any]]:
+    """JSON Schema for the input and output contracts, generated from ``models.py``."""
+    return {
+        "input.schema.json": GravityInput.model_json_schema(),
+        "output.schema.json": GravityOutput.model_json_schema(),
+    }
+
+
+def write_schemas(output_dir: Path) -> list[Path]:
+    """Write ``input.schema.json`` and ``output.schema.json`` to ``output_dir``."""
+    output_dir.mkdir(parents=True, exist_ok=True)
+    paths = []
+    for name, schema in schemas().items():
+        path = output_dir / name
+        path.write_text(json.dumps(schema, indent=2) + "\n", encoding="utf-8")
+        paths.append(path)
+    return paths
 
 
 def collect_warnings(result: dict[str, Any]) -> list[tuple[str, str]]:

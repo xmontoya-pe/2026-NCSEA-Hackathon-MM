@@ -4,6 +4,10 @@ Reads ``input.json`` (spec 2.1), calls ``gravity.run``, writes
 ``<output_dir>/output.json`` (spec 3.1) and ``<output_dir>/warnings.log``, and reports
 whether the log contains warnings. Exits with status 2 if the input does not match
 the contract in ``gravity/models.py``. Warnings alone do not change the exit status.
+
+``python -m gravity schema -o <dir>`` writes ``input.schema.json`` and
+``output.schema.json`` (JSON Schema generated from ``gravity/models.py``) for the
+integration team.
 """
 
 from __future__ import annotations
@@ -16,7 +20,7 @@ from pathlib import Path
 from pydantic import ValidationError
 
 from gravity import run
-from gravity.exporters import write_output, write_warnings_log
+from gravity.exporters import write_output, write_schemas, write_warnings_log
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -29,7 +33,17 @@ def main(argv: list[str] | None = None) -> int:
         "-o", "--output-dir", type=Path, default=Path("."), help="directory for output.json and warnings.log"
     )
 
+    schema_parser = sub.add_parser("schema", help="write JSON Schema files for input and output")
+    schema_parser.add_argument(
+        "-o", "--output-dir", type=Path, default=Path("."), help="directory for the schema files"
+    )
+
     args = parser.parse_args(argv)
+
+    if args.command == "schema":
+        for path in write_schemas(args.output_dir):
+            print(f"wrote {path}")
+        return 0
 
     try:
         input_dict = json.loads(args.input.read_text(encoding="utf-8"))

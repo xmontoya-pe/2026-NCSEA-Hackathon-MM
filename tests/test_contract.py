@@ -16,13 +16,15 @@ from pathlib import Path
 from pydantic import ValidationError
 
 import gravity
-from gravity.exporters import write_warnings_log
+from gravity.exporters import schemas, write_warnings_log
 from gravity.models import GravityInput, GravityOutput
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 FIXTURES = REPO_ROOT / "tests" / "fixtures"
 FIXTURE_NAMES = ["simple_rect.json", "l_shape.json", "no_column_zone.json"]
-SAMPLE_OUTPUT = REPO_ROOT / "examples" / "sample_output.json"
+EXAMPLES = REPO_ROOT / "examples"
+SAMPLE_INPUT = EXAMPLES / "sample_input.json"
+SAMPLE_OUTPUT = EXAMPLES / "sample_output.json"
 
 
 def load_json(path: Path) -> dict:
@@ -77,6 +79,25 @@ class TestFixtures(unittest.TestCase):
         result = gravity.run(load_json(FIXTURES / "simple_rect.json"))
         for scheme in result["schemes"]:
             self.assertIsInstance(scheme["warnings"], list)
+
+
+class TestIntegrationExamples(unittest.TestCase):
+    """examples/ is what the other teams build against; it must match the models."""
+
+    def test_sample_input_is_the_spec_example(self):
+        self.assertEqual(load_json(SAMPLE_INPUT), load_json(FIXTURES / "simple_rect.json"))
+
+    def test_sample_output_is_run_on_sample_input(self):
+        self.assertEqual(gravity.run(load_json(SAMPLE_INPUT)), load_json(SAMPLE_OUTPUT))
+
+    def test_committed_schemas_match_models(self):
+        for name, schema in schemas().items():
+            path = EXAMPLES / name
+            if not path.exists():
+                self.skipTest(f"{name} not generated yet (python -m gravity schema -o examples)")
+            with self.subTest(schema=name):
+                self.assertEqual(load_json(path), json.loads(json.dumps(schema)),
+                                 f"{name} is stale: rerun python -m gravity schema -o examples")
 
 
 class TestWarningsLog(unittest.TestCase):
@@ -212,6 +233,13 @@ class TestCli(unittest.TestCase):
             self.assertEqual(len(lines), n + 1)
             self.assertTrue(all(line.startswith("[steel] ") for line in lines[1:]))
             self.assertIn(f"WARNINGS: {n} warning(s) logged to", proc.stdout)
+
+    def test_cli_writes_schemas(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            proc = self.run_cli("schema", "-o", tmp)
+            self.assertEqual(proc.returncode, 0, proc.stderr)
+            self.assertEqual(load_json(Path(tmp) / "input.schema.json")["title"], "GravityInput")
+            self.assertEqual(load_json(Path(tmp) / "output.schema.json")["title"], "GravityOutput")
 
     def test_cli_rejects_invalid_input(self):
         with tempfile.TemporaryDirectory() as tmp:
