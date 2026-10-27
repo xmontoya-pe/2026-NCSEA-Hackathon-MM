@@ -1,0 +1,568 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bones · Sketch to plan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#0E0E10; --paper:#F5F5F4; --white:#FFFFFF; --line:#E4E4E1; --line2:#D6D6D2; --muted:#5F5F66;
+  --wine:#7A1F2E; --wine-d:#5E1622; --wine-l:#F3E6E8; --wine-on-dark:#D0566A;
+  --ok:#2E6B45; --warn:#8A5A00; --warn-bg:#FBF3E4;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:"Geist",system-ui,-apple-system,"Segoe UI",sans-serif;font-size:15px;line-height:1.5}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--wine);outline-offset:2px}
+a{color:var(--wine)}
+[hidden]{display:none !important}
+
+header{background:var(--ink);color:#fff;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;padding:12px 32px}
+.brand{display:flex;align-items:center;gap:12px}
+.brand b{font-size:22px;letter-spacing:-.02em}
+.brand span{color:#A1A1A8;font-size:14px;padding-left:12px;border-left:1px solid #333338}
+.pill{font-size:13px;color:#D4D4D8;border:1px solid #333338;border-radius:999px;padding:6px 12px}
+
+nav{background:#fff;border-bottom:1px solid var(--line);padding:0 32px;display:flex;flex-wrap:wrap;gap:8px 32px}
+.step{display:flex;align-items:center;gap:10px;padding:14px 0;border-bottom:2px solid transparent;color:var(--muted);background:none;border-top:0;border-left:0;border-right:0}
+.step i{width:26px;height:26px;border-radius:50%;border:1.5px solid #B8B8B4;display:grid;place-items:center;font-style:normal;font-size:13px}
+.step[aria-current="step"]{color:var(--ink);font-weight:600;border-bottom-color:var(--ink)}
+.step[aria-current="step"] i{background:var(--ink);border-color:var(--ink);color:#fff}
+.step.done{color:var(--ink);cursor:pointer}
+.step.done i{background:var(--wine);border-color:var(--wine);color:#fff}
+.step.later{opacity:.55}
+
+main{max-width:1360px;margin:0 auto;padding:36px 32px 64px}
+h1{margin:0;font-size:36px;font-weight:700;letter-spacing:-.03em;line-height:1.1}
+.lede{margin:8px 0 28px;color:var(--muted);max-width:66ch}
+.row{display:flex;flex-wrap:wrap;gap:24px;align-items:flex-start}
+.grow{flex:999 1 600px;min-width:0}
+.side{flex:1 1 360px;min-width:0;display:flex;flex-direction:column;gap:16px}
+.b-card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:20px 24px}
+.b-card h2{margin:0 0 12px;font-size:17px;font-weight:600}
+.dark{background:var(--ink);color:#fff;border-color:var(--ink)}
+.small{font-size:13px;color:var(--muted)}
+.dark .small{color:#A1A1A8}
+
+.btn{height:48px;padding:0 22px;border-radius:8px;border:0;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;text-decoration:none}
+.btn.b-primary{background:var(--wine);color:#fff}
+.btn.b-primary:hover{background:var(--wine-d)}
+.btn.black{background:var(--ink);color:#fff}
+.btn.ghost{background:#fff;border:1px solid var(--line2);color:var(--ink);font-weight:500}
+.btn:disabled{background:#E9E9E6;color:#6B6B72;cursor:not-allowed}
+.btn.b-sm{height:40px;padding:0 14px;font-size:14px}
+
+label.f{display:block;font-size:13px;color:var(--muted)}
+label.f input,label.f select{display:block;width:100%;margin-top:6px;height:44px;border:1px solid var(--line2);border-radius:8px;padding:0 12px;background:#fff;font-size:15px}
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+
+.drop{border:1.5px dashed #B8B8B4;border-radius:12px;min-height:420px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:32px;text-align:center;position:relative}
+.drop.over{border-color:var(--wine);background:var(--wine-l)}
+.drop img{max-width:100%;max-height:440px;border-radius:8px;display:block}
+.drop .name{font-weight:600}
+.busy{position:absolute;inset:0;background:rgba(255,255,255,.93);border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center;padding:24px}
+.spin{width:44px;height:44px;border-radius:50%;border:3px solid var(--wine-l);border-top-color:var(--wine);animation:sp 1s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.spin{animation:none;border-top-color:var(--wine-l);border-right-color:var(--wine)}}
+
+.err{background:#FBEAEA;border:1px solid #E7B7BE;color:#6B1424;border-radius:10px;padding:12px 14px;font-size:14px}
+.b-note{background:var(--warn-bg);color:#5A3B00;border-radius:10px;padding:10px 12px;font-size:13.5px}
+
+.b-seg{display:inline-flex;background:#F0F0EE;border-radius:10px;padding:4px}
+.b-seg button{height:36px;padding:0 14px;border:0;border-radius:8px;background:transparent;cursor:pointer;font-size:14px}
+.b-seg button[aria-pressed="true"]{background:var(--ink);color:#fff}
+.headrow{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap}
+.headrow h2{margin:0}
+.planwrap svg,.planwrap img{display:block;width:100%;height:auto;border-radius:8px}
+.iconbtn{width:44px;height:40px;border-radius:8px;border:1px solid #333338;background:transparent;color:#fff;cursor:pointer;display:grid;place-items:center}
+
+.b-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:16px}
+.b-stat{background:#F7F7F5;border-radius:12px;padding:12px 14px}
+.b-stat div:first-child{font-size:12px;color:var(--muted)}
+.b-stat div:last-child{font-size:22px;font-weight:700;letter-spacing:-.02em}
+
+.item{padding:12px 0;border-top:1px solid #ECECE8}
+.item:first-of-type{border-top:0;padding-top:0}
+.item .t{display:flex;justify-content:space-between;gap:8px;font-weight:600}
+.item .t span{font-weight:400;font-size:13px}
+.b-good{color:var(--ok)} .warn{color:var(--warn)} .b-bad{color:var(--wine)}
+.dims{list-style:none;margin:8px 0 0;padding:0;display:flex;flex-direction:column;gap:4px}
+.dims li{display:grid;grid-template-columns:36px 1fr auto;gap:8px;font-size:13.5px;padding:6px 10px;border-radius:8px;background:#F7F7F5}
+.dims li.no{background:var(--warn-bg)}
+.checks{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.checks li{display:flex;gap:10px;font-size:14px}
+.checks b{width:20px;height:20px;flex:none;border-radius:50%;display:grid;place-items:center;color:#fff;font-size:12px;margin-top:1px}
+.files{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.files a{font-size:13px;padding:4px 10px;border:1px solid var(--line2);border-radius:999px;text-decoration:none;color:var(--ink)}
+.files a:hover{border-color:var(--wine);color:var(--wine)}
+ul.plain{margin:6px 0 0;padding-left:18px;font-size:13.5px;color:var(--muted)}
+
+.hz-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.hz-vals{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:14px;padding-top:14px;border-top:1px solid #ECECE8}
+.hz-vals label,.hz-grid label{position:relative}
+.src{display:block;font-size:11.5px;color:var(--ok);margin-top:3px;min-height:1em}
+.tbl{overflow-x:auto}
+.tbl table{border-collapse:collapse;width:100%;min-width:560px;font-size:14px}
+.tbl th,.tbl td{padding:6px 10px;border-bottom:1px solid #ECECE8;text-align:right;white-space:nowrap}
+.tbl th:first-child{text-align:left}
+.tbl thead th{font-size:12.5px;color:var(--muted);font-weight:600}
+.tbl input{width:84px;height:36px;border:1px solid var(--line2);border-radius:8px;padding:0 8px;text-align:right}
+.tbl .sw{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:8px;vertical-align:-1px}
+.muted{color:var(--muted)}
+.b-warn{color:var(--warn)}
+@media (max-width:900px){.hz-grid,.hz-vals{grid-template-columns:repeat(2,minmax(0,1fr))}.hz-grid label[style*="span 3"],.hz-grid button[style*="span 3"]{grid-column:span 2 !important}}
+.lines h3{margin:12px 0 6px;font-size:14px;font-weight:600;display:flex;justify-content:space-between}
+.lines h3 span{font-weight:400;color:var(--muted)}
+.lines ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px}
+.lines li{display:flex;justify-content:space-between;gap:12px;font-size:14px;padding:6px 10px;border-radius:8px;background:#F7F7F5}
+.lines li span:last-child{font-weight:600;color:var(--wine)}
+#s3 > .row h2{margin:0 0 10px;font-size:17px}
+@media (max-width:640px){header,nav{padding-left:16px;padding-right:16px} main{padding:24px 16px 48px} h1{font-size:28px} .b-stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+</style>
+<!--PAD_CSS-->
+</head>
+<body>
+<header>
+  <div class="brand">
+    <svg width="36" height="36" viewBox="0 0 64 64" aria-hidden="true"><g fill="none" stroke="#fff" stroke-width="2.3" stroke-linecap="round"><path d="M36 14Q46.7 14 55.5 17.5M28 14Q17.3 14 8.5 17.5M36 22Q46.7 22 55.5 25.5M28 22Q17.3 22 8.5 25.5M36 30Q46.7 30 55.5 33.5M28 30Q17.3 30 8.5 33.5M36 38Q46.7 38 55.5 41.5M28 38Q17.3 38 8.5 41.5M36 46Q46.7 46 55.5 49.5M28 46Q17.3 46 8.5 49.5"/><path d="M8.5 17.5V54.5M55.5 17.5V54.5" stroke-width="2"/><path d="M4 54.5H60" stroke-width="1.6"/></g><g fill="#B23A4C"><rect x="28" y="7.65" width="8" height="5.7" rx="1.3"/><rect x="28" y="14.65" width="8" height="6.7" rx="1.3"/><rect x="28" y="22.65" width="8" height="6.7" rx="1.3"/><rect x="28" y="30.65" width="8" height="6.7" rx="1.3"/><rect x="28" y="38.65" width="8" height="6.7" rx="1.3"/><rect x="28" y="46.65" width="8" height="7.2" rx="1.3"/></g></svg>
+    <b>bones</b><span id="projName">New project</span>
+  </div>
+  <span class="pill">Engineer workspace</span>
+</header>
+
+<nav aria-label="Steps">
+  <button class="step" id="nav1" type="button" aria-current="step"><i>1</i>Sketch</button>
+  <button class="step later" id="nav2" type="button" disabled><i>2</i>Plan and 3D</button>
+  <button class="step later" id="nav3" type="button" disabled><i>3</i>Drawing pad and loads</button>
+  <span class="step later"><i>4</i>Analysis</span>
+  <span class="step later"><i>5</i>Client view</span>
+</nav>
+
+<main>
+  <!-- STEP 1 -->
+  <section id="s1">
+    <h1>Start with the floor plate</h1>
+    <p class="lede">Upload a photo of the hand sketch. Bones reads the outline and the written dimensions, then rebuilds the plan to scale from those dimensions.</p>
+    <div class="row">
+      <div class="b-card grow">
+        <div class="drop" id="drop">
+          <div id="dropEmpty">
+            <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="#7A1F2E" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/><path d="M12 15V4"/><path d="M7.5 8.5 12 4l4.5 4.5"/></svg>
+            <p style="margin:8px 0 0;font-size:18px;font-weight:600">Drop the sketch here</p>
+            <p class="small" style="margin:4px 0 16px">JPG, PNG or WebP. A phone photo works if every dimension is legible.</p>
+            <label class="btn black" style="cursor:pointer">Choose photo<input id="file" type="file" accept="image/png,image/jpeg,image/webp" style="position:absolute;width:1px;height:1px;opacity:0"></label>
+          </div>
+          <div id="dropFull" hidden>
+            <img id="preview" alt="The uploaded sketch">
+            <p class="small" style="margin:12px 0 0"><span class="name" id="fname"></span> · <button type="button" id="replace" style="border:0;background:none;color:var(--wine);cursor:pointer;padding:0;text-decoration:underline">Choose a different photo</button></p>
+          </div>
+          <div class="busy" id="busy" hidden role="status" aria-live="polite">
+            <div class="spin" aria-hidden="true"></div>
+            <b id="busyMsg">Reading the sketch</b>
+            <span class="small" id="busyTime">Usually 15 to 60 seconds</span>
+          </div>
+        </div>
+      </div>
+      <aside class="side">
+        <div class="b-card">
+          <h2>Before you read it</h2>
+          <div class="grid2">
+            <label class="f">Stories<input id="levels" inputmode="numeric" placeholder="From sketch"></label>
+            <label class="f">Story height (ft)<input id="height" inputmode="decimal" placeholder="From sketch"></label>
+          </div>
+          <p class="small" style="margin:8px 0 14px">Leave blank if they are written on the sketch. You can change them on the next screen without reading it again.</p>
+          <label class="f">Reader<select id="model"><option value="claude-sonnet-5-5">Standard (faster)</option><option value="claude-opus-5-5">Careful, for messy sketches (slower)</option></select></label>
+        </div>
+        <div class="b-note" id="noKey" hidden>Reading new sketches needs an Anthropic API key. Paste it into the .env file next to run_bones.bat and restart. The example below works without one.</div>
+        <div class="err" id="err1" hidden></div>
+        <button class="btn b-primary" id="go" type="button" disabled>Read sketch</button>
+        <button class="btn ghost" id="example" type="button">Try the example sketch</button>
+      </aside>
+    </div>
+  </section>
+
+  <!-- STEP 2 -->
+  <section id="s2" hidden>
+    <h1>Check the plan</h1>
+    <p class="lede">The plan below is built from the written dimensions, not the drawn proportions. Compare it with the reading over your photo, then hand it to the drawing pad.</p>
+    <div class="row">
+      <div class="grow" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(380px,1fr));gap:20px">
+        <div class="b-card">
+          <div class="headrow">
+            <h2>Floor plan</h2>
+            <div class="b-seg" role="group" aria-label="Plan view">
+              <button type="button" id="vPlan" aria-pressed="true">Clean plan</button>
+              <button type="button" id="vPhoto" aria-pressed="false">Reading on photo</button>
+            </div>
+          </div>
+          <div class="planwrap" id="planBox"></div>
+          <div class="b-stats" id="stats"></div>
+        </div>
+        <div class="b-card dark">
+          <div class="headrow">
+            <h2>3D model</h2>
+            <div style="display:flex;gap:8px">
+              <button class="iconbtn" type="button" id="rotL" aria-label="Rotate left"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg></button>
+              <button class="iconbtn" type="button" id="rotR" aria-label="Rotate right"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 4v5h-5"/></svg></button>
+            </div>
+          </div>
+          <div id="box3d"></div>
+          <p class="small" id="cap3d" style="margin:8px 0 0"></p>
+        </div>
+      </div>
+
+      <aside class="side">
+        <div class="b-card" id="found"></div>
+        <div class="b-card">
+          <h2>Stories</h2>
+          <div class="grid2">
+            <label class="f">Stories<input id="levels2" inputmode="numeric"></label>
+            <label class="f">Story height (ft)<input id="height2" inputmode="decimal"></label>
+          </div>
+          <button class="btn ghost b-sm" id="rebuild" type="button" style="margin-top:12px;width:100%">Update the plan</button>
+          <p class="small" style="margin:8px 0 0">Uses the saved reading, so there is no new read.</p>
+        </div>
+        <div class="b-card">
+          <h2>Checks before hand-off</h2>
+          <ul class="checks" id="checks"></ul>
+        </div>
+        <div class="err" id="err2" hidden></div>
+        <div class="b-card">
+          <h2>Hand-off</h2>
+          <button class="btn b-primary" id="toPad" type="button" style="width:100%">Open in the drawing pad</button>
+          <a class="btn ghost b-sm" id="dlM2" style="width:100%;margin-top:10px">Download Module 2 file</a>
+          <p class="small" style="margin:8px 0 0">Add braced frames and load areas next. The file also opens in the ELF app with <b>Open…</b>.</p>
+          <div class="files" id="files"></div>
+        </div>
+        <button class="btn ghost" id="back" type="button">Read another sketch</button>
+      </aside>
+    </div>
+  </section>
+
+  <!-- STEP 3 -->
+  <section id="s3" hidden>
+    <h1>Lateral system, loads and hazards</h1>
+    <p class="lede">Pull the site hazards, draw braced frames and load areas, and set LL, SDL and SL for each area. Everything is saved in this browser as you go.</p>
+    <div class="row" style="margin-bottom:20px">
+      <div class="b-card grow" style="flex-basis:620px" id="hazCard">
+        <div class="headrow"><h2>Site hazards, ASCE 7</h2><a class="small" href="https://ascehazardtool.org/" target="_blank" rel="noopener">Open the ASCE Hazard Tool</a></div>
+        <div class="hz-grid">
+          <label class="f" style="grid-column:span 3">Site address<input id="hzAddr" placeholder="Street, city, state"></label>
+          <button class="btn ghost b-sm" id="hzFind" type="button" style="align-self:end">Find</button>
+          <label class="f">Latitude<input id="hzLat" inputmode="decimal"></label>
+          <label class="f">Longitude<input id="hzLon" inputmode="decimal"></label>
+          <label class="f">Edition<select id="hzEd"><option>7-22</option><option>7-16</option></select></label>
+          <label class="f">Risk Category<select id="hzRc"><option>I</option><option selected>II</option><option>III</option><option>IV</option></select></label>
+          <label class="f">Site class<select id="hzSc"><option>Default</option><option>A</option><option>B</option><option>BC</option><option>C</option><option>CD</option><option>D</option><option>DE</option><option>E</option></select></label>
+          <button class="btn b-primary" id="hzPull" type="button" style="grid-column:span 3;align-self:end">Pull from the ASCE Hazard Tool</button>
+        </div>
+        <p class="small" id="hzMsg" style="margin:10px 0 0"></p>
+        <div class="hz-vals">
+          <label class="f">S<sub>DS</sub> (g)<input id="hzSds" inputmode="decimal"><span class="src" id="srcSeis"></span></label>
+          <label class="f">S<sub>D1</sub> (g)<input id="hzSd1" inputmode="decimal"></label>
+          <label class="f">Seismic Design Cat.<input id="hzSdc"></label>
+          <label class="f">I<sub>e</sub><input id="hzIe" readonly></label>
+          <label class="f">Wind speed V (mph)<input id="hzV" inputmode="decimal"><span class="src" id="srcWind"></span></label>
+          <label class="f">Ground snow p<sub>g</sub> (psf)<input id="pg" inputmode="decimal" placeholder="0 if none"><span class="src" id="srcSnow"></span></label>
+          <label class="f">Exposure C<sub>e</sub><select id="ce"><option value="0.9">0.9: fully exposed</option><option value="1.0" selected>1.0: partially exposed</option><option value="1.2">1.2: sheltered</option></select></label>
+          <label class="f">Thermal C<sub>t</sub><select id="ct"><option value="1.0" selected>1.0: heated</option><option value="1.1">1.1: just above freezing</option><option value="1.2">1.2: unheated</option></select></label>
+        </div>
+        <div class="b-stat" style="margin-top:12px;display:flex;justify-content:space-between;align-items:baseline;gap:8px"><div>Flat-roof snow load SL = p<sub>f</sub> = 0.7 C<sub>e</sub> C<sub>t</sub> p<sub>g</sub> (ASCE 7-22 Eq. 7.3-1)</div><div id="pf">–</div></div>
+        <p class="small" style="margin:8px 0 0">C<sub>e</sub> shown for surface roughness B; confirm both factors against Tables 7.3-1 and 7.3-2. Minimum roof snow, drift, sliding and rain-on-snow are checked in design.</p>
+      </div>
+      <aside class="side">
+        <div class="b-card">
+          <h2>Project file</h2>
+          <p class="small" style="margin:0 0 12px">The same file the ELF app opens, with your frames and load areas.</p>
+          <div style="display:flex;gap:10px;flex-wrap:wrap">
+            <button class="btn b-primary" id="btnSave" type="button" style="flex:1;white-space:nowrap">Download file</button>
+            <button class="btn ghost" id="btnOpen" type="button" style="flex:1">Open…</button>
+            <input type="file" id="fileOpen" accept=".json,application/json" hidden>
+          </div>
+        </div>
+        <div class="b-card">
+          <h2>Lines of resistance</h2>
+          <div id="bonesLines" class="lines"></div>
+        </div>
+        <button class="btn ghost" id="back3" type="button">Back to the plan</button>
+      </aside>
+    </div>
+    <table id="t1" hidden></table>
+<!--PAD_MARKUP-->
+    <div class="b-card" style="margin-top:20px">
+      <div class="headrow"><h2>Gravity loads by load area: <span id="loadsLevel"></span></h2>
+        <button class="btn ghost b-sm" id="copyLoads" type="button">Copy to every floor level</button></div>
+      <p class="small" style="margin:-4px 0 12px">One row per load area on the pad. Change the level with the pad’s <b>Level</b> menu.</p>
+      <div id="bonesLoads"></div>
+    </div>
+  </section>
+</main>
+<!--PAD_JS-->
+
+<script>
+(function(){
+"use strict";
+const $ = id => document.getElementById(id);
+const S = {dataURL:null, filename:null, result:null, view:"plan", yaw:35, health:null};
+const esc = s => String(s == null ? "" : s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const fmt = (v, d=1) => v == null ? "–" : (Math.abs(v - Math.round(v)) < 1e-6 ? Math.round(v).toLocaleString("en-US") : v.toLocaleString("en-US", {maximumFractionDigits:d}));
+
+/* ---------- step 1 ---------- */
+async function health(){
+  try{ const r = await fetch("/api/health"); S.health = await r.json(); }catch(e){ S.health = {api_key:false}; }
+  $("noKey").hidden = !!S.health.api_key;
+  syncGo();
+}
+function syncGo(){ $("go").disabled = !(S.dataURL && S.health && S.health.api_key); }
+function takeFile(f){
+  if(!f) return;
+  if(!/^image\/(png|jpeg|webp)$/.test(f.type)){ showErr(1, "Choose a JPG, PNG or WebP photo."); return; }
+  const rd = new FileReader();
+  rd.onload = () => { S.dataURL = rd.result; S.filename = f.name; $("preview").src = rd.result; $("fname").textContent = f.name;
+    $("dropEmpty").hidden = true; $("dropFull").hidden = false; showErr(1, ""); syncGo(); };
+  rd.readAsDataURL(f);
+}
+$("file").addEventListener("change", e => takeFile(e.target.files[0]));
+$("replace").addEventListener("click", () => $("file").click());
+const drop = $("drop");
+["dragenter","dragover"].forEach(t => drop.addEventListener(t, e => { e.preventDefault(); drop.classList.add("over"); }));
+["dragleave","drop"].forEach(t => drop.addEventListener(t, e => { e.preventDefault(); drop.classList.remove("over"); }));
+drop.addEventListener("drop", e => takeFile(e.dataTransfer.files[0]));
+
+function showErr(n, msg){ const el = $("err" + n); el.textContent = msg; el.hidden = !msg; }
+let timer = null;
+function busy(on, msg){
+  $("busy").hidden = !on; $("go").disabled = on || !(S.dataURL && S.health && S.health.api_key); $("example").disabled = on;
+  clearInterval(timer);
+  if(on){ const t0 = Date.now(); $("busyMsg").textContent = msg;
+    $("busyTime").textContent = "Usually 15 to 60 seconds";
+    timer = setInterval(() => { $("busyTime").textContent = Math.round((Date.now()-t0)/1000) + " s · usually 15 to 60 seconds"; }, 1000); }
+}
+async function post(url, body){
+  const r = await fetch(url, {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(body)});
+  const j = await r.json().catch(() => ({error:"The server sent an unreadable reply."}));
+  if(!r.ok || j.error) throw new Error(j.error || ("Request failed (" + r.status + ")."));
+  return j;
+}
+$("go").addEventListener("click", async () => {
+  showErr(1, ""); busy(true, "Reading the sketch");
+  try{ show(await post("/api/read", {image:S.dataURL, filename:S.filename, levels:$("levels").value, storey_height_ft:$("height").value, model:$("model").value})); }
+  catch(e){ showErr(1, e.message); }
+  finally{ busy(false); }
+});
+$("example").addEventListener("click", async () => {
+  showErr(1, ""); busy(true, "Rebuilding the example from its saved reading");
+  try{ show(await post("/api/example", {levels:$("levels").value, storey_height_ft:$("height").value})); }
+  catch(e){ showErr(1, e.message); }
+  finally{ busy(false); }
+});
+
+/* ---------- navigation ---------- */
+function go(n){
+  $("s1").hidden = n !== 1; $("s2").hidden = n !== 2; $("s3").hidden = n !== 3;
+  $("nav3").setAttribute("aria-current", n === 3 ? "step" : "false");
+  $("nav3").className = "step" + (S.padOpen ? (n === 3 ? "" : " done") : " later");
+  $("nav3").disabled = !S.padOpen;
+  if(n === 3 && window.BonesPad) requestAnimationFrame(() => window.BonesPad.fit());
+  $("nav1").setAttribute("aria-current", n === 1 ? "step" : "false");
+  $("nav2").setAttribute("aria-current", n === 2 ? "step" : "false");
+  $("nav1").className = "step" + (n >= 2 ? " done" : "");
+  $("nav2").className = "step" + (S.result ? (n === 2 ? "" : n === 3 ? " done" : " done") : " later");
+  $("nav2").disabled = !S.result;
+  window.scrollTo(0, 0);
+}
+$("nav1").addEventListener("click", () => go(1));
+$("nav2").addEventListener("click", () => S.result && go(2));
+$("back").addEventListener("click", () => go(1));
+$("nav3").addEventListener("click", () => S.padOpen && go(3));
+$("back3").addEventListener("click", () => go(2));
+/* ---------- step 3: site hazards and snow ---------- */
+const hz = id => $(id);
+function hzFill(){
+  const B = window.BonesPad.bones(), h = B.hazard || {}, q = h.query || {}, v = h.values || {}, s = h.sources || {}, sn = B.snow || {};
+  const set = (id, val) => { $(id).value = val == null ? "" : val; };
+  set("hzAddr", h.address); set("hzLat", q.lat); set("hzLon", q.lon);
+  if(q.edition) $("hzEd").value = q.edition; if(q.risk_category) $("hzRc").value = q.risk_category; if(q.site_class) $("hzSc").value = q.site_class;
+  set("hzSds", v.sds); set("hzSd1", v.sd1); set("hzSdc", v.sdc); set("hzV", v.wind_mph);
+  set("pg", sn.pg_psf != null ? sn.pg_psf : v.pg_psf);
+  if(sn.Ce) $("ce").value = (+sn.Ce).toFixed(1); if(sn.Ct) $("ct").value = (+sn.Ct).toFixed(1);
+  $("srcSeis").textContent = s.seismic || (v.sds != null ? "entered" : "");
+  $("srcWind").textContent = s.wind || (v.wind_mph != null ? "entered" : "");
+  $("srcSnow").textContent = s.snow || ((sn.pg_psf != null || v.pg_psf != null) ? "entered" : "");
+  ieFromRc(); pfPreview(false);
+}
+function ieFromRc(){ $("hzIe").value = {I:1.0, II:1.0, III:1.25, IV:1.5}[$("hzRc").value].toFixed(2); }
+function hzStore(){
+  const n = id => { const v = parseFloat($(id).value); return isFinite(v) ? v : null; };
+  const prev = window.BonesPad.bones().hazard || {};
+  const h = {address: $("hzAddr").value.trim(), query: {lat: n("hzLat"), lon: n("hzLon"), edition: $("hzEd").value, risk_category: $("hzRc").value, site_class: $("hzSc").value},
+    values: {sds: n("hzSds"), sd1: n("hzSd1"), sdc: $("hzSdc").value.trim() || null, wind_mph: n("hzV"), pg_psf: n("pg"), ie: parseFloat($("hzIe").value)},
+    sources: prev.sources || {}, messages: prev.messages || []};
+  window.BonesPad.setHazard(h);
+}
+function pfPreview(store){
+  const pg = parseFloat($("pg").value), ce = parseFloat($("ce").value), ct = parseFloat($("ct").value);
+  const has = isFinite(pg) && pg >= 0, pf = has ? Math.round(0.7*ce*ct*pg*100)/100 : null;
+  $("pf").textContent = has ? fmt(pf, 2) + " psf" : "–";
+  if(store !== false) window.BonesPad.setSnow(has ? {pg_psf: pg, Ce: ce, Ct: ct, pf_psf: pf, basis: "ASCE 7-22 Eq. 7.3-1, balanced flat-roof snow load"} : null);
+}
+["hzAddr","hzLat","hzLon","hzEd","hzSc","hzSds","hzSd1","hzSdc","hzV"].forEach(id => $(id).addEventListener("change", () => {
+  if(["hzSds","hzSd1","hzSdc"].includes(id)) $("srcSeis").textContent = "entered";
+  if(id === "hzV") $("srcWind").textContent = "entered";
+  hzStore(); }));
+$("hzRc").addEventListener("change", () => { ieFromRc(); hzStore(); });
+["pg","ce","ct"].forEach(id => { $(id).addEventListener("input", () => pfPreview()); $(id).addEventListener("change", () => { if(id === "pg") $("srcSnow").textContent = "entered"; hzStore(); pfPreview(); }); });
+$("copyLoads").addEventListener("click", () => window.BonesPad.copyLoadsToFloors());
+$("hzFind").addEventListener("click", async () => {
+  const b = $("hzFind"); b.disabled = true; $("hzMsg").textContent = "Finding the address…";
+  try{ const g = await post("/api/geocode", {address: $("hzAddr").value}); $("hzLat").value = g.lat; $("hzLon").value = g.lon;
+    $("hzMsg").textContent = "Found: " + (g.matched || "") + "."; hzStore(); }
+  catch(e){ $("hzMsg").textContent = e.message; }
+  finally{ b.disabled = false; }
+});
+$("hzPull").addEventListener("click", async () => {
+  const b = $("hzPull"); b.disabled = true; $("hzMsg").textContent = "Pulling site values…";
+  try{
+    if(!$("hzLat").value || !$("hzLon").value){
+      if(!$("hzAddr").value.trim()) throw new Error("Type the site address, or the latitude and longitude.");
+      const g = await post("/api/geocode", {address: $("hzAddr").value}); $("hzLat").value = g.lat; $("hzLon").value = g.lon;
+    }
+    const r = await post("/api/hazard", {lat: $("hzLat").value, lon: $("hzLon").value, edition: $("hzEd").value, risk_category: $("hzRc").value, site_class: $("hzSc").value});
+    const v = r.values, s = r.sources;
+    const put = (id, val) => { if(val != null) $(id).value = val; };
+    put("hzSds", v.sds); put("hzSd1", v.sd1); put("hzSdc", v.sdc); put("hzV", v.wind_mph); put("pg", v.pg_psf);
+    $("srcSeis").textContent = s.seismic || ""; $("srcWind").textContent = s.wind || ""; $("srcSnow").textContent = s.snow || "";
+    const got = [s.seismic && "seismic", s.wind && "wind", s.snow && "snow"].filter(Boolean);
+    $("hzMsg").textContent = (got.length ? "Pulled " + got.join(", ") + ". " : "Nothing could be pulled. ") + (r.messages || []).join(" ") +
+      (got.length < 3 ? " Type any missing values from the ASCE Hazard Tool." : "");
+    const h = {address: $("hzAddr").value.trim(), query: r.query, values: Object.assign({}, v), sources: s, messages: r.messages};
+    window.BonesPad.setHazard(h); pfPreview();
+  }catch(e){ $("hzMsg").textContent = e.message; }
+  finally{ b.disabled = false; }
+});
+$("toPad").addEventListener("click", () => {
+  if(!S.result || !window.BonesPad) return;
+  if(!S.result.ready){ showErr(2, "Fix the checks marked ✕ before opening the drawing pad."); return; }
+  window.BonesPad.open(S.result.module2); S.padOpen = true; go(3); hzFill();
+});
+
+/* ---------- step 2 ---------- */
+function show(res){
+  S.result = res;
+  $("projName").textContent = res.job;
+  const m2 = res.module2;
+  $("levels2").value = m2.n;
+  $("height2").value = +(m2.levels[0].h).toFixed(3);
+  renderPlan(); render3D(); renderFound(); renderChecks();
+  $("dlM2").href = "/api/file?job=" + encodeURIComponent(res.job) + "&name=" + encodeURIComponent(res.job + "-module2.json");
+  const label = n => ({"summary.txt":"Summary","plan.json":"Plan JSON","edges.csv":"Edges CSV","plan.dxf":"DXF","plan.svg":"SVG","overlay.png":"Overlay","reading.json":"Raw reading"})[n.slice(res.job.length + 1)];
+  $("files").innerHTML = res.files.filter(n => label(n)).map(n => `<a href="/api/file?job=${encodeURIComponent(res.job)}&name=${encodeURIComponent(n)}">${label(n)}</a>`).join("");
+  go(2);
+}
+
+function setView(v){ S.view = v; $("vPlan").setAttribute("aria-pressed", v === "plan"); $("vPhoto").setAttribute("aria-pressed", v === "photo"); renderPlan(); }
+$("vPlan").addEventListener("click", () => setView("plan"));
+$("vPhoto").addEventListener("click", () => setView("photo"));
+
+function renderPlan(){
+  const res = S.result, m2 = res.module2, V = m2.plan.verts, B = m2.bones;
+  const area = B.area_sf, pf = res.plan.floor || {};
+  $("stats").innerHTML = [["Floor area", fmt(area, 0) + " sf"], ["Perimeter", fmt((pf.perimeter||0) * ftPer(res), 0) + " ft"], ["Corners", V.length]]
+    .map(s => `<div class="b-stat"><div>${s[0]}</div><div>${s[1]}</div></div>`).join("");
+  if(S.view === "photo"){ $("planBox").innerHTML = `<img src="data:image/png;base64,${res.overlay_png}" alt="Your photo with the outline and dimensions that were read drawn on top">`; return; }
+  if(V.length < 3){ $("planBox").innerHTML = `<p class="small">No outline was found on this sketch.</p>`; return; }
+  const W = Math.max(...V.map(p => p[0])), H = Math.max(...V.map(p => p[1]));
+  const VW = 640, VH = Math.max(320, Math.min(560, 640 * H / Math.max(W, 1) + 140)), m = 64;
+  const k = Math.min((VW - 2*m) / Math.max(W, 1e-9), (VH - 2*m) / Math.max(H, 1e-9));
+  const ox = (VW - W*k) / 2, oy = (VH + H*k) / 2;
+  const X = x => ox + x*k, Y = y => oy - y*k;
+  let s = `<svg viewBox="0 0 ${VW} ${VH}" role="img" aria-label="Floor plan, ${fmt(W,1)} by ${fmt(H,1)} feet, with edge lengths">`;
+  (B.grids.x||[]).forEach(g => { s += `<line x1="${X(g.pos)}" y1="${Y(H)-24}" x2="${X(g.pos)}" y2="${Y(0)+24}" stroke="#C9C9C5" stroke-dasharray="10 4 2 4"/><circle cx="${X(g.pos)}" cy="${Y(H)-36}" r="11" fill="#fff" stroke="#0E0E10"/><text x="${X(g.pos)}" y="${Y(H)-32}" font-size="12" font-weight="600" text-anchor="middle">${esc(g.label)}</text>`; });
+  (B.grids.y||[]).forEach(g => { s += `<line x1="${X(0)-24}" y1="${Y(g.pos)}" x2="${X(W)+24}" y2="${Y(g.pos)}" stroke="#C9C9C5" stroke-dasharray="10 4 2 4"/><circle cx="${X(0)-36}" cy="${Y(g.pos)}" r="11" fill="#fff" stroke="#0E0E10"/><text x="${X(0)-36}" y="${Y(g.pos)+4}" font-size="12" font-weight="600" text-anchor="middle">${esc(g.label)}</text>`; });
+  s += `<polygon points="${V.map(p => X(p[0]) + "," + Y(p[1])).join(" ")}" fill="#7A1F2E" fill-opacity=".05" stroke="#0E0E10" stroke-width="3" stroke-linejoin="miter"/>`;
+  (B.cores||[]).forEach(c => { s += `<polygon points="${c.map(p => X(p[0]) + "," + Y(p[1])).join(" ")}" fill="#0E0E10" fill-opacity=".12" stroke="#0E0E10" stroke-width="1.5"/>`; });
+  (B.columns||[]).forEach(c => { s += `<rect x="${X(c[0])-4}" y="${Y(c[1])-4}" width="8" height="8" fill="#0E0E10"/>`; });
+  V.forEach((a, i) => {
+    const b = V[(i+1) % V.length], dx = b[0]-a[0], dy = b[1]-a[1], L = Math.hypot(dx, dy);
+    if(L < 1e-6) return;
+    const nx = dy / L, ny = -dx / L, mx = (X(a[0]) + X(b[0])) / 2 + nx*20, my = (Y(a[1]) + Y(b[1])) / 2 - ny*20;
+    s += `<text x="${mx}" y="${my + 4}" font-size="13" font-weight="600" text-anchor="middle" fill="#7A1F2E">${fmt(L, 2)}′</text>`;
+    s += `<rect x="${X(a[0])-3.5}" y="${Y(a[1])-3.5}" width="7" height="7" fill="#0E0E10"/>`;
+  });
+  s += `<text x="${X(0)}" y="${Y(0)+46}" font-size="11.5" fill="#5F5F66">(0, 0)</text></svg>`;
+  $("planBox").innerHTML = s;
+}
+function ftPer(res){ const u = (res.plan.units||{}).length; return u === "m" ? 1/0.3048 : u === "mm" ? 1/304.8 : 1; }
+
+function render3D(){
+  const m2 = S.result.module2, V = m2.plan.verts, B = m2.bones;
+  if(V.length < 3){ $("box3d").innerHTML = ""; return; }
+  const W = Math.max(...V.map(p => p[0])), D = Math.max(...V.map(p => p[1]));
+  const hs = [0].concat(m2.levels.map(l => l.h)), top = hs[hs.length-1];
+  const c = Math.cos(S.yaw*Math.PI/180), sn = Math.sin(S.yaw*Math.PI/180);
+  const P = (x, y, z) => { const u = x - W/2, v = y - D/2; return [u*c - v*sn, -(u*sn + v*c)*0.5 - z*0.8]; };
+  const all = [];
+  hs.forEach(z => V.forEach(p => all.push(P(p[0], p[1], z))));
+  const minx = Math.min(...all.map(p => p[0])), maxx = Math.max(...all.map(p => p[0])), miny = Math.min(...all.map(p => p[1])), maxy = Math.max(...all.map(p => p[1]));
+  const VW = 600, VH = 420, m = 24, k = Math.min((VW-2*m)/(maxx-minx || 1), (VH-2*m)/(maxy-miny || 1));
+  const ox = (VW - (maxx-minx)*k)/2 - minx*k, oy = (VH - (maxy-miny)*k)/2 - miny*k;
+  const T = (x, y, z) => { const q = P(x, y, z); return (ox + q[0]*k).toFixed(1) + " " + (oy + q[1]*k).toFixed(1); };
+  const poly = (pts, z) => "M" + pts.map(p => T(p[0], p[1], z)).join("L") + "Z";
+  const cols = (B.columns && B.columns.length) ? B.columns : V;
+  let floors = "", colD = "", cores = "";
+  hs.slice(1, -1).forEach(z => floors += poly(V, z));
+  cols.forEach(p => colD += "M" + T(p[0], p[1], 0) + "L" + T(p[0], p[1], top));
+  (B.cores||[]).forEach(cr => { cores += poly(cr, top); cr.forEach(p => cores += "M" + T(p[0], p[1], 0) + "L" + T(p[0], p[1], top)); });
+  $("box3d").innerHTML = `<svg viewBox="0 0 ${VW} ${VH}" role="img" aria-label="3D frame of the building, ${m2.n} stories" style="display:block;width:100%;height:auto">
+    <path d="${poly(V, 0)}" fill="#fff" fill-opacity=".06" stroke="#5A5A61"/>
+    <path d="${floors}" fill="#fff" fill-opacity=".025" stroke="#fff" stroke-opacity=".5"/>
+    <path d="${colD}" stroke="#fff" stroke-opacity=".35"/>
+    <path d="${cores}" stroke="#D0566A" stroke-width="1.6" fill="#D0566A" fill-opacity=".12"/>
+    <path d="${poly(V, top)}" fill="none" stroke="#fff" stroke-width="1.6"/></svg>`;
+  $("cap3d").textContent = m2.n + (m2.n === 1 ? " story" : " stories") + " at " + fmt(m2.levels[0].h, 2) + " ft, " + fmt(top, 1) + " ft tall. Columns are shown " + ((B.columns && B.columns.length) ? "where the sketch marks them." : "at the corners only; none were drawn.");
+}
+$("rotL").addEventListener("click", () => { S.yaw -= 30; render3D(); });
+$("rotR").addEventListener("click", () => { S.yaw += 30; render3D(); });
+
+function renderFound(){
+  const res = S.result, P = res.plan, m2 = res.module2, B = m2.bones, V = m2.plan.verts;
+  const dims = P.dimensions || [], bad = dims.filter(d => d.agrees === false);
+  const W = V.length ? Math.max(...V.map(p => p[0])) : 0, H = V.length ? Math.max(...V.map(p => p[1])) : 0;
+  const lvSrc = (P.levels||{}).source || "";
+  const nG = (B.grids.x||[]).length + (B.grids.y||[]).length;
+  const u = (P.units||{}).length || "ft";
+  let h = `<h2>What Bones found</h2>`;
+  h += `<div class="item"><div class="t">Outline <span class="${V.length >= 4 ? "b-good" : "b-bad"}">${V.length} corners</span></div><div class="small">${fmt(W,2)} ft × ${fmt(H,2)} ft overall${(P.floor && (P.floor.re_entrant_corners||[]).length) ? ", " + P.floor.re_entrant_corners.length + " re-entrant corner" + (P.floor.re_entrant_corners.length > 1 ? "s" : "") : ""}.</div></div>`;
+  h += `<div class="item"><div class="t">Dimensions <span class="${!dims.length || bad.length ? "warn" : "b-good"}">${dims.length ? (bad.length ? bad.length + " disagree" : "all agree") : "none read"}</span></div><ul class="dims">` +
+    dims.map(d => `<li class="${d.agrees === false ? "no" : ""}"><b>${esc(d.id)}</b><span>${esc(d.written || fmt(d.value))}${d.agrees === false ? ` <span class="warn">solved ${fmt(d.solved, 2)}</span>` : ""}</span><span class="${d.agrees === false ? "warn" : d.agrees ? "b-good" : "small"}">${d.agrees === false ? "Check" : d.agrees ? "✓" : "not used"}</span></li>`).join("") + `</ul>` +
+    (u !== "ft" ? `<p class="small" style="margin:6px 0 0">Written in ${esc(u)}; the plan is converted to feet.</p>` : "") + `</div>`;
+  h += `<div class="item"><div class="t">Stories <span class="${lvSrc === "sketch" || lvSrc === "entered" ? "b-good" : "warn"}">${lvSrc === "sketch" ? "from the sketch" : lvSrc === "entered" ? "entered" : "not on the sketch"}</span></div><div class="small">${m2.n} at ${fmt(m2.levels[0].h, 2)} ft. ${lvSrc.startsWith("default") ? "Set the real values in Stories below." : ""}</div></div>`;
+  h += `<div class="item"><div class="t">Grid, columns and cores <span class="small">${nG + (B.columns||[]).length + (B.cores||[]).length ? "found" : "none drawn"}</span></div><div class="small">${nG} grid line${nG === 1 ? "" : "s"}, ${(B.columns||[]).length} column${(B.columns||[]).length === 1 ? "" : "s"}, ${(B.cores||[]).length} core${(B.cores||[]).length === 1 ? "" : "s"}.</div></div>`;
+  h += `<div class="item"><div class="t">Braced frames <span class="small">added later</span></div><div class="small">The reader does not look for frames. Draw them in the drawing pad.</div></div>`;
+  const notes = (P.warnings||[]).concat(res.changes||[]);
+  if(notes.length) h += `<div class="item"><div class="t">Notes</div><ul class="plain">${notes.map(n => `<li>${esc(n)}</li>`).join("")}</ul></div>`;
+  $("found").innerHTML = h;
+}
+function renderChecks(){
+  const col = {ok:"#2E6B45", warning:"#8A5A00", info:"#5F5F66", error:"#7A1F2E"}, mark = {ok:"✓", warning:"!", info:"i", error:"✕"};
+  $("checks").innerHTML = S.result.checks.map(c => `<li><b style="background:${col[c.level]}" aria-label="${c.level}">${mark[c.level]}</b><span>${esc(c.text)}</span></li>`).join("");
+  const dl = $("dlM2");
+  if(S.result.ready){ dl.removeAttribute("aria-disabled"); dl.style.pointerEvents = ""; dl.style.opacity = ""; dl.textContent = "Download Module 2 file"; }
+  else { dl.setAttribute("aria-disabled", "true"); dl.style.pointerEvents = "none"; dl.style.opacity = ".5"; dl.textContent = "Fix the checks marked ✕ first"; }
+  $("toPad").disabled = !S.result.ready;
+}
+$("rebuild").addEventListener("click", async () => {
+  showErr(2, ""); const b = $("rebuild"); b.disabled = true; b.textContent = "Updating…";
+  try{ const y = S.yaw, v = S.view; show(await post("/api/rebuild", {job:S.result.job, levels:$("levels2").value, storey_height_ft:$("height2").value})); S.yaw = y; setView(v); render3D(); }
+  catch(e){ showErr(2, e.message); }
+  finally{ b.disabled = false; b.textContent = "Update the plan"; }
+});
+
+health();
+})();
+</script>
+</body>
+</html>
