@@ -1,0 +1,45 @@
+{
+  "_meta": {
+    "description": "Maps optimizer systems to bay study DB systems and holds the design values the DB stores only as text. Spec sections 2.3 and 4.5; docs/ASSUMPTIONS.md.",
+    "systems_covered": "Steel only. Concrete and mass timber are added when those systems are built."
+  },
+  "systems": {
+    "steel": {
+      "floor": {"db_systems": ["STL_COMP"]},
+      "roof": {"db_systems": ["STL_ROOF_W", "STL_ROOF_J"]}
+    }
+  },
+  "columns": {
+    "steel": {
+      "shapes_csv": "data/aisc_shapes.csv",
+      "shapes_source": "AISC Shapes Database v16.0",
+      "families": ["W12", "W14"],
+      "fy_ksi": 50.0,
+      "e_ksi": 29000.0,
+      "k": 1.0,
+      "target_ratio": 0.90,
+      "splice_every_n_levels": 2,
+      "cladding_plf": 0.0,
+      "cladding_note": "Perimeter cladding line load per framed level (plf of perimeter). 0 for the hackathon; a warning says so.",
+      "carbon_material": "hot_rolled_sections",
+      "max_self_weight_iterations": 5
+    }
+  },
+  "db_systems": {
+    "STL_COMP": {
+      "design_sdl_psf": 15.0,
+      "slab_deck_psf": 69.0,
+      "source": "DB assumptions table, STL_COMP: 'Design SDL 15.0 psf'; 'Slab + deck weight 69.0 psf (verify against Vulcraft 2VLI table for gauge used)'"
+    },
+    "STL_ROOF_W": {
+      "design_sdl_psf": 15.0,
+      "slab_deck_psf": null,
+      "source": "DB assumptions table, STL_ROOF_W: 'Roof dead load 15.0 psf superimposed'. Deck weight read per row from ref_roof_deck_spans."
+    },
+    "STL_ROOF_J": {
+      "design_sdl_psf": 15.0,
+      "slab_deck_psf": null,
+      "source": "DB assumptions table, STL_ROOF_J: 'Roof dead load 15.0 psf superimposed'. Deck weight read per row from ref_roof_deck_spans."
+    }
+  }
+}
