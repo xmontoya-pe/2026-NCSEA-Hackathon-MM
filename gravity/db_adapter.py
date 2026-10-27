@@ -417,6 +417,57 @@ def carbon_factor(material: str) -> tuple[float, str]:
     return float(found[0]), found[1]
 
 
+def review_dump(exclude_prefix: str = "STL") -> str:
+    """Plain-text dump of the DB tables and rows needed to map a new system (spec 6,
+    step 2 / prompt 8), for review by the team. Read-only."""
+    con = _connect()
+    queries = [
+        ("systems", "SELECT * FROM systems", ()),
+        ("db_info", "SELECT * FROM db_info", ()),
+        ("carbon_factors", "SELECT material, gwp_a1a3, unit FROM carbon_factors", ()),
+        ("assumptions", "SELECT * FROM assumptions WHERE system_id NOT LIKE ?",
+         (f"{exclude_prefix}%",)),
+        ("criteria per system",
+         "SELECT system_id, use, source_table, criterion_category, criterion, live_load_psf, "
+         "COUNT(*) AS n, SUM(solved) AS solved FROM bay_designs WHERE system_id NOT LIKE ? "
+         "GROUP BY 1, 2, 3, 4, 5, 6 ORDER BY 1, 2, 4, 5", (f"{exclude_prefix}%",)),
+        ("spans per system",
+         "SELECT system_id, use, GROUP_CONCAT(DISTINCT span_1_ft), GROUP_CONCAT(DISTINCT "
+         "span_2_ft), GROUP_CONCAT(DISTINCT spacing_ft) FROM bay_designs "
+         "WHERE system_id NOT LIKE ? GROUP BY 1, 2", (f"{exclude_prefix}%",)),
+    ]
+    systems = [r[0] for r in con.execute(
+        "SELECT DISTINCT system_id FROM bay_designs WHERE system_id NOT LIKE ? ORDER BY 1",
+        (f"{exclude_prefix}%",))]
+    for s in systems:
+        queries.append((f"sample solved rows {s}",
+                        "SELECT * FROM bay_designs WHERE system_id = ? AND solved = 1 "
+                        "ORDER BY ABS(span_1_ft - 30) + ABS(span_2_ft - 30), bay_id LIMIT 4",
+                        (s,)))
+    queries += [
+        ("flat plate: columns and load cases",
+         "SELECT system, load_case, sdl_psf, ll_psf, stud_rails, GROUP_CONCAT(DISTINCT "
+         "column_in), COUNT(*) FROM des_concrete_flat_plate GROUP BY 1, 2, 3, 4, 5", ()),
+        ("flat plate sample 30x30",
+         "SELECT * FROM des_concrete_flat_plate WHERE l1_ft = 30 AND l2_ft = 30", ()),
+        ("mass timber criteria",
+         "SELECT use, criterion, ll_psf, cd, solution, COUNT(*) FROM des_mass_timber "
+         "GROUP BY 1, 2, 3, 4, 5", ()),
+        ("ref_clt_spans", "SELECT * FROM ref_clt_spans", ()),
+    ]
+    lines = []
+    for title, sql, params in queries:
+        lines += ["=" * 80, title]
+        try:
+            cur = con.execute(sql, params)
+        except sqlite3.Error as exc:
+            lines.append(f"(query failed: {exc})")
+            continue
+        lines.append(str([d[0] for d in cur.description]))
+        lines += [str(tuple(row)) for row in cur.fetchall()]
+    return "\n".join(lines) + "\n"
+
+
 @lru_cache(maxsize=None)
 def _joist_weight_plf(joist: str) -> float | None:
     found = _connect().execute(

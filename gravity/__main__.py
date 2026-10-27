@@ -12,6 +12,9 @@ integration team.
 ``python -m gravity examples`` regenerates ``examples/sample_output.json`` (``run`` on
 ``examples/sample_input.json``) and the schema files.
 
+``python -m gravity dbdump [-o out/db_dump_p8.txt]`` writes the concrete and mass timber
+bay study tables to a text file for review (spec 6, prompt 8).
+
 ``python -m gravity report <input.json> [<input.json> ...]`` prints, per input, the best
 steel scheme and its alternates: grid, max depth, steel tons (beams/girders vs columns),
 cost, carbon and warnings (spec 6, prompt 7).
@@ -56,6 +59,12 @@ def main(argv: list[str] | None = None) -> int:
 
     sub.add_parser("examples", help="regenerate examples/sample_output.json and the schemas")
 
+    dbdump_parser = sub.add_parser(
+        "dbdump", help="write the non-steel bay study tables to a text file for review"
+    )
+    dbdump_parser.add_argument("-o", "--output", type=Path, default=Path("out/db_dump_p8.txt"),
+                               help="file to write (default: out/db_dump_p8.txt)")
+
     report_parser = sub.add_parser(
         "report", help="best steel scheme and alternates per input: tons, cost, carbon, warnings"
     )
@@ -87,6 +96,15 @@ def main(argv: list[str] | None = None) -> int:
             print(f"error: cannot use {args.input}: {exc}", file=sys.stderr)
             return 2
         print(column_report(inp, args.column, args.grid))
+        return 0
+
+    if args.command == "dbdump":
+        from gravity.db_adapter import review_dump
+
+        text = review_dump()
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        args.output.write_text(text, encoding="utf-8")
+        print(f"wrote {args.output.resolve()} ({len(text.splitlines())} lines)")
         return 0
 
     if args.command == "examples":
