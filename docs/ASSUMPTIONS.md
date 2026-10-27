@@ -44,6 +44,19 @@ verify by licensed engineer". Everything built on it is for scheme comparison on
 | Z-8 | Zone pieces smaller than 1 sq ft after clipping are slivers and are ignored. | Geometry tolerance |
 | Z-9 | A bay is LL-reducible only if every occupancy it overlaps is reducible. | Conservative |
 
+## Grids and bays (`gravity/grid.py`, `gravity/bays.py`)
+
+| # | Assumption | Decision |
+|---|---|---|
+| G-1 | The outline's vertex coordinates are always grid lines, so re-entrant corners (L-shapes) get columns. Grids are generated between those lines. | Spec 4.2 interpretation |
+| G-2 | Strategy A: each dimension span kept, split into 2 or 3 equal bays, or merged with its neighbor (lines skipped). Strategy B: equal bays near each bay study span size, or bays of that size plus one odd end bay of at least `min_bay_ft`. A segment shorter than `min_bay_ft` stays one bay. | Spec 4.2 |
+| G-3 | **A column removed for a `no_columns` zone is removed from that story and every story above it** (no transfer girders): the framing at every level above spans over the zone. | Default, pending confirmation |
+| G-4 | Cells around removed columns merge into the smallest bay (shortest longest span, then smallest area) whose four corners all have columns. Its spans are the full merged dimensions. | Spec 4.2 ("merged bay becomes a long-span bay") |
+| G-5 | Columns are placed only where grid lines cross inside or on the outline; cells whose center is outside the outline are not framed. Columns within 2 ft of the outline edge (but not on it) get a warning. | Spec 4.2 |
+| B-1 | Per bay, options within the allowable depth are preferred; among them the one with the lowest weighted score (`objective_weights` applied to cost, depth and carbon, min-max normalized across that bay's options) is used. If none fits the depth, the shallowest is used, with a warning. | Spec 4.3, 4.4, 4.6 |
+| B-2 | Until `scoring.py` exists, candidates rank by: infeasible bays, then bays over depth, then framing cost, then column count, then grid id. | Interim |
+| B-3 | Roof bays use no vibration criterion (Strength rows only). | DB has none for roofs |
+
 ## Weights, cost and carbon
 
 | # | Assumption | Decision |

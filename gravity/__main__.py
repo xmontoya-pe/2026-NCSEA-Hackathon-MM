@@ -8,6 +8,9 @@ the contract in ``gravity/models.py``. Warnings alone do not change the exit sta
 ``python -m gravity schema -o <dir>`` writes ``input.schema.json`` and
 ``output.schema.json`` (JSON Schema generated from ``gravity/models.py``) for the
 integration team.
+
+``python -m gravity summary <input.json>`` prints the ranked steel candidate grids and
+the bay framing of the best one (spec 6, prompt 5).
 """
 
 from __future__ import annotations
@@ -38,11 +41,29 @@ def main(argv: list[str] | None = None) -> int:
         "-o", "--output-dir", type=Path, default=Path("."), help="directory for the schema files"
     )
 
+    summary_parser = sub.add_parser(
+        "summary", help="print the ranked candidate grids and best-grid framing (steel)"
+    )
+    summary_parser.add_argument("input", type=Path, help="path to input.json")
+    summary_parser.add_argument("--top", type=int, default=15, help="candidates to list")
+
     args = parser.parse_args(argv)
 
     if args.command == "schema":
         for path in write_schemas(args.output_dir):
             print(f"wrote {path}")
+        return 0
+
+    if args.command == "summary":
+        from gravity.models import GravityInput
+        from gravity.report import summary_table
+
+        try:
+            inp = GravityInput.model_validate_json(args.input.read_text(encoding="utf-8"))
+        except (OSError, ValidationError) as exc:
+            print(f"error: cannot use {args.input}: {exc}", file=sys.stderr)
+            return 2
+        print(summary_table(inp, top=args.top))
         return 0
 
     try:
