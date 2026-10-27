@@ -58,7 +58,7 @@ Notes:
 - `dimension_lines` are what the recognizer read off the sketch. The grid generator should **prefer** these lines but is allowed to subdivide or skip them.
 - Zones may be drawn on one level and copied up (`typical_zones_apply_to_all_levels`). The copy goes to the framed floors only: not to the lowest level (treated as slab-on-grade) and not to the roof (always `roof` occupancy). An explicit zone on a level overrides the copy only where it overlaps it.
 - Any part of a floor plate not covered by a zone gets `default_occupancy` (config, default `office`) and a warning.
-- `no_columns: true` zones force a long-span solution over that area (or flag a transfer if spans exceed the DB). A `no_columns` zone on level Ln applies to the story from Ln up to the next level, so the framing at the next level spans over it. Only columns strictly inside the zone are removed; columns on its boundary stay.
+- `no_columns: true` zones force a long-span solution over that area (or flag a transfer if spans exceed the DB). A `no_columns` zone on level Ln applies to the story from Ln up to the next level, so the framing at the next level spans over it. Only columns strictly inside the zone are removed; columns on its boundary stay. Typical-zone copies carry the occupancy but not `no_columns`: draw the zone on every level that must be column-free.
 
 ### 2.2 `config/occupancies.json` (editable by engineers, not hardcoded)
 
@@ -148,6 +148,8 @@ What the DB actually holds (section 6 step 2; full list in `docs/ASSUMPTIONS.md`
 
 `governing_combo` is one of `1.4D`, `1.2D+1.6L+0.5Lr`, `1.2D+1.6L+0.5S`, `1.2D+1.6Lr+1.0L`, `1.2D+1.6S+1.0L` (section 4.5).
 
+The integration team builds against `examples/` (sample input, matching output, JSON Schema generated from `models.py` by `python -m gravity schema -o examples`, and a README of conventions). Tests keep it in sync with the models.
+
 ### 3.2 What the lateral team needs from us (agree on this early)
 
 - Grid lines and column locations per level
@@ -185,6 +187,7 @@ data/
   bay_studies.sqlite   # bay study database (read-only)
 docs/
   ASSUMPTIONS.md       # every engineering assumption and its source
+examples/              # what the integration team builds against (sample input/output, schemas)
 tests/
   fixtures/simple_rect.json
   fixtures/l_shape.json
@@ -195,7 +198,7 @@ tests/
 ### 4.1 `loads.py`
 - Map each bay polygon to the zones it overlaps (shapely intersection).
 - Governing load for a bay = **max** LL of any overlapping zone (conservative, simple). Keep the area fractions in the output for later refinement.
-- Live load reduction per ASCE 7-22 §4.7: `L = Lo * (0.25 + 15/sqrt(KLL*AT))`, KLL = 4 interior columns, 2 interior beams / edge columns (see table 4.7-1), limited to 0.5Lo for members supporting one floor and 0.4Lo for multiple floors. Not applied where LL > 100 psf or assembly occupancy. Roof uses §4.8. Bay framing lookups use unreduced LL (the steel bay study uses no LL reduction); reduction applies to column loads.
+- Live load reduction per ASCE 7-22 §4.7: `L = Lo * (0.25 + 15/sqrt(KLL*AT))`, limited to 0.5Lo for members supporting one floor and 0.4Lo for multiple floors. KLL (`config/occupancies.json`, Table 4.7-1, no cantilever slabs assumed): 4 for interior and corner columns, 2 for edge columns (conservative; ASCE allows 4) and for beams. Not applied where LL > 100 psf or assembly occupancy. Roof uses §4.8. Bay framing lookups use unreduced LL (the steel bay study uses no LL reduction); reduction applies to column loads.
 - Partition load added only where the occupancy table says so.
 
 ### 4.2 `grid.py`
@@ -314,3 +317,6 @@ Review each step's output before moving on — especially step 2 (DB units and l
 | Roof lookup load = max(Lr, flat roof snow) | **Settled** |
 | Concrete flat plates: DB `column_in` is the column size and is reported in the concrete output | **Settled** |
 | When a vibration row was designed for less LL than the lookup needs (office walking rows are `LL=50`, lookup goes to `LL=100`), use the heavier of it and the Strength row at the same spans and spacing, with a warning (`docs/ASSUMPTIONS.md` L-6) | **Settled** |
+| KLL for corner columns = 4 per ASCE 7-22 Table 4.7-1 (no cantilever slabs); edge columns stay at the spec value 2 (`docs/ASSUMPTIONS.md` Z-6) | **Settled** |
+| Typical-zone copies carry the occupancy only, not `no_columns` (`docs/ASSUMPTIONS.md` Z-1) | **Settled** |
+| Integration team builds against `examples/` (sample input/output, generated JSON Schema, README); tests keep it in sync with `models.py` | **Settled** |
