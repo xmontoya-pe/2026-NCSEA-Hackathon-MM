@@ -54,7 +54,7 @@ verify by licensed engineer". Everything built on it is for scheme comparison on
 | G-4 | Cells around removed columns merge into the smallest bay (shortest longest span, then smallest area) whose four corners all have columns. Its spans are the full merged dimensions. | Spec 4.2 ("merged bay becomes a long-span bay") |
 | G-5 | Columns are placed only where grid lines cross inside or on the outline; cells whose center is outside the outline are not framed. Columns within 2 ft of the outline edge (but not on it) get a warning. | Spec 4.2 |
 | B-1 | Per bay, options within the allowable depth are preferred; among them the one with the lowest weighted score (`objective_weights` applied to cost, depth and carbon, min-max normalized across that bay's options) is used. If none fits the depth, the shallowest is used, with a warning. | Spec 4.3, 4.4, 4.6 |
-| B-2 | Until `scoring.py` exists, candidates rank by: infeasible bays, then bays over depth, then framing cost, then column count, then grid id. | Interim |
+| B-2 | `python -m gravity summary` ranks candidates by framing alone: infeasible bays, then bays over depth, then framing cost, then column count, then grid id. The scheme ranking (`run`, `report`) is S-1 to S-3. | Framing-only view |
 | B-3 | Roof bays use no vibration criterion (Strength rows only). | DB has none for roofs |
 
 ## Weights, cost and carbon
@@ -86,6 +86,20 @@ verify by licensed engineer". Everything built on it is for scheme comparison on
 | COL-11 | Perimeter cladding load = `cladding_plf` (config/systems.json) × half the perimeter length to each neighboring perimeter column, per level. **Placeholder 0 plf** until the envelope is known; a warning says so. | Placeholder |
 | COL-12 | Column tons = Σ weight_plf × story height / 2000 (short tons); cost = tons × `columns_usd_per_ton` (config/costs.json, placeholder); carbon = tons × 0.90718 × DB `carbon_factors` `hot_rolled_sections` (kg CO2e/t). | C-1, C-3 |
 | COL-13 | Seismic weight per level (ASCE 7-22 12.7.2): framing + SDL + partitions over each bay, + 25% of floor LL in occupancies marked `seismic_storage` (config/occupancies.json), + 20% of flat roof snow when it exceeds 30 psf, + half the column weight of the story below and of the story above, + cladding. Center of mass = weight-weighted centroid of those items (bay centroids, column points). | Spec 3.2 |
+
+## Scoring and output (`gravity/scoring.py`, `gravity/optimizer.py`)
+
+| # | Assumption | Decision |
+|---|---|---|
+| S-1 | Score = Σ weight × min-max normalized metric / Σ weights, over every candidate of one system. Metrics: total cost (framing + columns), max structure depth, total carbon (framing + columns). A metric equal for all candidates contributes 0. Lower is better. | Spec 4.6 |
+| S-2 | `rank_score` = score + 1.0 per bay over the allowable depth + 100.0 per infeasible bay (`config/systems.json` `scoring`). Any penalty exceeds the largest score difference (1.0), so a clean candidate always ranks first and penalized candidates still appear. | Spec 4.3, 4.4 (penalize, not remove); values are a default, decisions log |
+| S-3 | Ties: fewest columns, then grid id. The best candidate is the scheme; the next 3 are its `alternates` (their own `alternates` are empty). | Spec 4.7 |
+| O-1 | Bays with no feasible framing are left out of a scheme's `bays` list (the contract requires `framing`); each still has a warning. | Contract; decisions log (open) |
+| O-2 | `clear_height_ft` = height of the story below the level − (max framing depth at the level + `plenum_allowance_in`) / 12, the ceiling height left under that framing. | Spec 4.4 |
+| O-3 | `foundation_reactions` are the service loads of the bottom column segment: D includes column self-weight, L is reduced (4.7 column reduction), Lr reduced (4.8). | Spec 3.1 |
+| O-4 | `steel_tons` = framing (DB `steel_psf` × bay area) + columns; excludes deck, studs and connections. `concrete_cy` = slab concrete on deck (DB `concrete_cy_per_sf`). `cost_per_sf` and `carbon_per_sf` divide by the framed area of all framed levels, roof included. | Units and scope |
+| O-5 | Systems not built yet (no `systems` and `columns` entry in `config/systems.json`) are skipped; every returned scheme carries a warning naming them. Every scheme also warns that costs are placeholders. | Spec 1 (warnings, not errors) |
+| O-6 | Member sizes use the bay study and AISC labels as given (`W12X53`, `W14X22 @ 10ft`). | Traceability |
 
 ## Concrete (when built)
 

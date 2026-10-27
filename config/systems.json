@@ -25,6 +25,11 @@
       "max_self_weight_iterations": 5
     }
   },
+  "scoring": {
+    "infeasible_bay_penalty": 100.0,
+    "over_depth_bay_penalty": 1.0,
+    "note": "Added to the 0..1 weighted score per bay (spec 4.3, 4.4: penalize, never remove). Both exceed any score difference, so a clean candidate always ranks first; an infeasible bay weighs as much as 100 bays over depth. docs/ASSUMPTIONS.md S-2."
+  },
   "db_systems": {
     "STL_COMP": {
       "design_sdl_psf": 15.0,

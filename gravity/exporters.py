@@ -47,6 +47,16 @@ def write_schemas(output_dir: Path) -> list[Path]:
     return paths
 
 
+def write_examples(examples_dir: Path) -> list[Path]:
+    """Regenerate ``sample_output.json`` (``run`` on ``sample_input.json``) and the schemas."""
+    from gravity import run  # imported here: gravity/__init__.py is a light entry point
+
+    sample_input = json.loads((examples_dir / "sample_input.json").read_text(encoding="utf-8"))
+    path = examples_dir / "sample_output.json"
+    path.write_text(json.dumps(run(sample_input), indent=2) + "\n", encoding="utf-8")
+    return [path, *write_schemas(examples_dir)]
+
+
 def collect_warnings(result: dict[str, Any]) -> list[tuple[str, str]]:
     """Return ``(system, warning)`` pairs from every scheme in ``result``."""
     return [(s["system"], w) for s in result["schemes"] for w in s["warnings"]]

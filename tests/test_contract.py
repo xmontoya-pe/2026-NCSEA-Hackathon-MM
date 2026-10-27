@@ -1,4 +1,4 @@
-"""Contract tests for the stub ``run()`` and CLI (spec section 6, prompt 1).
+"""Contract tests for ``run()``, the CLI and ``examples/`` (spec sections 2.1, 3.1).
 
 Run from the repo root:  python -m unittest discover -s tests -v
 """
@@ -25,26 +25,45 @@ FIXTURE_NAMES = ["simple_rect.json", "l_shape.json", "no_column_zone.json"]
 EXAMPLES = REPO_ROOT / "examples"
 SAMPLE_INPUT = EXAMPLES / "sample_input.json"
 SAMPLE_OUTPUT = EXAMPLES / "sample_output.json"
+STALE_SAMPLE = ("examples/sample_output.json is stale: regenerate it with "
+                "'python -m gravity examples' and commit it")
+
+_RESULTS: dict[str, dict] = {}
 
 
 def load_json(path: Path) -> dict:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+def run_fixture(name: str) -> dict:
+    """``gravity.run`` on a fixture, computed once per test session (a run takes seconds)."""
+    if name not in _RESULTS:
+        _RESULTS[name] = gravity.run(load_json(FIXTURES / name))
+    return copy.deepcopy(_RESULTS[name])
+
+
+def all_schemes(result: dict) -> list[dict]:
+    return [s for top in result["schemes"] for s in [top, *top["alternates"]]]
+
+
 class TestFixtures(unittest.TestCase):
     def test_each_fixture_validates_runs_and_output_matches_model(self):
         for name in FIXTURE_NAMES:
             with self.subTest(fixture=name):
-                input_dict = load_json(FIXTURES / name)
-                GravityInput.model_validate(input_dict)
+                GravityInput.model_validate(load_json(FIXTURES / name))
 
-                result = gravity.run(input_dict)
+                result = run_fixture(name)
 
                 output = GravityOutput.model_validate(result)
-                self.assertGreaterEqual(len(output.schemes), 1)
-                self.assertIn("steel", [s.system for s in output.schemes])
+                self.assertEqual([s.system for s in output.schemes], ["steel"])
                 # Must survive a JSON round trip unchanged (what the CLI writes).
                 self.assertEqual(json.loads(json.dumps(result)), result)
+
+    def test_unbuilt_systems_are_skipped_with_a_warning(self):
+        warnings = run_fixture("simple_rect.json")["schemes"][0]["warnings"]
+        for system in ("concrete", "mass_timber"):
+            self.assertIn(f"System {system!r} is not built yet; no scheme returned for it",
+                          warnings)
 
     def test_run_does_not_mutate_input(self):
         input_dict = load_json(FIXTURES / "simple_rect.json")
@@ -53,31 +72,34 @@ class TestFixtures(unittest.TestCase):
         self.assertEqual(input_dict, before)
 
     def test_sample_output_matches_run_on_simple_rect(self):
-        result = gravity.run(load_json(FIXTURES / "simple_rect.json"))
-        self.assertEqual(result, load_json(SAMPLE_OUTPUT))
+        self.assertEqual(run_fixture("simple_rect.json"), load_json(SAMPLE_OUTPUT), STALE_SAMPLE)
 
-    def test_stub_pu_is_governing_asce_combo(self):
-        # Keeps the canned numbers honest: Pu = max of the ASCE 7-22 2.3.1 combos,
-        # and governing_combo names the one that produced it.
-        result = gravity.run(load_json(FIXTURES / "simple_rect.json"))
-        for column in result["schemes"][0]["columns"]:
-            for seg in column["stack"]:
-                D, L = seg["Pd_kips"], seg["Pl_kips"]
-                Lr, S = seg["Plr_kips"], seg["Psnow_kips"]
-                combos = {
-                    "1.4D": 1.4 * D,
-                    "1.2D+1.6L+0.5Lr": 1.2 * D + 1.6 * L + 0.5 * Lr,
-                    "1.2D+1.6L+0.5S": 1.2 * D + 1.6 * L + 0.5 * S,
-                    "1.2D+1.6Lr+1.0L": 1.2 * D + 1.6 * Lr + 1.0 * L,
-                    "1.2D+1.6S+1.0L": 1.2 * D + 1.6 * S + 1.0 * L,
-                }
-                with self.subTest(column=column["id"], level=seg["level"]):
-                    self.assertAlmostEqual(seg["Pu_kips"], max(combos.values()), places=2)
-                    self.assertAlmostEqual(combos[seg["governing_combo"]], seg["Pu_kips"], places=2)
+    def test_pu_is_governing_asce_combo(self):
+        # Pu = max of the ASCE 7-22 2.3.1 combos, and governing_combo names the one that
+        # produced it, for the scheme and every alternate.
+        segments = [
+            (scheme["rank_score"], column["id"], seg)
+            for scheme in all_schemes(run_fixture("simple_rect.json"))
+            for column in scheme["columns"]
+            for seg in column["stack"]
+        ]
+        self.assertTrue(segments)
+        for rank_score, column_id, seg in segments:
+            D, L = seg["Pd_kips"], seg["Pl_kips"]
+            Lr, S = seg["Plr_kips"], seg["Psnow_kips"]
+            combos = {
+                "1.4D": 1.4 * D,
+                "1.2D+1.6L+0.5Lr": 1.2 * D + 1.6 * L + 0.5 * Lr,
+                "1.2D+1.6L+0.5S": 1.2 * D + 1.6 * L + 0.5 * S,
+                "1.2D+1.6Lr+1.0L": 1.2 * D + 1.6 * Lr + 1.0 * L,
+                "1.2D+1.6S+1.0L": 1.2 * D + 1.6 * S + 1.0 * L,
+            }
+            with self.subTest(scheme=rank_score, column=column_id, level=seg["level"]):
+                self.assertAlmostEqual(seg["Pu_kips"], max(combos.values()), places=2)
+                self.assertAlmostEqual(combos[seg["governing_combo"]], seg["Pu_kips"], places=2)
 
     def test_every_scheme_has_warnings_list(self):
-        result = gravity.run(load_json(FIXTURES / "simple_rect.json"))
-        for scheme in result["schemes"]:
+        for scheme in all_schemes(run_fixture("simple_rect.json")):
             self.assertIsInstance(scheme["warnings"], list)
 
 
@@ -88,7 +110,8 @@ class TestIntegrationExamples(unittest.TestCase):
         self.assertEqual(load_json(SAMPLE_INPUT), load_json(FIXTURES / "simple_rect.json"))
 
     def test_sample_output_is_run_on_sample_input(self):
-        self.assertEqual(gravity.run(load_json(SAMPLE_INPUT)), load_json(SAMPLE_OUTPUT))
+        # sample_input.json is simple_rect.json (test above), so the cached run applies.
+        self.assertEqual(run_fixture("simple_rect.json"), load_json(SAMPLE_OUTPUT), STALE_SAMPLE)
 
     def test_committed_schemas_match_models(self):
         for name, schema in schemas().items():
@@ -109,7 +132,7 @@ class TestWarningsLog(unittest.TestCase):
         self.assertEqual(len(captured.records), n)
 
     def test_log_written_even_with_no_warnings(self):
-        result = gravity.run(load_json(FIXTURES / "simple_rect.json"))
+        result = run_fixture("simple_rect.json")
         for scheme in result["schemes"]:
             scheme["warnings"] = []
         with tempfile.TemporaryDirectory() as tmp:
@@ -223,9 +246,9 @@ class TestCli(unittest.TestCase):
             proc = self.run_cli("run", str(FIXTURES / "simple_rect.json"), "-o", tmp)
             self.assertEqual(proc.returncode, 0, proc.stderr)
 
-            expected = gravity.run(load_json(FIXTURES / "simple_rect.json"))
+            expected = run_fixture("simple_rect.json")
             n = sum(len(s["warnings"]) for s in expected["schemes"])
-            self.assertGreater(n, 0)  # the stub always warns
+            self.assertGreater(n, 0)  # every run warns at least about placeholder costs
 
             lines = (Path(tmp) / "warnings.log").read_text(encoding="utf-8").splitlines()
             self.assertIn("project: Hackathon Test 1", lines[0])

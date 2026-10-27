@@ -10,10 +10,13 @@ the files here are generated from it or checked against it by tests.
 | `sample_output.json` | The output for that input (spec section 3.1). |
 | `input.schema.json`, `output.schema.json` | JSON Schema for both, generated from `gravity/models.py` with `python -m gravity schema -o examples`. |
 
-> **The output values are placeholders.** `sample_output.json` comes from a stub that
-> returns the same canned steel scheme for every input. **Field names, nesting and units
-> are the contract; the numbers are not.** Every scheme's `warnings` list says so.
-> Real results replace the numbers without changing the shape.
+`python -m gravity examples` regenerates `sample_output.json` and both schema files.
+
+> **Steel results are real; costs are placeholders.** `sample_output.json` is the actual
+> steel output for `sample_input.json`: grid, bay framing from the bay study, sized
+> columns, loads, seismic weights and totals. Unit costs in `config/costs.json` are
+> placeholders until an estimator checks them, and every scheme's `warnings` says so.
+> Concrete and mass timber are not built yet: they are skipped, with a warning.
 
 ## How to call it
 
@@ -55,13 +58,16 @@ back as strings in each scheme's `warnings` list, so there is always something t
   `S_kips`) at the base of each column.
 - **`rank_score`:** compares grids *within* one system (lower is better). Don't compare
   it across systems; use `totals` for that.
+- **`alternates`:** up to three runner-up schemes (next-best grids), same shape as a
+  scheme, best first. Their own `alternates` are empty.
+- **`bays[]`:** only bays with framing are listed. A bay the bay study cannot frame
+  (too long a span or too heavy a load) is left out and named in `warnings`.
+- **`levels[].clear_height_ft`:** story height below the level minus the deepest framing
+  at that level and the plenum allowance.
 
 ## What may still change
 
-- `alternates`: will hold up to three runner-up schemes with the same shape as a scheme.
-  The stub returns an empty list.
-- `schemes`: the stub returns steel only; concrete and mass timber come later, in the
-  same shape.
+- `schemes`: steel only for now; concrete and mass timber come later, in the same shape.
 - The coordinate convention above is pending confirmation.
 
 Any contract change is made in `gravity/models.py`, regenerates the schema files, and

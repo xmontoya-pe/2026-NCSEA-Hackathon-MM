@@ -148,7 +148,7 @@ What the DB actually holds (section 6 step 2; full list in `docs/ASSUMPTIONS.md`
 
 `governing_combo` is one of `1.4D`, `1.2D+1.6L+0.5Lr`, `1.2D+1.6L+0.5S`, `1.2D+1.6Lr+1.0L`, `1.2D+1.6S+1.0L` (section 4.5).
 
-The integration team builds against `examples/` (sample input, matching output, JSON Schema generated from `models.py` by `python -m gravity schema -o examples`, and a README of conventions). Tests keep it in sync with the models.
+The integration team builds against `examples/` (sample input, matching output, JSON Schema generated from `models.py`, and a README of conventions). `python -m gravity examples` regenerates the sample output and schemas; tests keep them in sync with the models and with `run()`.
 
 ### 3.2 What the lateral team needs from us (agree on this early)
 
@@ -176,7 +176,7 @@ gravity/
   scoring.py           # cost/depth/carbon normalization and weighted score
   optimizer.py         # search loop per system
   exporters.py         # output.json, plus optional lateral-team format
-  report.py            # plain-text summary tables (python -m gravity summary)
+  report.py            # plain-text tables (python -m gravity report / summary / column)
 config/
   occupancies.json
   sdl.json
@@ -323,3 +323,6 @@ Review each step's output before moving on — especially step 2 (DB units and l
 | Integration team builds against `examples/` (sample input/output, generated JSON Schema, README); tests keep it in sync with `models.py` | **Settled** |
 | A column removed for a `no_columns` zone is removed from that story and every story above it; no transfer girders (`docs/ASSUMPTIONS.md` G-3) | **Settled** |
 | Steel column method: half-bay tributary area, partitions carried as dead, W12/W14 from the AISC v16.0 CSV with slender shapes excluded, weak-axis E3 with K = 1 and L = story height, lightest shape at Pu/φPn ≤ 0.90 per 2-story tier, self-weight iterated, cladding 0 plf (placeholder); seismic weight per ASCE 12.7.2 with half the columns above and below (`docs/ASSUMPTIONS.md` COL-1 to COL-13) | **Settled** |
+| Scheme ranking: `rank_score` = weighted min-max score (0–1, cost and carbon include columns) + 1.0 per bay over depth + 100.0 per infeasible bay, so clean candidates always rank first (`config/systems.json` `scoring`; `docs/ASSUMPTIONS.md` S-1 to S-3) | Open — default as stated; confirm the penalty values |
+| Bays with no feasible framing are left out of a scheme's `bays` (the contract requires `framing`) and named in `warnings` (`docs/ASSUMPTIONS.md` O-1) | Open — default as stated; the alternative, a nullable `framing`, is a contract change |
+| Systems not built yet are skipped; each returned scheme warns about them (the output has no top-level `warnings`) (`docs/ASSUMPTIONS.md` O-5) | Open — default as stated until concrete and mass timber are built |

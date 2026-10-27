@@ -1,9 +1,14 @@
-"""Plain-text summary tables for reviewing candidate grids (spec 6, prompt 5).
+"""Plain-text tables for reviewing results.
 
-``python -m gravity summary <input.json>`` prints every steel candidate grid ranked by
-``bays.CandidateResult.rank_key`` (feasible, within depth, cheapest framing), then the
-bay-by-bay framing of the best one. Framing only: columns are not sized yet, and costs
-use the placeholder rates in ``config/costs.json``.
+- ``python -m gravity report <input.json>...`` (spec 6, prompt 7): per input, the best
+  scheme and its alternates as ranked by ``optimizer.optimize`` (framing + columns,
+  weighted score), with tons split into beams/girders vs columns, and the warnings.
+- ``python -m gravity summary <input.json>`` (prompt 5): every candidate grid by framing
+  alone (``bays.CandidateResult.rank_key``) and the bay-by-bay framing of the first one.
+- ``python -m gravity column <input.json> --column B-2`` (prompt 6): one column, every
+  number.
+
+Costs use the placeholder rates in ``config/costs.json``.
 """
 
 from __future__ import annotations
@@ -15,15 +20,60 @@ from gravity.columns import ColumnStack, column_config, design_columns, seismic_
 from gravity.grid import generate_grids, layout
 from gravity.loads import resolve_zones
 from gravity.models import GravityInput
+from gravity.optimizer import N_ALTERNATES, Evaluated, optimize
+
+
+def scheme_report(inp: GravityInput, system: str = "steel") -> str:
+    """Best scheme and alternates for one input (spec 6, prompt 7)."""
+    result = optimize(inp, system)
+    lines = [
+        f"{system.upper()} | {inp.project_name}: {len(result.ranked)} candidate grids; best and "
+        f"{N_ALTERNATES} alternates (placeholder costs)",
+        "",
+        f"{'':4} {'grid':<26} {'cols':>4} {'score':>7} {'infeas':>6} {'>depth':>6} "
+        f"{'depth in':>8} {'beam+gird t':>11} {'column t':>8} {'total t':>8} {'cost $':>11} "
+        f"{'$/sf':>6} {'kgCO2e':>9} {'kg/sf':>6}",
+    ]
+    for rank, e in enumerate(result.ranked[:1 + N_ALTERNATES]):
+        lines.append(_scheme_row("best" if rank == 0 else f"alt{rank}", e))
+    if not result.ranked:
+        lines.append("  no candidate grid")
+        return "\n".join(lines + [f"  {w}" for w in result.warnings])
+
+    best = result.ranked[0]
+    lines += [
+        "",
+        f"Best: x_ft={list(best.candidate.layout.grid.x_ft)}  "
+        f"y_ft={list(best.candidate.layout.grid.y_ft)}; framed area {best.area_sf:,.0f} sf; "
+        f"concrete on deck {best.concrete_cy:,.0f} cy",
+        "",
+        "Warnings (best scheme, grouped):",
+    ]
+    warnings = result.warnings + best.candidate.warnings + best.design.warnings
+    for message, count in _grouped(warnings):
+        lines.append(f"  {count:>3} x {message}")
+    return "\n".join(lines)
+
+
+def _scheme_row(label: str, e: Evaluated) -> str:
+    c, area = e.candidate, e.area_sf or 1.0
+    return (
+        f"{label:<4} {e.grid_id:<26} {c.layout.column_count:>4} {e.rank_score:>7.3f} "
+        f"{c.n_infeasible:>6} {c.n_over_depth:>6} {e.max_depth_in:>8.1f} "
+        f"{e.framing_tons:>11.1f} {e.column_tons:>8.1f} {e.framing_tons + e.column_tons:>8.1f} "
+        f"{e.cost_usd:>11,.0f} {e.cost_usd / area:>6.2f} {e.carbon_kgco2e:>9,.0f} "
+        f"{e.carbon_kgco2e / area:>6.2f}"
+    )
 
 
 def summary_table(inp: GravityInput, system: str = "steel", top: int = 15) -> str:
     results, warnings = evaluate_all(inp, system)
     lines = [
         f"{system.upper()} candidate grids for {inp.project_name!r}: {len(results)} candidates "
-        "(framing only; columns not sized; placeholder costs)",
-        "Ranked by: infeasible bays, then bays over depth, then total framing cost "
-        "(interim until scoring.py; column cost not included yet)",
+        "(framing only; placeholder costs)",
+        "Ranked by: infeasible bays, then bays over depth, then total framing cost. "
+        "Framing-only view; the final ranking (columns, weighted score) is "
+        "'python -m gravity report'",
         "",
         f"{'rank':>4}  {'grid':<28} {'cols':>4} {'bays':>4} {'infeas':>6} {'>depth':>6} "
         f"{'max in':>6} {'$/sf':>7} {'kgCO2e/sf':>9}",
@@ -78,17 +128,21 @@ def column_report(
     inp: GravityInput, column: str, grid_id: str | None = None, system: str = "steel"
 ) -> str:
     """Hand-check trace for one column (spec 6, prompt 6), plus column totals and seismic
-    weights for its grid. ``grid_id`` defaults to the best-ranked grid."""
-    zone_map = resolve_zones(inp)
+    weights for its grid. ``grid_id`` defaults to the best scheme's grid."""
     if grid_id is None:
-        candidate = evaluate_all(inp, system)[0][0]
+        result = optimize(inp, system)
+        if not result.ranked:
+            return "no candidate grid"
+        zone_map = result.zone_map
+        candidate, design = result.ranked[0].candidate, result.ranked[0].design
     else:
+        zone_map = resolve_zones(inp)
         grids, _ = generate_grids(inp, system=system)
         match = [g for g in grids if g.grid_id == grid_id]
         if not match:
             return f"grid {grid_id!r} not found; candidates: " + ", ".join(g.grid_id for g in grids)
         candidate = evaluate(inp, zone_map, layout(inp, zone_map, match[0]), system)
-    design = design_columns(inp, zone_map, candidate, system)
+        design = design_columns(inp, zone_map, candidate, system)
     ids = [c.column_id for c in design.columns]
     if column not in ids:
         return f"column {column!r} not in grid {candidate.grid_id}; columns: {', '.join(ids)}"

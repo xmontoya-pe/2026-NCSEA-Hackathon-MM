@@ -2,17 +2,15 @@
 
 Exposes ``run(input_dict) -> dict`` for the integration team (spec sections 1 and 4).
 
-STUB (spec section 6, prompt 1): ``run`` validates the input against
-``models.GravityInput`` and returns a hardcoded, schema-valid steel scheme
-(``stub_output.json``) so teammates can integrate now. No engineering is performed.
-The pipeline in spec 4.7 (grid -> bays -> columns -> score) replaces the stub later.
+``run`` validates the input against ``models.GravityInput``, runs the spec 4.7 pipeline
+(grid -> bays -> columns -> score; ``optimizer.optimize``) for every requested system
+that is built, and returns the best scheme per system with up to 3 alternates. Systems
+not built yet (concrete, mass timber) are skipped with a warning on every scheme.
 """
 
 from __future__ import annotations
 
-import json
 import logging
-from pathlib import Path
 from typing import Any
 
 from gravity.models import GravityInput, GravityOutput
@@ -23,7 +21,10 @@ logger = logging.getLogger(__name__)
 # Library convention: stay silent unless the caller configures logging.
 logger.addHandler(logging.NullHandler())
 
-_STUB_OUTPUT = Path(__file__).with_name("stub_output.json")
+PLACEHOLDER_COST_WARNING = (
+    "Costs use placeholder unit rates (config/costs.json); verify with an estimator "
+    "before relying on cost totals or rankings"
+)
 
 
 def run(input_dict: dict[str, Any]) -> dict[str, Any]:
@@ -34,12 +35,29 @@ def run(input_dict: dict[str, Any]) -> dict[str, Any]:
 
     Raises ``pydantic.ValidationError`` if the input does not match the contract.
     """
+    from gravity.optimizer import is_built, optimize, schemes_for
+
     gravity_input = GravityInput.model_validate(input_dict)
+    built = [s for s in gravity_input.systems if is_built(s)]
+    skipped = [
+        f"System {s!r} is not built yet; no scheme returned for it"
+        for s in gravity_input.systems if s not in built
+    ]
 
-    canned = json.loads(_STUB_OUTPUT.read_text(encoding="utf-8"))
-    result = GravityOutput.model_validate(canned).model_dump(mode="json")
+    schemes = []
+    for system in built:
+        result = optimize(gravity_input, system)
+        if not result.ranked:
+            for w in result.warnings + [f"no candidate grid for {system}; no scheme returned"]:
+                logger.warning("[%s] %s: %s", gravity_input.project_name, system, w)
+            continue
+        schemes.append(schemes_for(gravity_input, result, skipped + [PLACEHOLDER_COST_WARNING]))
+    if not schemes:
+        for w in skipped:
+            logger.warning("[%s] %s", gravity_input.project_name, w)
 
-    for scheme in result["schemes"]:
+    output = GravityOutput.model_validate({"schemes": schemes}).model_dump(mode="json")
+    for scheme in output["schemes"]:
         for warning in scheme["warnings"]:
             logger.warning("[%s] %s: %s", gravity_input.project_name, scheme["system"], warning)
-    return result
+    return output
