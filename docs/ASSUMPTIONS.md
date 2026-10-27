@@ -30,6 +30,20 @@ verify by licensed engineer". Everything built on it is for scheme comparison on
 | L-6 | **Vibration rows below the lookup LL use an envelope.** If a vibration criterion row was designed for a lower LL than the lookup needs (office: walking rows are LL=50, lookup is 65 → 100), the Strength row at the rounded-up LL and the vibration row with the same spans and spacing are compared, and the one with more steel (then the deeper one; ties go to Strength) is used. A warning says no single DB design is checked for both. | 2 |
 | L-7 | A vibration row satisfies strength at its own design LL. | DB `assumptions` STL_COMP: "vibration/rhythmic columns also satisfy 50 psf strength" |
 
+## Zones and loads (`gravity/loads.py`)
+
+| # | Assumption | Decision |
+|---|---|---|
+| Z-1 | Typical-zone copies carry the occupancy only, not `no_columns`: a no-column requirement applies only to the story it was drawn on. | Default, pending confirmation |
+| Z-2 | An explicit zone drawn on the roof level (e.g. `mechanical`) replaces the `roof` occupancy where it overlaps. | Extends decision 7 |
+| Z-3 | An occupancy key not in `config/occupancies.json` falls back to `default_occupancy`, with a warning. | Spec 1 (warnings, not errors) |
+| Z-4 | Roof Lr reduction (ASCE 7-22 4.8) assumes a flat roof (R2 = 1). Roofs with Lo above 20 psf are not ordinary roofs and are not reduced. | Simplification |
+| Z-5 | Governing occupancy of a bay = largest LL + partitions of any overlapping zone (ties: larger area fraction). The bay's vibration criterion is the most stringent of all overlapping zones' criteria (`vibration_precedence` in config), so a bay half office, half corridor keeps the office walking check. | Spec 4.1, decision D |
+| Z-6 | KLL for edge and corner columns is 2 (spec 4.1). ASCE 7-22 Table 4.7-1 allows 4 for exterior columns without cantilever slabs, so 2 is conservative. Set in `config/occupancies.json`. | Spec value, pending confirmation |
+| Z-7 | Floor and roof SDL are 15 psf (`config/sdl.json`), equal to the bay study design SDL. Placeholder until project values are set. | Placeholder |
+| Z-8 | Zone pieces smaller than 1 sq ft after clipping are slivers and are ignored. | Geometry tolerance |
+| Z-9 | A bay is LL-reducible only if every occupancy it overlaps is reducible. | Conservative |
+
 ## Weights, cost and carbon
 
 | # | Assumption | Decision |
