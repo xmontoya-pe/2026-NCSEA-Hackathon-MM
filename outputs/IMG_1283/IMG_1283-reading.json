@@ -1,0 +1,139 @@
+{
+  "units": "ft",
+  "outline": [
+    [
+      282,
+      337
+    ],
+    [
+      501,
+      310
+    ],
+    [
+      507,
+      482
+    ],
+    [
+      695,
+      462
+    ],
+    [
+      693,
+      758
+    ],
+    [
+      295,
+      763
+    ]
+  ],
+  "dimensions": [
+    {
+      "text": "300'",
+      "value": 300,
+      "p1": [
+        282,
+        337
+      ],
+      "p2": [
+        501,
+        315
+      ],
+      "orientation": "h"
+    },
+    {
+      "text": "200'",
+      "value": 200,
+      "p1": [
+        501,
+        315
+      ],
+      "p2": [
+        695,
+        330
+      ],
+      "orientation": "h"
+    },
+    {
+      "text": "500'",
+      "value": 500,
+      "p1": [
+        295,
+        763
+      ],
+      "p2": [
+        693,
+        758
+      ],
+      "orientation": "h"
+    },
+    {
+      "text": "200'",
+      "value": 200,
+      "p1": [
+        282,
+        337
+      ],
+      "p2": [
+        295,
+        763
+      ],
+      "orientation": "v"
+    },
+    {
+      "text": "100'",
+      "value": 100,
+      "p1": [
+        695,
+        330
+      ],
+      "p2": [
+        695,
+        462
+      ],
+      "orientation": "v"
+    },
+    {
+      "text": "100'",
+      "value": 100,
+      "p1": [
+        695,
+        462
+      ],
+      "p2": [
+        693,
+        758
+      ],
+      "orientation": "v"
+    }
+  ],
+  "grid_x": [],
+  "grid_y": [],
+  "columns": [],
+  "cores": [],
+  "levels": {
+    "count": null,
+    "storey_height": null
+  },
+  "notes": [
+    "300'",
+    "200'",
+    "100'",
+    "100'",
+    "200'",
+    "500'"
+  ],
+  "warnings": [
+    "The left vertical dimension is written with a leading digit that looks like '1' or an underlined '2'. I read it as 200', which matches the two 100' dimensions on the right.",
+    "The hand-drawn outline lines do not quite meet at the corners. The top edge slopes up toward the right, and the notch corners are approximated by line intersections.",
+    "The outline is an L-shape, with a 200' x 100' notch cut from the top-right corner.",
+    "The dimension endpoints p1 and p2 are estimated from the tick positions and the building edges."
+  ],
+  "_meta": {
+    "model": "claude-sonnet-5-5",
+    "image": "IMG_1283.jpeg",
+    "image_size": [
+      1542,
+      1026
+    ]
+  }
+}

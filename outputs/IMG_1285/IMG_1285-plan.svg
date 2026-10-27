@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 980 719.098" font-family="Helvetica, Arial, sans-serif">
+<rect width="980" height="719.098" fill="#ffffff"/>
+<polygon points="90,244.998 370,244.998 370,90 610,90 610,229.098 890,229.098 890,629.098 90,629.098" fill="#dbe9f6" stroke="#1b2530" stroke-width="2"/>
+<text x="230" y="226.998" text-anchor="middle" dominant-baseline="middle" font-size="13" fill="#b35f0c">E1 · 70 ft</text>
+<text x="352" y="167.499" text-anchor="middle" dominant-baseline="middle" font-size="13" fill="#b35f0c" transform="rotate(-90 352 167.499)">E2 · 38.749 ft</text>
+<text x="490" y="72" text-anchor="middle" dominant-baseline="middle" font-size="13" fill="#b35f0c">E3 · 60 ft</text>
+<text x="628" y="159.549" text-anchor="middle" dominant-baseline="middle" font-size="13" fill="#b35f0c" transform="rotate(-90 628 159.549)">E4 · 34.775 ft</text>
+<text x="750" y="211.098" text-anchor="middle" dominant-baseline="middle" font-size="13" fill="#b35f0c">E5 · 70 ft</text>
+<text x="908" y="429.098" text-anchor="middle" dominant-baseline="middle" font-size="13" fill="#b35f0c" transform="rotate(-90 908 429.098)">E6 · 100 ft</text>
+<text x="490" y="647.098" text-anchor="middle" dominant-baseline="middle" font-size="13" fill="#b35f0c">E7 · 200 ft</text>
+<text x="72" y="437.048" text-anchor="middle" dominant-baseline="middle" font-size="13" fill="#b35f0c" transform="rotate(-90 72 437.048)">E8 · 96.025 ft</text>
+<circle cx="90" cy="244.998" r="3.5" fill="#1b2530"/>
+<text x="96" y="238.998" font-size="11" fill="#4f5d69">C1 (0, 96.025)</text>
+<circle cx="370" cy="244.998" r="3.5" fill="#1b2530"/>
+<text x="376" y="238.998" font-size="11" fill="#4f5d69">C2 (70, 96.025)</text>
+<circle cx="370" cy="90" r="3.5" fill="#1b2530"/>
+<text x="376" y="84" font-size="11" fill="#4f5d69">C3 (70, 134.775)</text>
+<circle cx="610" cy="90" r="3.5" fill="#1b2530"/>
+<text x="616" y="84" font-size="11" fill="#4f5d69">C4 (130, 134.775)</text>
+<circle cx="610" cy="229.098" r="3.5" fill="#1b2530"/>
+<text x="616" y="223.098" font-size="11" fill="#4f5d69">C5 (130, 100)</text>
+<circle cx="890" cy="229.098" r="3.5" fill="#1b2530"/>
+<text x="896" y="223.098" font-size="11" fill="#4f5d69">C6 (200, 100)</text>
+<circle cx="890" cy="629.098" r="3.5" fill="#1b2530"/>
+<text x="896" y="623.098" font-size="11" fill="#4f5d69">C7 (200, 0)</text>
+<circle cx="90" cy="629.098" r="3.5" fill="#1b2530"/>
+<text x="96" y="623.098" font-size="11" fill="#4f5d69">C8 (0, 0)</text>
+<circle cx="493.316" cy="405.758" r="4" fill="none" stroke="#1d6cb0" stroke-width="1.5"/>
+<text x="501.316" y="409.758" font-size="11" fill="#1d6cb0">centroid (100.829, 55.835)</text>
+<text x="90" y="695.098" font-size="13" fill="#1b2530">Area 21,808.24 ft2 · Perimeter 669.549 ft · 200 x 134.775 ft</text>
+</svg>

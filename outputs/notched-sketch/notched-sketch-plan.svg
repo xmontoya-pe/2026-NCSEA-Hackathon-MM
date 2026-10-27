@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 980 500" font-family="Helvetica, Arial, sans-serif">
+<rect width="980" height="500" fill="#ffffff"/>
+<polygon points="90,90 570,90 570,250 890,250 890,410 90,410" fill="#dbe9f6" stroke="#1b2530" stroke-width="2"/>
+<text x="330" y="72" text-anchor="middle" dominant-baseline="middle" font-size="13" fill="#b35f0c">E1 · 300 ft</text>
+<text x="588" y="170" text-anchor="middle" dominant-baseline="middle" font-size="13" fill="#b35f0c" transform="rotate(-90 588 170)">E2 · 100 ft</text>
+<text x="730" y="232" text-anchor="middle" dominant-baseline="middle" font-size="13" fill="#b35f0c">E3 · 200 ft</text>
+<text x="908" y="330" text-anchor="middle" dominant-baseline="middle" font-size="13" fill="#b35f0c" transform="rotate(-90 908 330)">E4 · 100 ft</text>
+<text x="490" y="428" text-anchor="middle" dominant-baseline="middle" font-size="13" fill="#b35f0c">E5 · 500 ft</text>
+<text x="72" y="250" text-anchor="middle" dominant-baseline="middle" font-size="13" fill="#b35f0c" transform="rotate(-90 72 250)">E6 · 200 ft</text>
+<circle cx="90" cy="90" r="3.5" fill="#1b2530"/>
+<text x="96" y="84" font-size="11" fill="#4f5d69">C1 (0, 200)</text>
+<circle cx="570" cy="90" r="3.5" fill="#1b2530"/>
+<text x="576" y="84" font-size="11" fill="#4f5d69">C2 (300, 200)</text>
+<circle cx="570" cy="250" r="3.5" fill="#1b2530"/>
+<text x="576" y="244" font-size="11" fill="#4f5d69">C3 (300, 100)</text>
+<circle cx="890" cy="250" r="3.5" fill="#1b2530"/>
+<text x="896" y="244" font-size="11" fill="#4f5d69">C4 (500, 100)</text>
+<circle cx="890" cy="410" r="3.5" fill="#1b2530"/>
+<text x="896" y="404" font-size="11" fill="#4f5d69">C5 (500, 0)</text>
+<circle cx="90" cy="410" r="3.5" fill="#1b2530"/>
+<text x="96" y="404" font-size="11" fill="#4f5d69">C6 (0, 0)</text>
+<circle cx="430" cy="270" r="4" fill="none" stroke="#1d6cb0" stroke-width="1.5"/>
+<text x="438" y="274" font-size="11" fill="#1d6cb0">centroid (212.5, 87.5)</text>
+<text x="90" y="476" font-size="13" fill="#1b2530">Area 80,000 ft2 · Perimeter 1,400 ft · 500 x 200 ft</text>
+</svg>
