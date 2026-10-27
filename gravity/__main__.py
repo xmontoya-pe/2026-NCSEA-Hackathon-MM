@@ -15,9 +15,10 @@ integration team.
 ``python -m gravity dbdump [-o out/db_dump_p8.txt]`` writes the concrete and mass timber
 bay study tables to a text file for review (spec 6, prompt 8).
 
-``python -m gravity report <input.json> [<input.json> ...]`` prints, per input, the best
-steel scheme and its alternates: grid, max depth, steel tons (beams/girders vs columns),
-cost, carbon and warnings (spec 6, prompt 7).
+``python -m gravity report <input.json> [<input.json> ...]`` prints, per input and
+system, the best scheme and its alternates: grid, max depth, steel tons (framing vs
+columns), concrete, timber, cost, carbon and warnings (spec 6, prompt 7), then a
+comparison table across systems (prompt 8).
 
 ``python -m gravity summary <input.json>`` prints the steel candidate grids ranked by
 framing alone and the bay framing of the first one (spec 6, prompt 5).
@@ -66,7 +67,8 @@ def main(argv: list[str] | None = None) -> int:
                                help="file to write (default: out/db_dump_p8.txt)")
 
     report_parser = sub.add_parser(
-        "report", help="best steel scheme and alternates per input: tons, cost, carbon, warnings"
+        "report", help="best scheme and alternates per system and input, plus a comparison "
+                       "across systems: tons, concrete, timber, cost, carbon, warnings"
     )
     report_parser.add_argument("inputs", type=Path, nargs="+", help="input.json file(s)")
 
@@ -114,7 +116,8 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command == "report":
         from gravity.models import GravityInput
-        from gravity.report import scheme_report
+        from gravity.optimizer import is_built, optimize
+        from gravity.report import comparison_table, scheme_report
 
         status = 0
         for path in args.inputs:
@@ -125,7 +128,11 @@ def main(argv: list[str] | None = None) -> int:
                 status = 2
                 continue
             print(f"=== {path}")
-            print(scheme_report(inp))
+            results = {s: optimize(inp, s) for s in inp.systems if is_built(s)}
+            for system, result in results.items():
+                print(scheme_report(inp, system, result))
+                print()
+            print(comparison_table(inp, results))
             print()
         return status
 

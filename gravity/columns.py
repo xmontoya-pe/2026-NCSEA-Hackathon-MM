@@ -1,7 +1,14 @@
 """Tributary areas, gravity load accumulation, steel column sizing, and seismic weight.
 
-Spec sections 4.5 and 3.2 (decisions log, spec section 7; docs/ASSUMPTIONS.md COL-*).
-Steel only; concrete and mass timber come later.
+Spec sections 4.5 and 3.2 (decisions log, spec section 7; docs/ASSUMPTIONS.md COL-*,
+COLC-*, COLT-*). Loads are the same for every system; sizing depends on the family:
+
+- steel: W12/W14, AISC E3, 2-story tiers (below).
+- concrete: square tied column, phiPn,max = 0.80*0.65*[0.85 f'c (Ag - Ast) + fy Ast],
+  1% steel, 16 in. minimum in 2 in. steps, one size up the full height; flat plates use
+  at least the DB slab design's column size (punching). Slenderness ignored, flagged.
+- mass timber: square glulam, NDS LRFD with column stability factor Cp, standard
+  widths, one size up the full height. Preliminary, flagged.
 
 Loads (per column, per framed level):
 - Each bay's area is split equally to its four corner columns (the half-bay method on
@@ -25,6 +32,7 @@ import csv
 import io
 import json
 import math
+import re
 from dataclasses import dataclass, field
 from functools import lru_cache
 from pathlib import Path
@@ -41,6 +49,8 @@ from gravity.models import GravityInput
 REPO_ROOT = Path(__file__).resolve().parent.parent
 CONFIG_DIR = REPO_ROOT / "config"
 SHORT_TON_TO_TONNE = 0.90718474
+CY_TO_M3 = 0.764554858
+CF_TO_M3 = 0.0283168466
 TOL = 1e-6
 
 # ASCE 7-22 2.3.1 gravity combinations: factors on (D, L, Lr, S).
@@ -63,6 +73,20 @@ class Shape:
     h_tw: float
     rx_in: float
     ry_in: float
+
+
+@dataclass(frozen=True)
+class Section:
+    """A square concrete or glulam column section (steel uses ``Shape``)."""
+
+    name: str  # e.g. "18x18 conc", "10.75x10.75 GL"
+    weight_plf: float
+    width_in: float
+    material: str  # "concrete" or "mass_timber"
+
+    @property
+    def area_in2(self) -> float:
+        return self.width_in ** 2
 
 
 @dataclass(frozen=True)
@@ -115,9 +139,10 @@ class StoryDesign:
     combos: dict[str, float]
     pu_kips: float
     governing_combo: str
-    shape: Shape | None = None
-    capacity: Capacity | None = None
+    shape: Shape | Section | None = None
+    capacity: Capacity | None = None  # steel only; concrete/timber notes go in capacity_note
     ratio: float | None = None
+    capacity_note: str = ""
 
 
 @dataclass
@@ -141,20 +166,57 @@ class ColumnStack:
 @dataclass
 class ColumnDesign:
     columns: list[ColumnStack]
-    cost_per_ton_usd: float
+    cost_per_ton_usd: float  # steel columns; concrete and timber use ``rates``
     carbon_kg_per_tonne: float
     warnings: list[str] = field(default_factory=list)
+    material: str = "steel"
+    rates: dict[str, float] = field(default_factory=dict)  # concrete / timber (COLC-5, COLT-4)
+
+    def _segments(self):
+        return [(s.shape, s.height_ft) for c in self.columns for s in c.stories if s.shape]
 
     @property
     def tons(self) -> float:
-        return sum(c.tons for c in self.columns)
+        """Steel tons: W shapes, or the bars in concrete columns."""
+        if self.material == "steel":
+            return sum(c.tons for c in self.columns)
+        if self.material == "concrete":
+            r = self.rates
+            return sum(r["rho_g"] * sec.area_in2 / 144.0 * h * r["rebar_pcf"]
+                       for sec, h in self._segments()) / 2000.0
+        return 0.0
+
+    @property
+    def concrete_cy(self) -> float:
+        if self.material != "concrete":
+            return 0.0
+        return sum(sec.area_in2 / 144.0 * h for sec, h in self._segments()) / 27.0
+
+    @property
+    def timber_cf(self) -> float:
+        if self.material != "mass_timber":
+            return 0.0
+        return sum(sec.area_in2 / 144.0 * h for sec, h in self._segments())
 
     @property
     def cost_usd(self) -> float:
+        r = self.rates
+        if self.material == "concrete":
+            forms_sfca = sum(4 * sec.width_in / 12.0 * h for sec, h in self._segments())
+            return (self.concrete_cy * r["concrete_usd_per_cy"] + forms_sfca * r["forms_usd_per_sfca"]
+                    + self.tons * r["rebar_usd_per_ton"])
+        if self.material == "mass_timber":
+            return self.timber_cf * 12.0 * r["glulam_usd_per_bf"]
         return self.tons * self.cost_per_ton_usd
 
     @property
     def carbon_kgco2e(self) -> float:
+        r = self.rates
+        if self.material == "concrete":
+            return (self.concrete_cy * CY_TO_M3 * r["concrete_kg_per_m3"]
+                    + self.tons * SHORT_TON_TO_TONNE * r["rebar_kg_per_tonne"])
+        if self.material == "mass_timber":
+            return self.timber_cf * CF_TO_M3 * r["glulam_kg_per_m3"]
         return self.tons * SHORT_TON_TO_TONNE * self.carbon_kg_per_tonne
 
     @property
@@ -349,7 +411,8 @@ def _select(usable, tier, target, fy, e, k) -> tuple[Shape, list[str]]:
 
 
 def column_config(system: str = "steel") -> dict[str, Any]:
-    return _systems_config()["columns"][system]
+    """Column settings for a structural system's family (steel, concrete, mass_timber)."""
+    return _systems_config()["columns"][db_adapter.family(system)]
 
 
 def story_heights(inp: GravityInput) -> dict[str, float]:
@@ -364,6 +427,8 @@ def story_heights(inp: GravityInput) -> dict[str, float]:
 def design_columns(
     inp: GravityInput, zone_map: ZoneMap, candidate: CandidateResult, system: str = "steel"
 ) -> ColumnDesign:
+    if db_adapter.family(system) != "steel":
+        return _design_columns_square(inp, zone_map, candidate, system)
     cfg = column_config(system)
     shapes = load_shapes(REPO_ROOT / cfg["shapes_csv"], tuple(cfg["families"]))
     lay = candidate.layout
@@ -406,6 +471,200 @@ def design_columns(
     for c in columns:
         warnings.extend(c.warnings)
     return ColumnDesign(columns, rate, factor, list(dict.fromkeys(warnings)))
+
+
+# ---------------------------------------------------------------------------
+# Concrete and glulam columns (square, one size up the full height)
+# ---------------------------------------------------------------------------
+
+_DB_COLUMN_RE = re.compile(r'(\d+(?:\.\d+)?)"\s*sq col')
+
+
+def concrete_sections(cfg: dict[str, Any]) -> list[Section]:
+    w, out = float(cfg["min_size_in"]), []
+    while w <= cfg["max_size_in"] + TOL:
+        out.append(Section(f"{w:g}x{w:g} conc", w * w / 144.0 * cfg["unit_weight_pcf"], w,
+                           "concrete"))
+        w += cfg["size_increment_in"]
+    return out
+
+
+def timber_sections(cfg: dict[str, Any]) -> list[Section]:
+    return [Section(f"{w:g}x{w:g} GL", w * w / 144.0 * cfg["unit_weight_pcf"], w, "mass_timber")
+            for w in sorted(cfg["widths_in"])]
+
+
+def concrete_phi_pn(section: Section, cfg: dict[str, Any]) -> float:
+    """phiPn,max (kips) = alpha * phi * [0.85 f'c (Ag - Ast) + fy Ast], ACI 318-19 22.4.2."""
+    ag = section.area_in2
+    ast = cfg["rho_g"] * ag
+    return cfg["alpha_max"] * cfg["phi"] * (0.85 * cfg["fc_ksi"] * (ag - ast) + cfg["fy_ksi"] * ast)
+
+
+def glulam_capacity(section: Section, length_ft: float, lam: float, cfg: dict[str, Any]
+                    ) -> tuple[float, str]:
+    """NDS LRFD axial capacity (kips) of a square glulam column, with the arithmetic."""
+    d = section.width_in
+    le_d = length_ft * 12.0 / d
+    if le_d > 50:
+        return 0.0, f"le/d = {le_d:.1f} > 50 (NDS 3.7.1.4): not permitted"
+    fc_star = cfg["fc_psi"] * cfg["kf_c"] * cfg["phi_c"] * lam
+    emin = cfg["emin_psi"] * cfg["kf_e"] * cfg["phi_s"]
+    fce = 0.822 * emin / le_d ** 2
+    a, c = fce / fc_star, cfg["c"]
+    cp = (1 + a) / (2 * c) - math.sqrt(((1 + a) / (2 * c)) ** 2 - a / c)
+    p = fc_star * cp * section.area_in2 / 1000.0
+    note = (f"le/d = {le_d:.2f}; Fc* = {cfg['fc_psi']:g}*{cfg['kf_c']:g}*{cfg['phi_c']:g}*"
+            f"{lam:g} = {fc_star:.0f} psi; Emin' = {emin:.0f} psi; FcE = {fce:.0f} psi; "
+            f"Cp = {cp:.3f}; P' = {p:.1f} k")
+    return p, note
+
+
+def _ratio_concrete(section, d: StoryDesign, cfg) -> tuple[float, str]:
+    phi_pn = concrete_phi_pn(section, cfg)
+    return d.pu_kips / phi_pn, (f"{section.name}: phiPn,max = {cfg['alpha_max']:g}*{cfg['phi']:g}*"
+                                f"[0.85*{cfg['fc_ksi']:g}*(Ag - Ast) + {cfg['fy_ksi']:g}*Ast], "
+                                f"Ag = {section.area_in2:g} in2, rho = {cfg['rho_g']:g} -> "
+                                f"{phi_pn:.1f} k (slenderness ignored)")
+
+
+def _ratio_timber(section, d: StoryDesign, cfg) -> tuple[float, str]:
+    """Worst of 1.4D (lambda 0.6) and the other combos (lambda 0.8), NDS N.3.3."""
+    lam = cfg["lambda"]
+    p_d, note_d = glulam_capacity(section, d.height_ft, lam["1.4D"], cfg)
+    p_o, note_o = glulam_capacity(section, d.height_ft, lam["other"], cfg)
+    other = max(v for k, v in d.combos.items() if k != "1.4D")
+    ratios = [d.combos["1.4D"] / p_d if p_d else math.inf, other / p_o if p_o else math.inf]
+    return max(ratios), (f"{section.name}: 1.4D ({note_d}) ratio {ratios[0]:.3f}; other combos "
+                         f"({note_o}) ratio {ratios[1]:.3f}")
+
+
+def design_stack_uniform(stories, supports, level_loads, kll_value, sections, ratio_fn,
+                         target_ratio, min_width_in=0.0, max_iterations=5):
+    """Loads and one section for the whole stack (spec 4.5: constant size up the height),
+    the lightest at or above ``min_width_in`` with ratio <= target in every story."""
+    usable = [s for s in sections if s.width_in >= min_width_in - TOL] or sections[-1:]
+    seg_weight = {name: 0.0 for name, _ in stories}
+    notes: list[str] = []
+    for _ in range(max_iterations):
+        designs = [_story_loads(pos, stories, supports, level_loads, kll_value, seg_weight)
+                   for pos in range(len(stories))]
+        chosen, notes = None, []
+        for section in usable:
+            if max(ratio_fn(section, d)[0] for d in designs) <= target_ratio + 1e-12:
+                chosen = section
+                break
+        if chosen is None:
+            chosen = usable[-1]
+            worst = max(ratio_fn(chosen, d)[0] for d in designs)
+            notes.append(f"no {chosen.material.replace('_', ' ')} column within ratio "
+                         f"{target_ratio:g}; {chosen.name} used at ratio {worst:.2f}")
+        for d in designs:
+            d.shape = chosen
+            d.ratio, d.capacity_note = ratio_fn(chosen, d)
+        new_weight = {d.story: chosen.weight_plf * d.height_ft / 1000.0 for d in designs}
+        if all(abs(new_weight[s] - seg_weight[s]) < 1e-9 for s in seg_weight):
+            return designs, notes
+        seg_weight = new_weight
+    return designs, notes + [f"column self-weight did not converge in {max_iterations} iterations"]
+
+
+def _db_column_sizes(candidate) -> dict[tuple[int, int], float]:
+    """(i, j) -> largest DB column size (in.) of the flat plate bays around the column."""
+    sizes: dict[tuple[int, int], float] = {}
+    for bay in candidate.bays:
+        f = bay.framing
+        if f is None or not db_adapter._db_system_config(f.db_system).get("db_column_size"):
+            continue
+        match = _DB_COLUMN_RE.search(f.girder)
+        if not match:
+            continue
+        r = bay.rect
+        for p in ((r.i0, r.j0), (r.i1 + 1, r.j0), (r.i0, r.j1 + 1), (r.i1 + 1, r.j1 + 1)):
+            sizes[p] = max(sizes.get(p, 0.0), float(match.group(1)))
+    return sizes
+
+
+def _design_columns_square(inp, zone_map, candidate, system) -> ColumnDesign:
+    cfg = column_config(system)
+    fam = db_adapter.family(system)
+    lay = candidate.layout
+    xs, ys = lay.grid.x_ft, lay.grid.y_ft
+    outline = Polygon(inp.outline)
+    levels = list(zone_map.levels)
+    heights = story_heights(inp)
+    warnings: list[str] = []
+
+    contrib = _level_contributions(candidate, zone_map, system, warnings)
+    _add_cladding(contrib, lay, levels, xs, ys, outline, cfg["cladding_plf"], warnings)
+    if fam == "concrete":
+        sections = concrete_sections(cfg)
+        ratio_fn = lambda s, d: _ratio_concrete(s, d, cfg)  # noqa: E731
+        db_sizes = _db_column_sizes(candidate)
+        warnings.append("Concrete columns: slenderness ignored (spec 4.5); verify")
+    else:
+        sections = timber_sections(cfg)
+        ratio_fn = lambda s, d: _ratio_timber(s, d, cfg)  # noqa: E731
+        db_sizes = {}
+        warnings.append("Glulam columns are preliminary: placeholder Fc and E_min "
+                        "(config/systems.json); verify grade and connections")
+
+    columns = []
+    points = sorted(frozenset().union(*lay.columns_by_story.values()), key=lambda p: (p[1], p[0]))
+    for i, j in points:
+        present = [s for s in levels[:-1] if (i, j) in lay.columns_by_story[s]]
+        supports = {}
+        for story in present:
+            k_story = levels.index(story)
+            supports[story] = [
+                lv for m, lv in enumerate(levels) if m > k_story
+                and (i, j) in lay.columns_by_story.get(levels[m - 1], frozenset())
+            ]
+        kind = _kind(i, j, xs, ys, outline)
+        kll_value = kll(f"{kind}_column")
+        level_loads = contrib.get((i, j), {})
+        db_w = db_sizes.get((i, j), 0.0)
+        designs, notes = design_stack_uniform(
+            [(s, heights[s]) for s in present], supports, level_loads, kll_value, sections,
+            ratio_fn, cfg["target_ratio"], db_w, cfg["max_self_weight_iterations"],
+        )
+        if db_w:
+            axial = next((s for s in sections
+                          if max(ratio_fn(s, d)[0] for d in designs) <= cfg["target_ratio"] + 1e-12),
+                         None)
+            if axial is None or axial.width_in > db_w + TOL:
+                need = axial.name if axial else "more than the largest size"
+                notes.append(f"axial sizing needs {need}, larger than the {db_w:g} in. column the "
+                             "DB flat plate design assumes for punching; flagged")
+        cid = column_id(i, j)
+        columns.append(ColumnStack(cid, i, j, xs[i], ys[j], kind, kll_value, level_loads, designs,
+                                   [f"Column {cid}: {n}" for n in notes]))
+
+    costs = _costs()
+    if fam == "concrete":
+        c = costs["concrete"]
+        conc_f, conc_u = db_adapter.carbon_factor(cfg["carbon_concrete"])
+        bar_f, bar_u = db_adapter.carbon_factor(cfg["carbon_rebar"])
+        _check_unit(conc_u, "kg co2e/m3", warnings)
+        _check_unit(bar_u, "kg co2e/t", warnings)
+        rates = {"rho_g": cfg["rho_g"], "rebar_pcf": cfg["rebar_unit_weight_pcf"],
+                 "concrete_usd_per_cy": c["structural_concrete_usd_per_cy"]["value"],
+                 "forms_usd_per_sfca": c["column_formwork_usd_per_sfca"]["value"],
+                 "rebar_usd_per_ton": c["rebar_usd_per_ton"]["value"],
+                 "concrete_kg_per_m3": conc_f, "rebar_kg_per_tonne": bar_f}
+    else:
+        glulam_f, glulam_u = db_adapter.carbon_factor(cfg["carbon_material"])
+        _check_unit(glulam_u, "kg co2e/m3", warnings)
+        rates = {"glulam_usd_per_bf": costs["mass_timber"]["glulam_columns_usd_per_bf"]["value"],
+                 "glulam_kg_per_m3": glulam_f}
+    for c in columns:
+        warnings.extend(c.warnings)
+    return ColumnDesign(columns, 0.0, 0.0, list(dict.fromkeys(warnings)), fam, rates)
+
+
+def _check_unit(unit: str, expected: str, warnings: list[str]) -> None:
+    if unit.strip().lower() != expected:
+        warnings.append(f"carbon factor unit {unit!r} is not {expected}; column carbon may be wrong")
 
 
 def _level_contributions(candidate, zone_map, system, warnings):
@@ -485,7 +744,8 @@ def _kind(i, j, xs, ys, outline) -> str:
 def _fallback_self_weight(system, zone_map, level) -> float:
     use = "roof" if zone_map.levels[level].role == ROOF else "floor"
     db_systems = _systems_config()["systems"][system][use]["db_systems"]
-    weights = [_systems_config()["db_systems"][s]["slab_deck_psf"] for s in db_systems]
+    configs = [_systems_config()["db_systems"][s] for s in db_systems]
+    weights = [c.get("fallback_self_wt_psf", c.get("slab_deck_psf")) for c in configs]
     return max((w for w in weights if w is not None), default=0.0)
 
 

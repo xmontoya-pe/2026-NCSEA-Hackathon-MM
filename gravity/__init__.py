@@ -4,8 +4,8 @@ Exposes ``run(input_dict) -> dict`` for the integration team (spec sections 1 an
 
 ``run`` validates the input against ``models.GravityInput``, runs the spec 4.7 pipeline
 (grid -> bays -> columns -> score; ``optimizer.optimize``) for every requested system
-that is built, and returns the best scheme per system with up to 3 alternates. Systems
-not built yet (concrete, mass timber) are skipped with a warning on every scheme.
+(steel, concrete, mass timber), and returns the best scheme per system with up to 3
+alternates. A requested system with no configuration is skipped with a warning.
 """
 
 from __future__ import annotations

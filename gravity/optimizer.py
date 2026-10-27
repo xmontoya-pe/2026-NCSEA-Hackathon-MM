@@ -4,6 +4,12 @@ Spec section 4.7. For each requested system: generate grids (``grid``), evaluate
 (``bays``), size columns (``columns``), score (``scoring``), and return the best scheme
 plus the top 3 alternates. Deterministic: ties sort by fewest columns, then grid id.
 
+An output system (``steel``, ``concrete``, ``mass_timber``) is a *family* of one or more
+structural systems in config/systems.json. Each structural system is used uniformly over
+the whole building (no mixing concrete systems bay by bay; decisions log). Every
+candidate of every structural system in the family is scored together, and the best is
+the scheme; its alternates may be other structural systems of the same family.
+
 ``scheme`` turns one evaluated candidate into the spec 3.1 scheme dict
 (docs/ASSUMPTIONS.md O-*).
 """
@@ -15,7 +21,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from gravity import scoring
+from gravity import db_adapter, scoring
 from gravity.bays import CandidateResult, evaluate
 from gravity.columns import ColumnDesign, design_columns, seismic_weights, story_heights
 from gravity.grid import generate_grids, layout
@@ -35,10 +41,15 @@ class Evaluated:
     design: ColumnDesign
     score: float = 0.0  # weighted, 0..1 (scoring.weighted_scores)
     rank_score: float = 0.0  # score + penalties; lower is better
+    system: str = "steel"  # structural system, e.g. "concrete_pt_fp"
 
     @property
     def grid_id(self) -> str:
         return self.candidate.grid_id
+
+    @property
+    def label(self) -> str:
+        return db_adapter.label(self.system)
 
     @property
     def area_sf(self) -> float:
@@ -56,7 +67,14 @@ class Evaluated:
     @property
     def concrete_cy(self) -> float:
         bays = self.candidate.bays
-        return sum(b.framing.concrete_cy_per_sf * b.area_sf for b in bays if b.framing)
+        return (sum(b.framing.concrete_cy_per_sf * b.area_sf for b in bays if b.framing)
+                + self.design.concrete_cy)
+
+    @property
+    def timber_cf(self) -> float:
+        bays = self.candidate.bays
+        return (sum(b.framing.timber_cf_per_sf * b.area_sf for b in bays if b.framing)
+                + self.design.timber_cf)
 
     @property
     def cost_usd(self) -> float:
@@ -71,7 +89,8 @@ class Evaluated:
         return self.candidate.max_depth_in
 
     def rank_key(self) -> tuple:
-        return (round(self.rank_score, 9), self.candidate.layout.column_count, self.grid_id)
+        return (round(self.rank_score, 9), self.candidate.layout.column_count, self.grid_id,
+                self.system)
 
 
 @dataclass
@@ -83,20 +102,25 @@ class SystemResult:
 
 
 def is_built(system: str) -> bool:
-    """Systems with a bay study mapping and column sizing in config/systems.json."""
+    """Output systems with at least one structural system and column sizing in config."""
     cfg = json.loads((CONFIG_DIR / "systems.json").read_text(encoding="utf-8"))
-    return system in cfg["systems"] and system in cfg["columns"]
+    return bool(db_adapter.variants(system)) and system in cfg["columns"]
 
 
 def optimize(inp: GravityInput, system: str = "steel") -> SystemResult:
-    """Every candidate grid for one system, evaluated, sized, scored and ranked."""
+    """Every candidate grid of every structural system in one family, evaluated, sized,
+    scored together and ranked."""
     zone_map = resolve_zones(inp)
-    grids, grid_warnings = generate_grids(inp, system=system)
-    cache: dict = {}
     evaluated = []
-    for g in grids:
-        candidate = evaluate(inp, zone_map, layout(inp, zone_map, g), system, cache)
-        evaluated.append(Evaluated(candidate, design_columns(inp, zone_map, candidate, system)))
+    grid_warnings: list[str] = []
+    for variant in db_adapter.variants(system):
+        grids, warnings = generate_grids(inp, system=variant)
+        grid_warnings += [w for w in warnings if w not in grid_warnings]
+        cache: dict = {}
+        for g in grids:
+            candidate = evaluate(inp, zone_map, layout(inp, zone_map, g), variant, cache)
+            design = design_columns(inp, zone_map, candidate, variant)
+            evaluated.append(Evaluated(candidate, design, system=variant))
 
     scores = scoring.weighted_scores(
         [{"cost": e.cost_usd, "depth": e.max_depth_in, "carbon": e.carbon_kgco2e}
@@ -155,7 +179,7 @@ def scheme(inp: GravityInput, result: SystemResult, e: Evaluated,
 
     names = list(zone_map.levels)
     heights = story_heights(inp)
-    seismic = {s.level: s for s in seismic_weights(inp, zone_map, cand, design, system)}
+    seismic = {s.level: s for s in seismic_weights(inp, zone_map, cand, design, e.system)}
     levels = []
     for level in cand.layout.bays_by_level:
         depth = max((b.framing.depth_in for b in cand.bays if b.level == level and b.framing),
@@ -169,8 +193,12 @@ def scheme(inp: GravityInput, result: SystemResult, e: Evaluated,
                        "max_structure_depth_in": depth, "clear_height_ft": _r(clear)})
 
     area = e.area_sf or 1.0
+    identity = []
+    if len(db_adapter.variants(system)) > 1 or e.system != system:  # ASSUMPTIONS O-7
+        floor_db = ", ".join(_db_names(e.system))
+        identity = [f"{system.replace('_', ' ').capitalize()} system: {e.label} ({floor_db})"]
     warnings = list(dict.fromkeys(
-        result.warnings + cand.warnings + design.warnings + extra_warnings
+        identity + result.warnings + cand.warnings + design.warnings + extra_warnings
     ))
     return {
         "system": system,
@@ -181,7 +209,7 @@ def scheme(inp: GravityInput, result: SystemResult, e: Evaluated,
         "levels": levels,
         "foundation_reactions": reactions,
         "quantities": {"steel_tons": _r(e.framing_tons + e.column_tons),
-                       "concrete_cy": _r(e.concrete_cy), "timber_cf": 0.0},
+                       "concrete_cy": _r(e.concrete_cy), "timber_cf": _r(e.timber_cf)},
         "totals": {"cost_usd": _r(e.cost_usd, 0), "cost_per_sf": _r(e.cost_usd / area, 2),
                    "carbon_kgco2e": _r(e.carbon_kgco2e, 0),
                    "carbon_per_sf": _r(e.carbon_kgco2e / area, 2),
@@ -189,6 +217,11 @@ def scheme(inp: GravityInput, result: SystemResult, e: Evaluated,
         "alternates": [],
         "warnings": warnings,
     }
+
+
+def _db_names(system: str) -> list[str]:
+    cfg = json.loads((CONFIG_DIR / "systems.json").read_text(encoding="utf-8"))["systems"][system]
+    return list(dict.fromkeys(cfg["floor"]["db_systems"] + cfg["roof"]["db_systems"]))
 
 
 def _r(value: float, digits: int = 3) -> float:

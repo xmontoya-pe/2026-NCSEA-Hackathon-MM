@@ -1,8 +1,9 @@
 """Plain-text tables for reviewing results.
 
-- ``python -m gravity report <input.json>...`` (spec 6, prompt 7): per input, the best
-  scheme and its alternates as ranked by ``optimizer.optimize`` (framing + columns,
-  weighted score), with tons split into beams/girders vs columns, and the warnings.
+- ``python -m gravity report <input.json>...`` (spec 6, prompts 7 and 8): per input and
+  output system, the best scheme and its alternates as ranked by ``optimizer.optimize``
+  (framing + columns, weighted score), with tons split into framing vs columns, and the
+  warnings; then a comparison of the best scheme of each system.
 - ``python -m gravity summary <input.json>`` (prompt 5): every candidate grid by framing
   alone (``bays.CandidateResult.rank_key``) and the bay-by-bay framing of the first one.
 - ``python -m gravity column <input.json> --column B-2`` (prompt 6): one column, every
@@ -20,19 +21,21 @@ from gravity.columns import ColumnStack, column_config, design_columns, seismic_
 from gravity.grid import generate_grids, layout
 from gravity.loads import resolve_zones
 from gravity.models import GravityInput
-from gravity.optimizer import N_ALTERNATES, Evaluated, optimize
+from gravity.optimizer import N_ALTERNATES, Evaluated, SystemResult, optimize
 
 
-def scheme_report(inp: GravityInput, system: str = "steel") -> str:
-    """Best scheme and alternates for one input (spec 6, prompt 7)."""
-    result = optimize(inp, system)
+def scheme_report(inp: GravityInput, system: str = "steel", result: SystemResult | None = None
+                  ) -> str:
+    """Best scheme and alternates for one input and output system (spec 6, prompts 7, 8).
+    Tons are steel: beams/girders (steel), rebar + PT (concrete); columns likewise."""
+    result = optimize(inp, system) if result is None else result
     lines = [
         f"{system.upper()} | {inp.project_name}: {len(result.ranked)} candidate grids; best and "
         f"{N_ALTERNATES} alternates (placeholder costs)",
         "",
-        f"{'':4} {'grid':<26} {'cols':>4} {'score':>7} {'infeas':>6} {'>depth':>6} "
-        f"{'depth in':>8} {'beam+gird t':>11} {'column t':>8} {'total t':>8} {'cost $':>11} "
-        f"{'$/sf':>6} {'kgCO2e':>9} {'kg/sf':>6}",
+        f"{'':4} {'structural system':<28} {'grid':<26} {'cols':>4} {'score':>7} {'infeas':>6} "
+        f"{'>depth':>6} {'depth in':>8} {'framing t':>9} {'column t':>8} {'conc cy':>8} "
+        f"{'timber cf':>9} {'cost $':>11} {'$/sf':>6} {'kgCO2e':>9} {'kg/sf':>6}",
     ]
     for rank, e in enumerate(result.ranked[:1 + N_ALTERNATES]):
         lines.append(_scheme_row("best" if rank == 0 else f"alt{rank}", e))
@@ -58,12 +61,39 @@ def scheme_report(inp: GravityInput, system: str = "steel") -> str:
 def _scheme_row(label: str, e: Evaluated) -> str:
     c, area = e.candidate, e.area_sf or 1.0
     return (
-        f"{label:<4} {e.grid_id:<26} {c.layout.column_count:>4} {e.rank_score:>7.3f} "
-        f"{c.n_infeasible:>6} {c.n_over_depth:>6} {e.max_depth_in:>8.1f} "
-        f"{e.framing_tons:>11.1f} {e.column_tons:>8.1f} {e.framing_tons + e.column_tons:>8.1f} "
-        f"{e.cost_usd:>11,.0f} {e.cost_usd / area:>6.2f} {e.carbon_kgco2e:>9,.0f} "
-        f"{e.carbon_kgco2e / area:>6.2f}"
+        f"{label:<4} {e.label[:28]:<28} {e.grid_id:<26} {c.layout.column_count:>4} "
+        f"{e.rank_score:>7.3f} {c.n_infeasible:>6} {c.n_over_depth:>6} {e.max_depth_in:>8.1f} "
+        f"{e.framing_tons:>9.1f} {e.column_tons:>8.1f} {e.concrete_cy:>8,.0f} "
+        f"{e.timber_cf:>9,.0f} {e.cost_usd:>11,.0f} {e.cost_usd / area:>6.2f} "
+        f"{e.carbon_kgco2e:>9,.0f} {e.carbon_kgco2e / area:>6.2f}"
     )
+
+
+def comparison_table(inp: GravityInput, results: dict[str, SystemResult]) -> str:
+    """Best scheme of each output system side by side (spec 6, prompt 8). Raw totals only:
+    rank_score is not comparable across systems (spec 4.6)."""
+    lines = [
+        f"SYSTEM COMPARISON | {inp.project_name} (best scheme per system; placeholder costs)",
+        "",
+        f"{'system':<12} {'structural system':<28} {'grid':<26} {'cols':>4} {'depth in':>8} "
+        f"{'steel t':>8} {'conc cy':>8} {'timber cf':>9} {'cost $':>11} {'$/sf':>6} "
+        f"{'kgCO2e':>9} {'kg/sf':>6} {'infeas':>6} {'>depth':>6} {'warnings':>8}",
+    ]
+    for system, result in results.items():
+        if not result.ranked:
+            lines.append(f"{system:<12} no candidate grid")
+            continue
+        e = result.ranked[0]
+        c, area = e.candidate, e.area_sf or 1.0
+        n_warn = len(set(result.warnings + c.warnings + e.design.warnings))
+        lines.append(
+            f"{system:<12} {e.label[:28]:<28} {e.grid_id:<26} {c.layout.column_count:>4} "
+            f"{e.max_depth_in:>8.1f} {e.framing_tons + e.column_tons:>8.1f} "
+            f"{e.concrete_cy:>8,.0f} {e.timber_cf:>9,.0f} {e.cost_usd:>11,.0f} "
+            f"{e.cost_usd / area:>6.2f} {e.carbon_kgco2e:>9,.0f} {e.carbon_kgco2e / area:>6.2f} "
+            f"{c.n_infeasible:>6} {c.n_over_depth:>6} {n_warn:>8}"
+        )
+    return "\n".join(lines)
 
 
 def summary_table(inp: GravityInput, system: str = "steel", top: int = 15) -> str:
@@ -148,12 +178,17 @@ def column_report(
         return f"column {column!r} not in grid {candidate.grid_id}; columns: {', '.join(ids)}"
 
     lines = column_trace(design.column(column), candidate.grid_id, column_config(system))
+    if design.material == "steel":
+        totals = (f"{design.tons:.2f} tons, ${design.cost_usd:,.0f} (placeholder "
+                  f"${design.cost_per_ton_usd:,.0f}/ton), {design.carbon_kgco2e:,.0f} kgCO2e "
+                  f"({design.carbon_kg_per_tonne:g} kg/t x 0.9072 t/ton)")
+    else:
+        totals = (f"{design.concrete_cy:,.1f} cy concrete, {design.tons:.2f} tons rebar, "
+                  f"{design.timber_cf:,.0f} cf glulam, ${design.cost_usd:,.0f} (placeholder "
+                  f"rates), {design.carbon_kgco2e:,.0f} kgCO2e")
     lines += [
         "",
-        f"All columns, grid {candidate.grid_id}: {design.tons:.2f} tons, "
-        f"${design.cost_usd:,.0f} (placeholder ${design.cost_per_ton_usd:,.0f}/ton), "
-        f"{design.carbon_kgco2e:,.0f} kgCO2e ({design.carbon_kg_per_tonne:g} kg/t x 0.9072 t/ton), "
-        f"max ratio {design.max_ratio:.3f}",
+        f"All columns, grid {candidate.grid_id}: {totals}, max ratio {design.max_ratio:.3f}",
         "",
         "Seismic weight (D + partitions + 25% storage LL + 20% snow > 30 psf + half columns):",
     ]
@@ -166,13 +201,17 @@ def column_report(
 
 
 def column_trace(stack: ColumnStack, grid_id: str, cfg: dict) -> list[str]:
-    """Every number for one column: tributary loads, reduction, combos, E3 capacity."""
-    k, fy = cfg["k"], cfg["fy_ksi"]
+    """Every number for one column: tributary loads, reduction, combos, capacity."""
+    k, fy = cfg.get("k", 1.0), cfg.get("fy_ksi", 0.0)
+    if "splice_every_n_levels" in cfg:  # steel
+        basis = (f"Fy = {fy:g} ksi, E = {cfg['e_ksi']:g} ksi, K = {k:g}, target Pu/phiPn <= "
+                 f"{cfg['target_ratio']:g}, splice every {cfg['splice_every_n_levels']} stories")
+    else:
+        basis = f"target ratio <= {cfg['target_ratio']:g}, one size up the full height"
     lines = [
         f"Column {stack.column_id} at ({stack.x_ft:g}, {stack.y_ft:g}) ft, grid {grid_id}: "
         f"{stack.kind} column, KLL = {stack.kll:g}",
-        f"Fy = {fy:g} ksi, E = {cfg['e_ksi']:g} ksi, K = {k:g}, target Pu/phiPn <= "
-        f"{cfg['target_ratio']:g}, splice every {cfg['splice_every_n_levels']} stories",
+        basis,
         "",
         "Tributary load by level (each bay's area / 4 to its corner columns):",
     ]
@@ -194,11 +233,13 @@ def column_trace(stack: ColumnStack, grid_id: str, cfg: dict) -> list[str]:
             "  combos: " + "; ".join(f"{n} = {v:.2f}" for n, v in s.combos.items()),
             f"  Pu  = {s.pu_kips:.2f} k ({s.governing_combo})",
         ]
-        if s.shape is not None:
+        if s.shape is not None and s.capacity is not None:
             lines += [
                 f"  {s.capacity.note(s.shape, k, fy)}",
                 f"  ratio = Pu/phiPn = {s.pu_kips:.2f}/{s.capacity.phi_pn_kips:.1f} = {s.ratio:.3f}",
             ]
+        elif s.shape is not None:
+            lines += [f"  {s.capacity_note}", f"  ratio = {s.ratio:.3f}"]
     return lines
 
 
