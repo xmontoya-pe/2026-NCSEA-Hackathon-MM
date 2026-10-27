@@ -29,6 +29,12 @@ Options: `--port 9000`, `--out C:\path\to\outputs`, `--host 0.0.0.0` to let coll
    - S<sub>DS</sub>, S<sub>D1</sub> and I<sub>e</sub> are also written to the project's `sds`, `sd1` and `ie`, the fields the ELF app's module 1 reads. Hazards, snow and loads are saved under `bones.hazard`, `bones.snow` and `bones.loads`.
    - **Drawing pad:** **Open in the drawing pad** on step 2 loads the plan into Module 2's drawing pad (Lucas's code from the plan-import handoff, unchanged).
    - Draw braced frames column to column, load areas by level, and edit the outline, with the pad's own snapping, undo, dimensions, C.M. / C.R. markers and frame tables.
+   - **Lateral system:** **Steel braced frames** (the default) or **Concrete shear walls**, saved as the project's `lateral_system` (`braced_frame` / `shear_wall`), which the ELF engine reads.
+     - Shear walls: each wall you draw asks for its thickness (in), offering the last one entered. The wall gets it at every level, as `t` and `ts` (one value per story, story 1 first).
+     - The side panel lists the thickness of every wall at the pad's level; type a new one to change that level only. **Copy to all levels** and **Copy from** copy thicknesses too.
+     - The pad's C.R. treats each wall on its own, as the engine's point spring with its default inputs (I<sub>eff</sub> = 0.35 I<sub>g</sub>, shear on, h = roof). The analysis also joins walls that meet into cores.
+     - The 3D view draws one full-height panel per wall. The frame and stiffness tables under the pad still describe braced frames.
+     - R, C<sub>d</sub>, f′c and the other wall inputs are not on the pad: they go in the analysis request (`shear_walls` in `POST /analyze`, see `api.py`).
    - **Lines of resistance** (above the pad) groups the frames by line in X and Y and says whether there are enough lines to resist torsion: at least one line in each direction and at least three in total.
    - The 3D view draws every level with one brace per story per frame (single or 2X, following each frame's direction and alternate settings). Drag to rotate, Shift-drag to pan, click then scroll to zoom.
    - Everything is saved in the browser as you draw. Going back to step 2 and changing stories or snow keeps the frames and load areas. **Download file** saves the project JSON that the ELF app opens with **Open…**.
@@ -48,6 +54,8 @@ Checks before hand-off (section 4.5): at least 4 corners, every edge horizontal 
 - Dimensions that disagree, missing stories, and missing braced frames are shown as warnings and do not block it.
 
 ## The drawing pad inside Bones (`bones_service/build_ui.py`)
+
+The shear wall mode lives in `pad/glue-post.js`: it wraps the pad's `lfrsClick`, `renderTPanel`, `copyLevel`, `wallK`, `render`, `planStatsUI` and `hintUpdate`, so `pad/pad.verbatim.*` stay as handed off.
 
 `static/index.html` is assembled from `static/src/`: the Bones UI (`app.html`) plus the Module 2 code copied unchanged from the handoff (`pad/pad.verbatim.css`, `.html`, `.js`). When Lucas updates Module 2, paste the new code into those three files and run `python -m bones_service.build_ui`.
 

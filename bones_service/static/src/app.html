@@ -120,6 +120,11 @@ ul.plain{margin:6px 0 0;padding-left:18px;font-size:13.5px;color:var(--muted)}
 .lines li{display:flex;justify-content:space-between;gap:12px;font-size:14px;padding:6px 10px;border-radius:8px;background:#F7F7F5}
 .lines li span:last-child{font-weight:600;color:var(--wine)}
 #s3 > .row h2{margin:0 0 10px;font-size:17px}
+#wallDlg{border:1px solid var(--line);border-radius:16px;padding:20px 24px;width:min(420px,calc(100vw - 32px));color:var(--ink);box-shadow:0 20px 60px rgba(14,14,16,.25)}
+#wallDlg::backdrop{background:rgba(14,14,16,.35)}
+#wallDlg h2{margin:0 0 6px;font-size:17px;font-weight:600}
+#wallDlg .small{margin:0 0 12px}
+.dlg-btns{display:flex;gap:10px;margin-top:16px}
 @media (max-width:640px){header,nav{padding-left:16px;padding-right:16px} main{padding:24px 16px 48px} h1{font-size:28px} .b-stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
 </style>
 <!--PAD_CSS-->
@@ -284,6 +289,11 @@ ul.plain{margin:6px 0 0;padding-left:18px;font-size:13.5px;color:var(--muted)}
           </div>
         </div>
         <div class="b-card">
+          <h2>Lateral system</h2>
+          <div class="b-seg" role="group" aria-label="Lateral system"><button type="button" data-sys="braced_frame" aria-pressed="true">Steel braced frames</button><button type="button" data-sys="shear_wall" aria-pressed="false">Concrete shear walls</button></div>
+          <p class="small" style="margin:8px 0 0">Shear walls: each wall you draw asks for its thickness. R, C<sub>d</sub>, f′c and the other wall inputs go with the analysis request.</p>
+        </div>
+        <div class="b-card">
           <h2>Lines of resistance</h2>
           <div id="bonesLines" class="lines"></div>
         </div>
@@ -298,6 +308,14 @@ ul.plain{margin:6px 0 0;padding-left:18px;font-size:13.5px;color:var(--muted)}
       <p class="small" style="margin:-4px 0 12px">One row per load area on the pad. Change the level with the pad’s <b>Level</b> menu.</p>
       <div id="bonesLoads"></div>
     </div>
+    <dialog id="wallDlg" aria-labelledby="wallDlgH">
+      <form method="dialog">
+        <h2 id="wallDlgH">Wall thickness</h2>
+        <p class="small" id="wallDlgMsg"></p>
+        <label class="f">Thickness (in)<input id="wallDlgIn" type="number" inputmode="decimal" min="1" step="0.5" required></label>
+        <div class="dlg-btns"><button class="btn b-primary b-sm" value="ok">Set thickness</button><button class="btn ghost b-sm" type="button" id="wallDlgKeep">Keep</button></div>
+      </form>
+    </dialog>
   </section>
 </main>
 <!--PAD_JS-->
