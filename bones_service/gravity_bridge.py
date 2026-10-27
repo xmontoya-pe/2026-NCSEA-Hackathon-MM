@@ -43,7 +43,7 @@ OCCUPANCIES = os.path.join(ROOT, "config", "occupancies.json")
 DEFAULT_CONSTRAINTS = {"min_ceiling_height_ft": 9.0, "plenum_allowance_in": 18.0,
                        "max_structure_depth_in": None, "min_bay_ft": 20.0, "max_bay_ft": 45.0}
 DEFAULT_WEIGHTS = {"cost": 0.5, "depth": 0.3, "carbon": 0.2}
-DEFAULT_SYSTEMS = ["steel"]
+DEFAULT_SYSTEMS = ["steel", "concrete", "mass_timber"]
 _RUN_LOCK = threading.Lock()
 
 
