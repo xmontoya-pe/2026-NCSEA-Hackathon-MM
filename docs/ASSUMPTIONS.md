@@ -39,7 +39,7 @@ verify by licensed engineer". Everything built on it is for scheme comparison on
 | Z-3 | An occupancy key not in `config/occupancies.json` falls back to `default_occupancy`, with a warning. | Spec 1 (warnings, not errors) |
 | Z-4 | Roof Lr reduction (ASCE 7-22 4.8) assumes a flat roof (R2 = 1). Roofs with Lo above 20 psf are not ordinary roofs and are not reduced. | Simplification |
 | Z-5 | Governing occupancy of a bay = largest LL + partitions of any overlapping zone (ties: larger area fraction). The bay's vibration criterion is the most stringent of all overlapping zones' criteria (`vibration_precedence` in config), so a bay half office, half corridor keeps the office walking check. | Spec 4.1, decision D |
-| Z-6 | KLL: interior columns 4; corner columns 4 (ASCE 7-22 Table 4.7-1, exterior column **without cantilever slabs**; with cantilever slabs it would be 2); edge columns 2 (spec 4.1, conservative; ASCE allows 4 without cantilever slabs); beams 2. No cantilever slabs are assumed. Set in `config/occupancies.json`. | Corner: decisions log. Edge: spec value |
+| Z-6 | KLL per ASCE 7-22 Table 4.7-1 for exterior columns **without cantilever slabs**: interior, edge and corner columns 4 (with cantilever slabs edge would be 3 and corner 2); beams 2. No cantilever slabs are assumed. Set in `config/occupancies.json`. | Decisions log |
 | Z-7 | Floor and roof SDL are 15 psf (`config/sdl.json`), equal to the bay study design SDL. Placeholder until project values are set. | Placeholder |
 | Z-8 | Zone pieces smaller than 1 sq ft after clipping are slivers and are ignored. | Geometry tolerance |
 | Z-9 | A bay is LL-reducible only if every occupancy it overlaps is reducible. | Conservative |

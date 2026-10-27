@@ -183,10 +183,10 @@ class TestLiveLoadReduction(unittest.TestCase):
         self.assertAlmostEqual(r.factor, 0.426777, places=5)
         self.assertAlmostEqual(r.l_psf, 21.339, places=3)
 
-    def test_edge_column_with_spec_kll(self):
-        # KLL*AT = 2*450 = 900; 0.25 + 15/30 = 0.75 -> L = 37.5 psf
+    def test_edge_column_with_asce_kll(self):
+        # KLL*AT = 4*450 = 1800; 0.25 + 15/42.426 = 0.6036 -> L = 30.18 psf
         r = reduced_live_load(50, kll("edge_column"), 450, floors_supported=1)
-        self.assertAlmostEqual(r.l_psf, 37.5)
+        self.assertAlmostEqual(r.l_psf, 30.178, places=3)
 
     def test_limits(self):
         # One floor, very large AT: 0.25 + 15/200 = 0.325 -> limited to 0.5.
@@ -199,8 +199,9 @@ class TestLiveLoadReduction(unittest.TestCase):
 
     def test_kll_from_config(self):
         self.assertEqual(kll("interior_column"), 4)
-        self.assertEqual(kll("edge_column"), 2)
-        self.assertEqual(kll("corner_column"), 4)  # ASCE 7-22 Table 4.7-1, no cantilever
+        self.assertEqual(kll("edge_column"), 4)  # ASCE 7-22 Table 4.7-1, no cantilever
+        self.assertEqual(kll("corner_column"), 4)
+        self.assertEqual(kll("interior_beam"), 2)
 
     def test_corner_column_with_asce_kll(self):
         # KLL*AT = 4*225 = 900; 0.25 + 15/30 = 0.75 -> L = 37.5 psf

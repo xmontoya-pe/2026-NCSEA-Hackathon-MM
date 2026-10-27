@@ -12,12 +12,12 @@
     "vibration_precedence_note": "Most stringent first (lower damping). A bay overlapping zones with different criteria uses the first one listed.",
     "kll": {
       "interior_column": 4,
-      "edge_column": 2,
+      "edge_column": 4,
       "corner_column": 4,
       "interior_beam": 2,
       "edge_beam": 2
     },
-    "kll_note": "Corner columns: ASCE 7-22 Table 4.7-1, exterior column without cantilever slabs = 4 (decisions log). Edge columns: spec 4.1 value 2, conservative; ASCE allows 4 without cantilever slabs. With cantilever slabs ASCE gives edge 3, corner 2."
+    "kll_note": "ASCE 7-22 Table 4.7-1 with no cantilever slabs: interior, edge and corner columns all 4 (decisions log). With cantilever slabs ASCE gives edge 3, corner 2. Beams 2."
   },
   "occupancies": {
     "office": {"ll_psf": 50, "partitions_psf": 15, "ll_reducible": true, "criterion": "Walking b=0.03"},

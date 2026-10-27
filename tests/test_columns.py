@@ -183,7 +183,7 @@ class TestDesignColumns(Within1Percent):
     def test_classification_and_kll(self):
         b2, b1, a1 = (self.design.column(c) for c in ("B-2", "B-1", "A-1"))
         self.assertEqual((b2.kind, b2.kll), ("interior", 4))
-        self.assertEqual((b1.kind, b1.kll), ("edge", 2))
+        self.assertEqual((b1.kind, b1.kll), ("edge", 4))
         self.assertEqual((a1.kind, a1.kll), ("corner", 4))
         self.assertEqual(len(self.design.columns), 24)
 

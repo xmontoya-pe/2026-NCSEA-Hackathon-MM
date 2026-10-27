@@ -199,7 +199,7 @@ tests/
 ### 4.1 `loads.py`
 - Map each bay polygon to the zones it overlaps (shapely intersection).
 - Governing load for a bay = **max** LL of any overlapping zone (conservative, simple). Keep the area fractions in the output for later refinement.
-- Live load reduction per ASCE 7-22 §4.7: `L = Lo * (0.25 + 15/sqrt(KLL*AT))`, limited to 0.5Lo for members supporting one floor and 0.4Lo for multiple floors. KLL (`config/occupancies.json`, Table 4.7-1, no cantilever slabs assumed): 4 for interior and corner columns, 2 for edge columns (conservative; ASCE allows 4) and for beams. Not applied where LL > 100 psf or assembly occupancy. Roof uses §4.8. Bay framing lookups use unreduced LL (the steel bay study uses no LL reduction); reduction applies to column loads.
+- Live load reduction per ASCE 7-22 §4.7: `L = Lo * (0.25 + 15/sqrt(KLL*AT))`, limited to 0.5Lo for members supporting one floor and 0.4Lo for multiple floors. KLL (`config/occupancies.json`, Table 4.7-1, no cantilever slabs assumed): 4 for interior, edge and corner columns, 2 for beams. Not applied where LL > 100 psf or assembly occupancy. Roof uses §4.8. Bay framing lookups use unreduced LL (the steel bay study uses no LL reduction); reduction applies to column loads.
 - Partition load added only where the occupancy table says so.
 
 ### 4.2 `grid.py`
@@ -318,7 +318,8 @@ Review each step's output before moving on — especially step 2 (DB units and l
 | Roof lookup load = max(Lr, flat roof snow) | **Settled** |
 | Concrete flat plates: DB `column_in` is the column size and is reported in the concrete output | **Settled** |
 | When a vibration row was designed for less LL than the lookup needs (office walking rows are `LL=50`, lookup goes to `LL=100`), use the heavier of it and the Strength row at the same spans and spacing, with a warning (`docs/ASSUMPTIONS.md` L-6) | **Settled** |
-| KLL for corner columns = 4 per ASCE 7-22 Table 4.7-1 (no cantilever slabs); edge columns stay at the spec value 2 (`docs/ASSUMPTIONS.md` Z-6) | **Settled** |
+| KLL = 4 for interior, edge and corner columns per ASCE 7-22 Table 4.7-1 (no cantilever slabs); beams 2 (`docs/ASSUMPTIONS.md` Z-6). Replaces the earlier spec value of 2 for edge columns | **Settled** |
 | Typical-zone copies carry the occupancy only, not `no_columns` (`docs/ASSUMPTIONS.md` Z-1) | **Settled** |
 | Integration team builds against `examples/` (sample input/output, generated JSON Schema, README); tests keep it in sync with `models.py` | **Settled** |
 | A column removed for a `no_columns` zone is removed from that story and every story above it; no transfer girders (`docs/ASSUMPTIONS.md` G-3) | **Settled** |
+| Steel column method: half-bay tributary area, partitions carried as dead, W12/W14 from the AISC v16.0 CSV with slender shapes excluded, weak-axis E3 with K = 1 and L = story height, lightest shape at Pu/φPn ≤ 0.90 per 2-story tier, self-weight iterated, cladding 0 plf (placeholder); seismic weight per ASCE 12.7.2 with half the columns above and below (`docs/ASSUMPTIONS.md` COL-1 to COL-13) | **Settled** |
