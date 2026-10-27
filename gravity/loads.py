@@ -50,6 +50,7 @@ class Occupancy:
     ll_reducible: bool
     criterion: str | None
     is_roof: bool = False
+    seismic_storage: bool = False  # 25% of LL counts in seismic weight (ASCE 7-22 12.7.2)
 
     @property
     def lookup_ll_psf(self) -> float:
@@ -124,6 +125,7 @@ def occupancy(key: str, warnings: list[str] | None = None) -> Occupancy:
         ll_reducible=bool(entry["ll_reducible"]),
         criterion=entry.get("criterion"),
         is_roof=bool(entry.get("is_roof", False)),
+        seismic_storage=bool(entry.get("seismic_storage", False)),
     )
 
 

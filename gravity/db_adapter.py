@@ -407,6 +407,16 @@ def _composite_studs(row: sqlite3.Row) -> tuple[float, float]:
     return found["beam_studs"] or 0.0, found["girder_studs"] or 0.0
 
 
+def carbon_factor(material: str) -> tuple[float, str]:
+    """(A1-A3 factor, unit) from the DB carbon_factors table, e.g. (1220, 'kg CO2e/t')."""
+    found = _connect().execute(
+        "SELECT gwp_a1a3, unit FROM carbon_factors WHERE material = ?", (material,)
+    ).fetchone()
+    if found is None:
+        raise ValueError(f"no carbon factor for {material!r} in carbon_factors")
+    return float(found[0]), found[1]
+
+
 @lru_cache(maxsize=None)
 def _joist_weight_plf(joist: str) -> float | None:
     found = _connect().execute(

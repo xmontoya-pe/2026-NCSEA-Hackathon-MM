@@ -69,6 +69,24 @@ verify by licensed engineer". Everything built on it is for scheme comparison on
 | C-5 | Joist roofs: joist steel = KCS `weight_plf` (`ref_kcs_joists`) / spacing, priced at the joist rate; the rest of `steel_psf` is girders at the W-shape rate. A joist missing from `ref_kcs_joists` prices all steel at the W-shape rate (conservative), with a warning. | Data split |
 | W-2 | Roof deck weight comes from `ref_roof_deck_spans` by deck type and gauge. | DB table |
 
+## Columns and seismic weight (`gravity/columns.py`)
+
+| # | Assumption | Decision |
+|---|---|---|
+| COL-1 | **Tributary area = each bay's area / 4 to each of its four corner columns** (half-bay method on an orthogonal grid). Merged long-span bays deliver to their own four corners only. | Spec 4.5 |
+| COL-2 | The bay's governing occupancy (Z-5) applies to its whole tributary area for column loads. | Conservative simplification |
+| COL-3 | Column dead load per level = framing self-weight (DB `steel_psf` + slab/deck) + SDL + partitions + cladding + column self-weight. **Partitions are carried as dead load** (never reduced). Bays with no feasible framing use the slab/deck weight only, with a warning. | Spec 4.5, decisions C/F |
+| COL-4 | Column kind from the framed cells around it: 4 = interior, 1 = corner, otherwise edge. A re-entrant corner of an L-shape (3 cells) is an edge column. KLL then comes from Z-6. | Interpretation |
+| COL-5 | Floor LL reduction (ASCE 7-22 4.7.2) uses AT = sum of the tributary areas of the reducible floors the segment supports; the 0.5Lo limit applies for one floor, 0.4Lo for two or more. Floors with Lo > 100 psf or non-reducible occupancies are added unreduced. Roof Lr is reduced per 4.8 with the column's roof tributary area (flat roof, R2 = 1). | Spec 4.1, 4.5 |
+| COL-6 | Load combinations: ASCE 7-22 2.3.1 gravity combos 1.4D; 1.2D+1.6L+0.5Lr; 1.2D+1.6L+0.5S; 1.2D+1.6Lr+1.0L; 1.2D+1.6S+1.0L. Pu is the largest; ties go to the first listed. | Spec 4.5 |
+| COL-7 | Shapes: W12 and W14 from the AISC Shapes Database v16.0 CSV (`data/aisc_shapes.csv`, US-unit columns). Shapes slender for compression (Table B4.1a: bf/2tf > 0.56√(E/Fy) or h/tw > 1.49√(E/Fy)) are excluded, so E7 is never needed. Fy = 50 ksi (A992), E = 29,000 ksi. | Spec 4.5 |
+| COL-8 | Capacity: AISC 360-22 E3 flexural buckling about the weak axis, K = 1.0, L = story height (braced at every floor in both directions). No torsional buckling check (doubly symmetric W shapes, not governing). | Spec 4.5 |
+| COL-9 | Splice every 2 stories (`splice_every_n_levels`); each tier gets the lightest shape whose Pu/φPn ≤ 0.90 (`target_ratio`) in every story of the tier (ties: lower worst ratio). If none qualifies, the shape with the lowest ratio is used, with a warning. | Spec 4.5 |
+| COL-10 | Column self-weight is iterated: size without it, add the chosen shapes' weight (plf × story height) to every segment below, resize; stop when the shapes stop changing (max 5 iterations, warning if not converged). | Spec 4.5 |
+| COL-11 | Perimeter cladding load = `cladding_plf` (config/systems.json) × half the perimeter length to each neighboring perimeter column, per level. **Placeholder 0 plf** until the envelope is known; a warning says so. | Placeholder |
+| COL-12 | Column tons = Σ weight_plf × story height / 2000 (short tons); cost = tons × `columns_usd_per_ton` (config/costs.json, placeholder); carbon = tons × 0.90718 × DB `carbon_factors` `hot_rolled_sections` (kg CO2e/t). | C-1, C-3 |
+| COL-13 | Seismic weight per level (ASCE 7-22 12.7.2): framing + SDL + partitions over each bay, + 25% of floor LL in occupancies marked `seismic_storage` (config/occupancies.json), + 20% of flat roof snow when it exceeds 30 psf, + half the column weight of the story below and of the story above, + cladding. Center of mass = weight-weighted centroid of those items (bay centroids, column points). | Spec 3.2 |
+
 ## Concrete (when built)
 
 | # | Assumption | Decision |
