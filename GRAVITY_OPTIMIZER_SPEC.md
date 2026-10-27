@@ -80,20 +80,31 @@ Starter values from ASCE 7-22 Table 4.3-1 — **verify before trusting**:
 
 Plus a separate SDL block per system type (ceiling/MEP/floor finish, e.g. 10–15 psf) in `config/sdl.json`.
 
+Each occupancy also names the bay-study `criterion` used for steel floor lookups: `office` and `residential_private` use `Walking b=0.03`; all other occupancies use the `Strength` rows at the rounded-up LL. Floor LL above 100 psf (`storage_light`, `mechanical`) exceeds the steel bay study and is reported as infeasible.
+
 ### 2.3 SQLite bay study database
 
 **Step 1 for Claude Code is to inspect it, not assume it.** Run `.tables` and `.schema`, pull a few rows from each table, and write `gravity/db_adapter.py` around what's actually there. The adapter must expose:
 
 ```python
-def framing_options(system: str, span_x_ft: float, span_y_ft: float,
-                    ll_psf: float, sdl_psf: float) -> list[BayFraming]
-def available_spans(system: str) -> tuple[list[float], list[float]]
-def available_loads(system: str) -> tuple[list[float], list[float]]   # LL and SDL values present in the table
+def framing_options(system: str, use: str, span_x_ft: float, span_y_ft: float,
+                    ll_psf: float, sdl_psf: float, criterion: str | None = None) -> list[BayFraming]
+def available_spans(system: str, use: str) -> tuple[list[float], list[float]]
+def available_loads(system: str, use: str) -> tuple[list[float], list[float]]   # LL values present, and the design SDL
 ```
+
+`use` is `"floor"` or `"roof"`: floors and roofs are separate DB systems. `criterion` selects the vibration criterion rows (2.2); `None` means the `Strength` rows.
 
 `BayFraming` should carry (whatever the DB supports): deck/slab description, infill beam size & spacing, girder size, total depth (in), self-weight (psf), cost ($/sf), embodied carbon (kgCO2e/sf), and source row id for traceability.
 
-**The DB has no column sizes.** Columns are always sized by `columns.py` (section 4.5). Column cost and carbon are computed from column tonnage/volume using unit rates in `config/systems.json` and added to the bay totals. Do not assume the DB's $/sf or carbon/sf include columns unless step 2 of section 6 proves otherwise.
+What the DB actually holds (section 6 step 2; full list in `docs/ASSUMPTIONS.md`):
+- `bay_designs` holds every system's bay designs in one table. Steel maps to `STL_COMP` (floors) and `STL_ROOF_W` / `STL_ROOF_J` (roofs). `span_1_ft` is the beam span, `span_2_ft` the girder span, `solved = 1` marks a valid design.
+- Loads are service loads. Each system is designed for one fixed SDL (15 psf for steel) with no LL reduction; SDL above that is added to LL for the lookup, with a warning.
+- Self-weight = `steel_psf` + slab/deck weight; the slab/deck weight is in the `assumptions` table as text and is copied into `config/systems.json`.
+- **The DB has no cost.** Cost is DB quantities × unit rates in `config/costs.json` (placeholder values until an estimator verifies them).
+- Carbon (`gwp_kgco2e_per_ft2`) is floor framing only and excludes columns.
+
+**The DB has no column sizes.** Columns are always sized by `columns.py` (section 4.5). Column cost and carbon are computed from column tonnage/volume using unit rates in `config/costs.json` and carbon factors from the DB `carbon_factors` table, and added to the bay totals. The DB's carbon excludes columns (`db_info.gwp`).
 
 ---
 
@@ -166,10 +177,14 @@ gravity/
 config/
   occupancies.json
   sdl.json
-  systems.json         # per-system span limits, DB name mapping, column unit costs/carbon,
+  systems.json         # per-system span limits, DB name mapping, slab/deck weights,
                        # target_ratio, steel_splice_every_n_levels, material properties
+  costs.json           # unit rates (placeholder until verified); the DB has no cost data
 data/
   aisc_shapes.csv      # W12/W14 properties (AISC export if available, else embedded subset)
+  bay_studies.sqlite   # bay study database (read-only)
+docs/
+  ASSUMPTIONS.md       # every engineering assumption and its source
 tests/
   fixtures/simple_rect.json
   fixtures/l_shape.json
@@ -180,7 +195,7 @@ tests/
 ### 4.1 `loads.py`
 - Map each bay polygon to the zones it overlaps (shapely intersection).
 - Governing load for a bay = **max** LL of any overlapping zone (conservative, simple). Keep the area fractions in the output for later refinement.
-- Live load reduction per ASCE 7-22 §4.7: `L = Lo * (0.25 + 15/sqrt(KLL*AT))`, KLL = 4 interior columns, 2 interior beams / edge columns (see table 4.7-1), limited to 0.5Lo for members supporting one floor and 0.4Lo for multiple floors. Not applied where LL > 100 psf or assembly occupancy. Roof uses §4.8.
+- Live load reduction per ASCE 7-22 §4.7: `L = Lo * (0.25 + 15/sqrt(KLL*AT))`, KLL = 4 interior columns, 2 interior beams / edge columns (see table 4.7-1), limited to 0.5Lo for members supporting one floor and 0.4Lo for multiple floors. Not applied where LL > 100 psf or assembly occupancy. Roof uses §4.8. Bay framing lookups use unreduced LL (the steel bay study uses no LL reduction); reduction applies to column loads.
 - Partition load added only where the occupancy table says so.
 
 ### 4.2 `grid.py`
@@ -204,7 +219,7 @@ tests/
 **Loads**
 - Tributary area by half-bay method (Voronoi is overkill for orthogonal grids). Edge and corner columns get the partial area automatically.
 - Accumulate D, L (reduced per 4.1 using cumulative AT and KLL from ASCE 7-22 Table 4.7-1), Lr, and S (flat roof snow; see decisions log) from the roof down.
-- D = framing self-weight from the DB row's `self_wt_psf` (only if the DB table doesn't already include it in its load basis — confirm in section 6 step 2) + SDL + partitions where applicable (partitions are treated as live for reduction purposes only if the team agrees; default: carry as dead, conservative) + column self-weight from the previous iteration + a perimeter cladding line load from `config/systems.json` (default 0 for the hackathon, flagged).
+- D = framing self-weight (`steel_psf` + slab/deck weight; the DB designs account for self-weight internally but their load inputs exclude it, so it is always added here) + SDL + partitions where applicable (partitions are treated as live for reduction purposes only if the team agrees; default: carry as dead, conservative) + column self-weight from the previous iteration + a perimeter cladding line load from `config/systems.json` (default 0 for the hackathon, flagged).
 - Factored axial = max of the ASCE 7-22 §2.3.1 gravity combos:
   - `1.4D`
   - `1.2D + 1.6L + 0.5Lr`
@@ -224,11 +239,12 @@ tests/
   - Exclude shapes with slender elements for compression (Table B4.1a) rather than implementing E7.
 - Selection: lightest shape with `Pu / φPn ≤ target_ratio` (config, default 0.90 to leave room for the moment the lateral team won't send us).
 - Stack: size the bottom of each 2-story tier and run that size through the tier (splice every 2 levels). For a 3-story building, that's one splice above L2 or none — let the config decide (`steel_splice_every_n_levels`, default 2).
-- Column tonnage = Σ (weight_plf × length) → `steel_tons`, priced with the column $/ton and carbon/ton in `config/systems.json`.
+- Column tonnage = Σ (weight_plf × length) → `steel_tons` (US short tons), priced with the column $/ton in `config/costs.json` and the `hot_rolled_sections` carbon factor from the DB (per metric tonne: convert).
 - Hand-check test: one interior column on `simple_rect.json` must match a manual calc within 1% (Claude Code shows the numbers).
 
 **Concrete and mass timber (after steel works)**
 - Concrete: square tied column, `φPn,max = 0.80·0.65·[0.85f'c(Ag − Ast) + fy·Ast]`, 1% steel, f'c = 5 ksi, fy = 60 ksi, 16 in minimum, round up in 2 in increments. Ignore slenderness for the hackathon and flag it.
+- Concrete flat plates: the column size in the DB row (`column_in`, used for punching shear) is taken as the column size and reported in the output; flag it if the axial sizing above needs a larger column.
 - Mass timber: square glulam, NDS column stability factor Cp with placeholder Fc / E values in `config/systems.json`, round up to standard glulam widths. Flag as preliminary.
 - Constant size up the height for both in a 3-story building unless a column exceeds its ratio.
 
@@ -280,12 +296,21 @@ Review each step's output before moving on — especially step 2 (DB units and l
 | Inputs and outputs are JSON, contract defined by `models.py` | **Settled** |
 | Steel is built first and end to end before concrete/timber | **Settled** |
 | DB has no column sizes; columns use simplified sizing (4.5) | **Settled** |
-| Column cost/carbon computed separately from DB bay $/sf | **Settled** (verify DB doesn't already include columns) |
+| Column cost/carbon computed separately from DB bay totals | **Settled** — DB carbon excludes columns (`db_info.gwp`); DB has no cost |
 | Coordinate origin and units from the recognizer | Open — confirm with vision/integration team |
 | Lateral picks its own frame lines vs. we propose them | Open — default: lateral picks |
 | Roof snow load source | Open — default: flat input in `config`, 0 if not given, flagged |
-| DB loads are service vs factored; self-weight included or not | Open — answered in section 6 step 2 |
+| DB loads are service (unfactored); the DB designs include framing self-weight internally, but their load inputs exclude it, so `columns.py` adds self-weight to D | **Settled** (section 6 step 2) |
 | Column stack entries carry `Plr_kips`, `Psnow_kips` and `governing_combo`; foundation reactions carry `S_kips`; snow combos `1.2D+1.6L+0.5S` and `1.2D+1.6S+1.0L` added to 4.5 | **Settled** |
 | `no_columns` zones remove only columns strictly inside the zone; columns on its boundary stay. A zone on level Ln applies to the story from Ln up to the next level | **Settled** |
 | Depth limit at a framed level uses the floor-to-floor height of the story below it (4.4) | **Settled** |
 | Typical zones copy to framed floors only (lowest level is slab-on-grade, roof is always `roof` occupancy); an explicit zone overrides copied zones only where it overlaps them | **Settled** |
+| No cost data in the DB: unit rates in `config/costs.json` (placeholder values until an estimator verifies them) | **Settled** |
+| SDL above a system's design SDL (15 psf for steel) is added to LL for the bay lookup, with a warning (`docs/ASSUMPTIONS.md` L-1) | **Settled** |
+| Steel `LL=50` rows exclude partitions; partition load is added to LL for the lookup (office 50 + 15 = 65 → `LL=100` row) | **Settled** |
+| Vibration criterion per occupancy in `config/occupancies.json`: `office`, `residential_private` → `Walking b=0.03`; others → `Strength` | **Settled** |
+| `framing_options` takes `use` (floor/roof) and `criterion` (2.3) | **Settled** |
+| Slab/deck weight copied from the DB `assumptions` table into `config/systems.json` | **Settled** |
+| Roof lookup load = max(Lr, flat roof snow) | **Settled** |
+| Concrete flat plates: DB `column_in` is the column size and is reported in the concrete output | **Settled** |
+| Office walking rows exist only at `LL=50`, but office lookups go to `LL=100` (partitions added): how to combine | Open |

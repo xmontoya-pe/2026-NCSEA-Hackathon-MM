@@ -8,6 +8,10 @@ Spec: `GRAVITY_OPTIMIZER_SPEC.md` (section 1 is reproduced below).
 - Steel is built first, end to end. Don't start concrete or mass timber until told to.
 - The bay study SQLite DB is read-only and has no column sizes.
 - Show your work on any engineering calculation: inputs, intermediate values, result.
+- Record every engineering assumption in `docs/ASSUMPTIONS.md`, and every decision in the
+  spec's decisions log (section 7).
+- Unit costs live in `config/costs.json`; the values are placeholders until an estimator
+  verifies them. Never hardcode a cost or carbon factor in code.
 
 ## Guiding rules (spec section 1)
 

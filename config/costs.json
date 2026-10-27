@@ -1,0 +1,56 @@
+{
+  "_meta": {
+    "status": "PLACEHOLDER. Order-of-magnitude US national averages compiled from general industry knowledge, without access to a cost database or current bids. Verify with an estimator (or RSMeans / local subcontractor pricing) before relying on cost rankings.",
+    "basis": "Installed cost: material + fabrication + labor + equipment + subcontractor overhead and profit. Excludes general contractor markups, design contingency, escalation, sales tax, fireproofing, connections beyond typical shear tabs, lateral system and foundations.",
+    "currency": "USD",
+    "base_year": 2025,
+    "location_factor": 1.0,
+    "ton": "US short ton (2,000 lb). The bay study gives steel in lb per sq ft of floor: tons per sq ft = steel_psf / 2000.",
+    "systems_covered": "Steel only (STL_COMP, STL_ROOF_W, STL_ROOF_J). Concrete and mass timber rates are added when those systems are built."
+  },
+  "steel": {
+    "wide_flange_framing_usd_per_ton": {
+      "value": 5000, "low": 4000, "high": 6500,
+      "applies_to": "W-shape beams and girders (STL_COMP, STL_ROOF_W) and the W girders of STL_ROOF_J",
+      "note": "Fabricated and erected, typical simple shear connections"
+    },
+    "columns_usd_per_ton": {
+      "value": 5500, "low": 4500, "high": 7000,
+      "applies_to": "W12/W14 gravity columns sized by columns.py",
+      "note": "Includes an allowance for base plates and splices"
+    },
+    "open_web_joists_usd_per_ton": {
+      "value": 3800, "low": 3000, "high": 5000,
+      "applies_to": "KCS joists of STL_ROOF_J",
+      "note": "Includes bridging allowance"
+    },
+    "shear_studs_usd_each": {
+      "value": 4.0, "low": 3.0, "high": 6.0,
+      "applies_to": "STL_COMP beam_studs and girder_studs (des_steel_composite)",
+      "note": "3/4 in. diameter, field welded through deck"
+    },
+    "composite_floor_deck_usd_per_sf": {
+      "value": 4.5, "low": 3.5, "high": 6.0,
+      "applies_to": "STL_COMP 2VLI composite deck",
+      "note": "Gauge not stated in the bay study; priced as typical 20 ga"
+    },
+    "concrete_on_deck_usd_per_cy": {
+      "value": 325, "low": 250, "high": 425,
+      "applies_to": "STL_COMP slab concrete (concrete_cy_per_sf)",
+      "note": "4 ksi normal weight, pumped, placed, finished and cured"
+    },
+    "slab_reinforcing_on_deck_usd_per_sf": {
+      "value": 0.75, "low": 0.5, "high": 1.25,
+      "applies_to": "STL_COMP slab (the bay study reports no slab reinforcing)",
+      "note": "Welded wire reinforcement or light temperature/shrinkage bars"
+    },
+    "roof_deck_usd_per_sf": {
+      "1.5B 20 ga": {"value": 2.75, "low": 2.25, "high": 3.5},
+      "1.5B 18 ga": {"value": 3.25, "low": 2.75, "high": 4.0},
+      "3N 20 ga": {"value": 4.25, "low": 3.5, "high": 5.25},
+      "3N 18 ga": {"value": 5.0, "low": 4.0, "high": 6.0},
+      "applies_to": "STL_ROOF_W and STL_ROOF_J deck_or_slab",
+      "note": "Rows with a blank gauge in the bay study (e.g. '1.5B  ga roof deck') are priced at the 18 ga rate (conservative)"
+    }
+  }
+}
