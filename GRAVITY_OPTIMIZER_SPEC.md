@@ -176,6 +176,7 @@ gravity/
   scoring.py           # cost/depth/carbon normalization and weighted score
   optimizer.py         # search loop per system
   exporters.py         # output.json, plus optional lateral-team format
+  report.py            # plain-text summary tables (python -m gravity summary)
 config/
   occupancies.json
   sdl.json
@@ -206,7 +207,7 @@ tests/
 - Strategy A: snap to recognized `dimension_lines`, optionally subdividing a dimension span into 2 or 3 equal bays.
 - Strategy B: uniform grids that fill the bounding box (allow one odd end bay).
 - Clip to the outline; drop columns outside, flag columns within 2 ft of the outline edge for a perimeter line.
-- Remove columns strictly inside `no_columns` zones (columns on the zone boundary stay); the merged bay becomes a long-span bay.
+- Remove columns strictly inside `no_columns` zones (columns on the zone boundary stay), from that story and every story above it (no transfer girders); the merged bay becomes a long-span bay at every framed level above.
 - Keep the candidate count small (dozens, not thousands). Brute force is fine.
 
 ### 4.3 `bays.py`
@@ -320,3 +321,4 @@ Review each step's output before moving on — especially step 2 (DB units and l
 | KLL for corner columns = 4 per ASCE 7-22 Table 4.7-1 (no cantilever slabs); edge columns stay at the spec value 2 (`docs/ASSUMPTIONS.md` Z-6) | **Settled** |
 | Typical-zone copies carry the occupancy only, not `no_columns` (`docs/ASSUMPTIONS.md` Z-1) | **Settled** |
 | Integration team builds against `examples/` (sample input/output, generated JSON Schema, README); tests keep it in sync with `models.py` | **Settled** |
+| A column removed for a `no_columns` zone is removed from that story and every story above it; no transfer girders (`docs/ASSUMPTIONS.md` G-3) | **Settled** |
