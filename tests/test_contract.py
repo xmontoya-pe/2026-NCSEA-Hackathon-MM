@@ -55,15 +55,24 @@ class TestFixtures(unittest.TestCase):
                 result = run_fixture(name)
 
                 output = GravityOutput.model_validate(result)
-                self.assertEqual([s.system for s in output.schemes], ["steel"])
+                self.assertEqual([s.system for s in output.schemes],
+                                 ["steel", "concrete", "mass_timber"])
                 # Must survive a JSON round trip unchanged (what the CLI writes).
                 self.assertEqual(json.loads(json.dumps(result)), result)
 
-    def test_unbuilt_systems_are_skipped_with_a_warning(self):
-        warnings = run_fixture("simple_rect.json")["schemes"][0]["warnings"]
-        for system in ("concrete", "mass_timber"):
-            self.assertIn(f"System {system!r} is not built yet; no scheme returned for it",
-                          warnings)
+    def test_schemes_report_their_materials(self):
+        steel, concrete, timber = run_fixture("simple_rect.json")["schemes"]
+        self.assertTrue(concrete["warnings"][0].startswith("Concrete system: "))
+        self.assertGreater(concrete["quantities"]["concrete_cy"], 0)
+        self.assertEqual(concrete["quantities"]["timber_cf"], 0)
+        self.assertGreater(timber["quantities"]["timber_cf"], 0)
+        self.assertEqual(steel["quantities"]["timber_cf"], 0)
+        self.assertTrue(all(seg["size"].startswith("W") for c in steel["columns"]
+                            for seg in c["stack"]))
+        self.assertTrue(all(seg["size"].endswith(" conc") for c in concrete["columns"]
+                            for seg in c["stack"]))
+        self.assertTrue(all(seg["size"].endswith(" GL") for c in timber["columns"]
+                            for seg in c["stack"]))
 
     def test_run_does_not_mutate_input(self):
         input_dict = load_json(FIXTURES / "simple_rect.json")
@@ -254,7 +263,8 @@ class TestCli(unittest.TestCase):
             self.assertIn("project: Hackathon Test 1", lines[0])
             self.assertIn(f"{n} warning(s)", lines[0])
             self.assertEqual(len(lines), n + 1)
-            self.assertTrue(all(line.startswith("[steel] ") for line in lines[1:]))
+            prefixes = ("[steel] ", "[concrete] ", "[mass_timber] ")
+            self.assertTrue(all(line.startswith(prefixes) for line in lines[1:]))
             self.assertIn(f"WARNINGS: {n} warning(s) logged to", proc.stdout)
 
     def test_cli_writes_schemas(self):

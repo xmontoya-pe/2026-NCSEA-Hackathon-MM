@@ -12,11 +12,11 @@ the files here are generated from it or checked against it by tests.
 
 `python -m gravity examples` regenerates `sample_output.json` and both schema files.
 
-> **Steel results are real; costs are placeholders.** `sample_output.json` is the actual
-> steel output for `sample_input.json`: grid, bay framing from the bay study, sized
-> columns, loads, seismic weights and totals. Unit costs in `config/costs.json` are
-> placeholders until an estimator checks them, and every scheme's `warnings` says so.
-> Concrete and mass timber are not built yet: they are skipped, with a warning.
+> **Results are real; costs are placeholders.** `sample_output.json` is the actual output
+> for `sample_input.json`: one steel, one concrete and one mass timber scheme, each with
+> grid, bay framing from the bay study, sized columns, loads, seismic weights and totals.
+> Unit costs in `config/costs.json` are placeholders until an estimator checks them, and
+> every scheme's `warnings` says so.
 
 ## How to call it
 
@@ -64,10 +64,19 @@ back as strings in each scheme's `warnings` list, so there is always something t
   (too long a span or too heavy a load) is left out and named in `warnings`.
 - **`levels[].clear_height_ft`:** story height below the level minus the deepest framing
   at that level and the plenum allowance.
+- **`schemes`:** one per requested system, in the order requested (`steel`, `concrete`,
+  `mass_timber`). The concrete scheme is the best of four concrete systems (RC flat
+  plate, PT flat plate, one-way slab on PT beams, pan joists); its first warning names
+  which, e.g. `Concrete system: PT flat plate (CONC_PT_FP)`.
+- **Quantities by system:** `steel_tons` is beams, girders and columns for steel, and
+  reinforcing + PT strand (slabs, beams and columns) for concrete. `concrete_cy` is all
+  structural concrete: the slab on deck (steel), slabs, beams and columns (concrete), the
+  topping (mass timber). `timber_cf` is glulam beams, girders and columns plus CLT.
+- **Column sizes:** `W12X53` (steel), `18x18 conc` (concrete, inches), `10.75x10.75 GL`
+  (glulam, inches).
 
 ## What may still change
 
-- `schemes`: steel only for now; concrete and mass timber come later, in the same shape.
 - The coordinate convention above is pending confirmation.
 
 Any contract change is made in `gravity/models.py`, regenerates the schema files, and

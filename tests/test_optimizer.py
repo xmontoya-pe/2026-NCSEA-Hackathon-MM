@@ -92,12 +92,13 @@ class TestSchemeOutput(unittest.TestCase):
 
     def test_alternates_ranked_after_best(self):
         for name in FIXTURE_NAMES:
-            top = run_fixture(name)["schemes"][0]
-            scores = [top["rank_score"]] + [a["rank_score"] for a in top["alternates"]]
-            with self.subTest(fixture=name):
-                self.assertLessEqual(len(top["alternates"]), N_ALTERNATES)
-                self.assertEqual(scores, sorted(scores))
-                self.assertTrue(all(a["alternates"] == [] for a in top["alternates"]))
+            for top in run_fixture(name)["schemes"]:
+                scores = [top["rank_score"]] + [a["rank_score"] for a in top["alternates"]]
+                with self.subTest(fixture=name, system=top["system"]):
+                    self.assertLessEqual(len(top["alternates"]), N_ALTERNATES)
+                    self.assertEqual(scores, sorted(scores))
+                    self.assertTrue(all(a["alternates"] == [] for a in top["alternates"]))
+                    self.assertTrue(all(a["system"] == top["system"] for a in top["alternates"]))
 
     def test_foundation_reaction_is_base_of_stack(self):
         for name, _, scheme in self.each_scheme():
@@ -130,12 +131,15 @@ class TestSchemeOutput(unittest.TestCase):
         shapes = {s.name: s for s in load_shapes(REPO_ROOT / CFG["shapes_csv"],
                                                  tuple(CFG["families"]))}
         for name, inp, scheme in self.each_scheme():
+            with self.subTest(fixture=name, system=scheme["system"]):
+                self.assertGreater(scheme["quantities"]["concrete_cy"], 0)  # slabs or topping
+            if scheme["system"] != "steel":
+                continue
             heights = {lvl["name"]: lvl["floor_to_floor_ft"] for lvl in inp["levels"]}
             column_tons = sum(shapes[seg["size"]].weight_plf * heights[seg["level"]]
                               for c in scheme["columns"] for seg in c["stack"]) / 2000
             with self.subTest(fixture=name):
                 self.assertGreater(scheme["quantities"]["steel_tons"], column_tons)
-                self.assertGreater(scheme["quantities"]["concrete_cy"], 0)
 
     def test_columns_inside_outline_and_named_on_grid(self):
         for name, inp, scheme in self.each_scheme():
@@ -166,7 +170,8 @@ class TestReportCli(unittest.TestCase):
         self.assertEqual(proc.returncode, 0, proc.stderr)
         for name in FIXTURE_NAMES:
             self.assertIn(name, proc.stdout)
-        for text in ("beam+gird t", "column t", "best", "alt1", "Warnings (best scheme"):
+        for text in ("framing t", "column t", "best", "alt1", "Warnings (best scheme",
+                     "STEEL |", "CONCRETE |", "MASS_TIMBER |", "SYSTEM COMPARISON"):
             self.assertIn(text, proc.stdout)
 
 
