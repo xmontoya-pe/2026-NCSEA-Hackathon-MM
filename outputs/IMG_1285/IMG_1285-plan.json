@@ -1,0 +1,535 @@
+{
+  "schema": "sketch-plan/0.2",
+  "source": {
+    "image": "IMG_1285.jpeg",
+    "image_size_px": [
+      1623,
+      1133
+    ],
+    "read": "2026-10-27",
+    "model": "claude-opus-5-5"
+  },
+  "units": {
+    "length": "ft",
+    "area": "ft2",
+    "origin": "lower-left of the plan",
+    "axes": "+x east (right), +y north (up)"
+  },
+  "levels": {
+    "count": 1,
+    "storey_height": 12.0,
+    "slab_thickness": 0.83,
+    "source": "default (not on the sketch)"
+  },
+  "outline": [
+    [
+      0.0,
+      96.0252
+    ],
+    [
+      70.0,
+      96.0252
+    ],
+    [
+      70.0,
+      134.7746
+    ],
+    [
+      130.0,
+      134.7746
+    ],
+    [
+      130.0,
+      100.0
+    ],
+    [
+      200.0,
+      100.0
+    ],
+    [
+      200.0,
+      0.0
+    ],
+    [
+      0.0,
+      0.0
+    ]
+  ],
+  "floor": {
+    "area": 21808.24,
+    "perimeter": 669.5492,
+    "bounding_box": {
+      "min": [
+        0.0,
+        0.0
+      ],
+      "max": [
+        200.0,
+        134.7746
+      ],
+      "width_x": 200.0,
+      "depth_y": 134.7746
+    },
+    "bounding_box_area": 26954.92,
+    "fill_ratio": 0.8091,
+    "aspect_ratio": 1.484,
+    "centroid": [
+      100.829,
+      55.835
+    ],
+    "second_moment_about_centroid": {
+      "Ixx": 24967538,
+      "Iyy": 65988451,
+      "Ixy": 762803
+    },
+    "vertex_count": 8,
+    "edge_count": 8,
+    "winding": "clockwise",
+    "re_entrant_corners": [
+      "C2",
+      "C5"
+    ]
+  },
+  "vertices": [
+    {
+      "id": "C1",
+      "xy": [
+        0.0,
+        96.0252
+      ],
+      "corner": "convex",
+      "sketch_px": [
+        128,
+        403
+      ]
+    },
+    {
+      "id": "C2",
+      "xy": [
+        70.0,
+        96.0252
+      ],
+      "corner": "re-entrant",
+      "sketch_px": [
+        477,
+        387
+      ]
+    },
+    {
+      "id": "C3",
+      "xy": [
+        70.0,
+        134.7746
+      ],
+      "corner": "convex",
+      "sketch_px": [
+        476,
+        196
+      ]
+    },
+    {
+      "id": "C4",
+      "xy": [
+        130.0,
+        134.7746
+      ],
+      "corner": "convex",
+      "sketch_px": [
+        787,
+        184
+      ]
+    },
+    {
+      "id": "C5",
+      "xy": [
+        130.0,
+        100.0
+      ],
+      "corner": "re-entrant",
+      "sketch_px": [
+        797,
+        364
+      ]
+    },
+    {
+      "id": "C6",
+      "xy": [
+        200.0,
+        100.0
+      ],
+      "corner": "convex",
+      "sketch_px": [
+        1121,
+        363
+      ]
+    },
+    {
+      "id": "C7",
+      "xy": [
+        200.0,
+        0.0
+      ],
+      "corner": "convex",
+      "sketch_px": [
+        1131,
+        888
+      ]
+    },
+    {
+      "id": "C8",
+      "xy": [
+        0.0,
+        0.0
+      ],
+      "corner": "convex",
+      "sketch_px": [
+        157,
+        885
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "id": "E1",
+      "start": "C1",
+      "end": "C2",
+      "start_xy": [
+        0.0,
+        96.0252
+      ],
+      "end_xy": [
+        70.0,
+        96.0252
+      ],
+      "vector": [
+        70.0,
+        0.0
+      ],
+      "unit_vector": [
+        1.0,
+        0.0
+      ],
+      "outward_normal": [
+        0.0,
+        1.0
+      ],
+      "length": 70.0,
+      "angle_deg": 0.0,
+      "orientation": "horizontal",
+      "faces": "north",
+      "midpoint": [
+        35.0,
+        96.0252
+      ],
+      "dimension": "D2",
+      "length_source": "written"
+    },
+    {
+      "id": "E2",
+      "start": "C2",
+      "end": "C3",
+      "start_xy": [
+        70.0,
+        96.0252
+      ],
+      "end_xy": [
+        70.0,
+        134.7746
+      ],
+      "vector": [
+        0.0,
+        38.7494
+      ],
+      "unit_vector": [
+        0.0,
+        1.0
+      ],
+      "outward_normal": [
+        -1.0,
+        0.0
+      ],
+      "length": 38.7494,
+      "angle_deg": 90.0,
+      "orientation": "vertical",
+      "faces": "west",
+      "midpoint": [
+        70.0,
+        115.3999
+      ],
+      "dimension": null,
+      "length_source": "not dimensioned, scaled from the drawing"
+    },
+    {
+      "id": "E3",
+      "start": "C3",
+      "end": "C4",
+      "start_xy": [
+        70.0,
+        134.7746
+      ],
+      "end_xy": [
+        130.0,
+        134.7746
+      ],
+      "vector": [
+        60.0,
+        0.0
+      ],
+      "unit_vector": [
+        1.0,
+        0.0
+      ],
+      "outward_normal": [
+        0.0,
+        1.0
+      ],
+      "length": 60.0,
+      "angle_deg": 0.0,
+      "orientation": "horizontal",
+      "faces": "north",
+      "midpoint": [
+        100.0,
+        134.7746
+      ],
+      "dimension": "D1",
+      "length_source": "written"
+    },
+    {
+      "id": "E4",
+      "start": "C4",
+      "end": "C5",
+      "start_xy": [
+        130.0,
+        134.7746
+      ],
+      "end_xy": [
+        130.0,
+        100.0
+      ],
+      "vector": [
+        0.0,
+        -34.7746
+      ],
+      "unit_vector": [
+        0.0,
+        -1.0
+      ],
+      "outward_normal": [
+        1.0,
+        0.0
+      ],
+      "length": 34.7746,
+      "angle_deg": 270.0,
+      "orientation": "vertical",
+      "faces": "east",
+      "midpoint": [
+        130.0,
+        117.3873
+      ],
+      "dimension": null,
+      "length_source": "not dimensioned, scaled from the drawing"
+    },
+    {
+      "id": "E5",
+      "start": "C5",
+      "end": "C6",
+      "start_xy": [
+        130.0,
+        100.0
+      ],
+      "end_xy": [
+        200.0,
+        100.0
+      ],
+      "vector": [
+        70.0,
+        0.0
+      ],
+      "unit_vector": [
+        1.0,
+        0.0
+      ],
+      "outward_normal": [
+        0.0,
+        1.0
+      ],
+      "length": 70.0,
+      "angle_deg": 0.0,
+      "orientation": "horizontal",
+      "faces": "north",
+      "midpoint": [
+        165.0,
+        100.0
+      ],
+      "dimension": "D3",
+      "length_source": "written"
+    },
+    {
+      "id": "E6",
+      "start": "C6",
+      "end": "C7",
+      "start_xy": [
+        200.0,
+        100.0
+      ],
+      "end_xy": [
+        200.0,
+        0.0
+      ],
+      "vector": [
+        0.0,
+        -100.0
+      ],
+      "unit_vector": [
+        0.0,
+        -1.0
+      ],
+      "outward_normal": [
+        1.0,
+        0.0
+      ],
+      "length": 100.0,
+      "angle_deg": 270.0,
+      "orientation": "vertical",
+      "faces": "east",
+      "midpoint": [
+        200.0,
+        50.0
+      ],
+      "dimension": "D5",
+      "length_source": "written"
+    },
+    {
+      "id": "E7",
+      "start": "C7",
+      "end": "C8",
+      "start_xy": [
+        200.0,
+        0.0
+      ],
+      "end_xy": [
+        0.0,
+        0.0
+      ],
+      "vector": [
+        -200.0,
+        0.0
+      ],
+      "unit_vector": [
+        -1.0,
+        0.0
+      ],
+      "outward_normal": [
+        0.0,
+        -1.0
+      ],
+      "length": 200.0,
+      "angle_deg": 180.0,
+      "orientation": "horizontal",
+      "faces": "south",
+      "midpoint": [
+        100.0,
+        0.0
+      ],
+      "dimension": "D4",
+      "length_source": "written"
+    },
+    {
+      "id": "E8",
+      "start": "C8",
+      "end": "C1",
+      "start_xy": [
+        0.0,
+        0.0
+      ],
+      "end_xy": [
+        0.0,
+        96.0252
+      ],
+      "vector": [
+        0.0,
+        96.0252
+      ],
+      "unit_vector": [
+        0.0,
+        1.0
+      ],
+      "outward_normal": [
+        -1.0,
+        0.0
+      ],
+      "length": 96.0252,
+      "angle_deg": 90.0,
+      "orientation": "vertical",
+      "faces": "west",
+      "midpoint": [
+        0.0,
+        48.0126
+      ],
+      "dimension": "D5",
+      "length_source": "part of the D5 chain"
+    }
+  ],
+  "dimensions": [
+    {
+      "id": "D1",
+      "written": "60'",
+      "value": 60.0,
+      "orientation": "h",
+      "solved": 60.0,
+      "agrees": true,
+      "measures": "C3 to C4, x 70 to 130 at y = 134.775"
+    },
+    {
+      "id": "D2",
+      "written": "70'",
+      "value": 70.0,
+      "orientation": "h",
+      "solved": 70.0,
+      "agrees": true,
+      "measures": "C1 to C2, x 0 to 70 at y = 96.025"
+    },
+    {
+      "id": "D3",
+      "written": "70'",
+      "value": 70.0,
+      "orientation": "h",
+      "solved": 70.0,
+      "agrees": true,
+      "measures": "C5 to C6, x 130 to 200 at y = 100"
+    },
+    {
+      "id": "D4",
+      "written": "200'",
+      "value": 200.0,
+      "orientation": "h",
+      "solved": 200.0,
+      "agrees": true,
+      "measures": "C8 to C7, x 0 to 200 at y = 0"
+    },
+    {
+      "id": "D5",
+      "written": "100'",
+      "value": 100.0,
+      "orientation": "v",
+      "solved": 100.0,
+      "agrees": true,
+      "measures": "C7 to C6, y 0 to 100 at x = 200"
+    }
+  ],
+  "columns": [],
+  "cores": [],
+  "grids": {
+    "x": [],
+    "y": []
+  },
+  "notes": [],
+  "warnings": [
+    "1 span(s) have no dimension and were scaled from the drawing.",
+    "Left 70' dimension arrow ends short of the step corner (around x\u2248257). It is assumed to measure from the left edge to the left side of the upper projection.",
+    "No extension lines are drawn for the 100' dimension. It is assumed to measure the right wall height from the right step down to the bottom edge.",
+    "The left wall height is not dimensioned, and the top-left edge is drawn slightly lower than the top-right edge. The two are probably meant to be equal at 100'.",
+    "The height of the upper projection (60' wide) is not dimensioned.",
+    "The horizontal dimensions are consistent: 70 + 60 + 70 = 200 ft."
+  ]
+}

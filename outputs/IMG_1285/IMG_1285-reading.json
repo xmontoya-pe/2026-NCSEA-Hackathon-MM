@@ -1,0 +1,128 @@
+{
+  "units": "ft",
+  "outline": [
+    [
+      79,
+      356
+    ],
+    [
+      294,
+      342
+    ],
+    [
+      293,
+      173
+    ],
+    [
+      485,
+      162
+    ],
+    [
+      491,
+      321
+    ],
+    [
+      691,
+      320
+    ],
+    [
+      697,
+      784
+    ],
+    [
+      97,
+      781
+    ]
+  ],
+  "dimensions": [
+    {
+      "text": "60'",
+      "value": 60,
+      "p1": [
+        293,
+        173
+      ],
+      "p2": [
+        485,
+        162
+      ],
+      "orientation": "h"
+    },
+    {
+      "text": "70'",
+      "value": 70,
+      "p1": [
+        79,
+        356
+      ],
+      "p2": [
+        294,
+        342
+      ],
+      "orientation": "h"
+    },
+    {
+      "text": "70'",
+      "value": 70,
+      "p1": [
+        491,
+        321
+      ],
+      "p2": [
+        691,
+        320
+      ],
+      "orientation": "h"
+    },
+    {
+      "text": "200'",
+      "value": 200,
+      "p1": [
+        97,
+        781
+      ],
+      "p2": [
+        697,
+        784
+      ],
+      "orientation": "h"
+    },
+    {
+      "text": "100'",
+      "value": 100,
+      "p1": [
+        691,
+        320
+      ],
+      "p2": [
+        697,
+        784
+      ],
+      "orientation": "v"
+    }
+  ],
+  "grid_x": [],
+  "grid_y": [],
+  "columns": [],
+  "cores": [],
+  "levels": {
+    "count": null,
+    "storey_height": null
+  },
+  "notes": [],
+  "warnings": [
+    "Left 70' dimension arrow ends short of the step corner (around x\u2248257). It is assumed to measure from the left edge to the left side of the upper projection.",
+    "No extension lines are drawn for the 100' dimension. It is assumed to measure the right wall height from the right step down to the bottom edge.",
+    "The left wall height is not dimensioned, and the top-left edge is drawn slightly lower than the top-right edge. The two are probably meant to be equal at 100'.",
+    "The height of the upper projection (60' wide) is not dimensioned.",
+    "The horizontal dimensions are consistent: 70 + 60 + 70 = 200 ft."
+  ],
+  "_meta": {
+    "model": "claude-opus-5-5",
+    "image": "IMG_1285.jpeg",
+    "image_size": [
+      1623,
+      1133
+    ]
+  }
+}

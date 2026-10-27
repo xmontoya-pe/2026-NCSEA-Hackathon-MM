@@ -17,7 +17,7 @@ function bonesOpen(project){
     const old = S.levels;
     S.levels = d.levels.map((L, j) => Object.assign({}, L, {name: (old[j] || {}).name || ''}));
     S.n = S.levels.length; S.project = d.project || S.project;
-    const keep = {hazard: (S.bones || {}).hazard, snow: (S.bones || {}).snow, loads: (S.bones || {}).loads};
+    const keep = {hazard: (S.bones || {}).hazard, snow: (S.bones || {}).snow, loads: (S.bones || {}).loads, material: (S.bones || {}).material};
     S.bones = Object.assign({}, d.bones, ...Object.keys(keep).filter(k => keep[k]).map(k => ({[k]: keep[k]})));
     ensureLevels(S);
   } else {
@@ -87,6 +87,7 @@ function setHazard(h){
   save();
 }
 function setSnow(sn){ bonesData().snow = sn; save(); renderLoads(); }
+function setMaterial(m){ bonesData().material = m; save(); }   // step 4's structural system, a stand-in for module 4
 const lineKey = v => Math.round(v * 1000) / 1000;
 function bonesLines(){
   const el = document.getElementById('bonesLines'); if(!el) return;
@@ -99,8 +100,8 @@ function bonesLines(){
   const list = (d, axis) => Object.keys(groups[d]).sort((a, b) => a - b).map(at =>
     `<li><span>${axis} = ${fmt(+at, at % 1 ? 2 : 0)} ft</span><span>${groups[d][at].map(esc).join(', ')}</span></li>`).join('');
   let verdict, cls;
-  if(!nx && !ny){ verdict = 'No braced frames yet. Choose Braced frames, then click one column and the other column of a braced bay.'; cls = 'b-warn'; }
-  else if(!nx || !ny){ verdict = `Frames are needed in both directions; there are none in ${nx ? 'Y' : 'X'}.`; cls = 'b-bad'; }
+  if(!nx && !ny){ verdict = 'No lines of resistance yet. Choose Lines of resistance on the pad, then click one end of a wall or frame and then the other.'; cls = 'b-warn'; }
+  else if(!nx || !ny){ verdict = `Lines of resistance are needed in both directions; there are none in ${nx ? 'Y' : 'X'}.`; cls = 'b-bad'; }
   else if(nx + ny < 3){ verdict = 'Only one line in each direction: the lines meet at a point, so the plan cannot resist torsion. Add a third line.'; cls = 'b-bad'; }
   else { verdict = `${nx + ny} lines of resistance, ${nx} in X and ${ny} in Y: enough to resist torsion.`; cls = 'b-good'; }
   el.innerHTML = `<p class="${cls}" style="margin:0 0 10px">${verdict}</p>` +
@@ -110,7 +111,7 @@ function bonesLines(){
   window.dispatchEvent(new CustomEvent('bones:lines', {detail: {nx, ny, ok, frames: (S.plan.lfrs || []).length}}));
 }
 
-/* 3D view: every level of the typical plan, columns at the corners and frame columns, one brace per story */
+/* 3D view: every level of the typical plan, columns at the corners, each line of resistance shaded as a wall */
 function render3D(){
   const svg = document.getElementById('m3d'); if(!svg) return;
   const pl = S.plan, V = pl.verts || [];
@@ -128,39 +129,24 @@ function render3D(){
   const ox = 500 - (mnx + mxx) / 2 * k + V3.px, oy = 300 - (mny + mxy) / 2 * k + V3.py;
   const T = (x, y, z) => { const q = P(x, y, z); return (ox + q[0] * k).toFixed(1) + ' ' + (oy + q[1] * k).toFixed(1); };
   const ring = z => 'M' + V.map(p => T(p[0], p[1], z)).join('L') + 'Z';
-  let floors = '', cols = '', braces = '', beams = '', labels = '';
+  let floors = '', cols = '', walls = '', labels = '';
   hs.slice(1, -1).forEach(z => floors += ring(z));
-  const colPts = V.map(p => p.slice());
   (pl.lfrs || []).forEach(l => {
-    const a = [l.x1, l.y1], b = [l.x2, l.y2], x2 = l.type === 'x2';
-    const L = lLen(l), t = x2 && num(l.L1) > 0 && num(l.L1) < L ? num(l.L1) / L : 0.5;
-    const m = [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
-    colPts.push(a, b); if(x2) colPts.push(m);
-    hs.slice(1).forEach((z, i) => {
-      const z0 = hs[i], flip = l.alt && i % 2 === 1;
-      beams += 'M' + T(a[0], a[1], z) + 'L' + T(b[0], b[1], z);
-      if(x2){
-        const atTop = (l.mid !== 'bot') !== (i % 2 === 1);    // Λ then V, alternating each story
-        braces += atTop ? 'M' + T(a[0], a[1], z0) + 'L' + T(m[0], m[1], z) + 'L' + T(b[0], b[1], z0)
-                        : 'M' + T(a[0], a[1], z) + 'L' + T(m[0], m[1], z0) + 'L' + T(b[0], b[1], z);
-      } else {
-        const toB = (l.up !== 'a') !== flip;                   // story 1 rises to the 'up' end
-        const lo = toB ? a : b, hi = toB ? b : a;
-        braces += 'M' + T(lo[0], lo[1], z0) + 'L' + T(hi[0], hi[1], z);
-      }
+    const a = [l.x1, l.y1], b = [l.x2, l.y2];
+    hs.slice(1).forEach((z, i) => {   // one shaded panel per story, so the floor lines still read across the wall
+      walls += 'M' + T(a[0], a[1], hs[i]) + 'L' + T(b[0], b[1], hs[i]) + 'L' + T(b[0], b[1], z) + 'L' + T(a[0], a[1], z) + 'Z';
     });
     const mid = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2], q = T(mid[0], mid[1], top).split(' ');
     labels += `<text x="${q[0]}" y="${+q[1] - 10}" text-anchor="middle" font-size="15" font-weight="700" fill="#E3A3AD">${esc(l.label)}</text>`;
   });
-  colPts.forEach(p => cols += 'M' + T(p[0], p[1], 0) + 'L' + T(p[0], p[1], top));
+  V.forEach(p => cols += 'M' + T(p[0], p[1], 0) + 'L' + T(p[0], p[1], top));
   svg.innerHTML = `<path d="${ring(0)}" fill="#fff" fill-opacity=".05" stroke="#5A5A61"/>
     <path d="${floors}" fill="#fff" fill-opacity=".03" stroke="#fff" stroke-opacity=".45"/>
     <path d="${cols}" stroke="#fff" stroke-opacity=".35"/>
-    <path d="${beams}" stroke="#D0566A" stroke-opacity=".7" stroke-width="2"/>
-    <path d="${braces}" stroke="#D0566A" stroke-width="2.6" fill="none" stroke-linejoin="round"/>
+    <path d="${walls}" fill="#D0566A" fill-opacity=".38" stroke="#D0566A" stroke-width="1.6" stroke-linejoin="round"/>
     <path d="${ring(top)}" fill="none" stroke="#fff" stroke-width="1.6"/>${labels}`;
-  const sum = document.getElementById('m3dSum');
-  if(sum) sum.textContent = `${S.levels.length} level${S.levels.length === 1 ? '' : 's'}, ${(pl.lfrs || []).length} braced frame${(pl.lfrs || []).length === 1 ? '' : 's'}`;
+  const sum = document.getElementById('m3dSum'), nL = (pl.lfrs || []).length;
+  if(sum) sum.textContent = `${S.levels.length} level${S.levels.length === 1 ? '' : 's'}, ${nL} line${nL === 1 ? '' : 's'} of resistance`;
 }
 (function wire3D(){
   const views = {v3iso: [-35, 28], v3plan: [0, 90], v3front: [0, 0], v3side: [-90, 0]};
@@ -179,6 +165,34 @@ function render3D(){
   w.addEventListener('contextmenu', e => e.preventDefault());
   w.addEventListener('wheel', e => { if(document.activeElement !== w) return; e.preventDefault(); V3.zoom = Math.max(0.3, Math.min(6, V3.zoom * (e.deltaY < 0 ? 1.12 : 1 / 1.12))); render3D(); }, {passive: false});
 })();
+/* Wording: the pad's frames stand for walls or frames of any material (chosen in module 4), so its brace wording
+   is swapped for "lines of resistance" as it renders, leaving pad.verbatim.* unchanged. Specific phrases first. */
+const WORDS = [
+  ['Click the first column of a braced bay (the line runs column to column)', 'Click one end of the wall or frame'],
+  ['click the two columns of each braced bay', 'click both ends of each wall or frame'],
+  ['Columns, beams and one brace per story are drawn for every frame.', 'Each line of resistance is shaded as a wall at every story.'],
+  ['Frame selected:', 'Line selected:'], ['New frames, A', 'New lines, A'], [' to add frames', ' to add them'],
+  ['Braced frames', 'Lines of resistance'], ['braced frames', 'lines of resistance'],
+  ['Braced frame', 'Line of resistance'], ['braced frame', 'line of resistance']];
+const reword = s => WORDS.reduce((t, [a, b]) => t.split(a).join(b), s);
+function rewordTree(n){
+  if(n.nodeType === 3){
+    if(n.parentElement && !n.parentElement.closest('svg')){ const t = reword(n.nodeValue); if(t !== n.nodeValue) n.nodeValue = t; }
+    return;
+  }
+  if(n.nodeType !== 1 || n.closest('svg')) return;   // the plan and 3D drawings carry no wording, and redraw often
+  ['aria-label', 'title'].forEach(a => { const v = n.getAttribute(a); if(v){ const t = reword(v); if(t !== v) n.setAttribute(a, t); } });
+  n.childNodes.forEach(rewordTree);
+}
+(function wireWording(){
+  const pad = document.getElementById('pad'); if(!pad) return;
+  const foot = pad.querySelector('.tpanel:not(.lapanel) .tp-foot');
+  if(foot) foot.innerHTML = 'Each line is a wall or frame that resists lateral load; its material is chosen in Module 4. Until then, A (in²) only sets how the load is shared between lines.';
+  rewordTree(pad);
+  new MutationObserver(ms => ms.forEach(m => m.type === 'characterData' ? rewordTree(m.target) : m.addedNodes.forEach(rewordTree)))
+    .observe(pad, {childList: true, subtree: true, characterData: true});
+})();
+window.BonesPad = {open: bonesOpen, state: () => S, bones: () => bonesData(), setHazard, setSnow, setMaterial, copyLoadsToFloors,
 window.BonesPad = {open: bonesOpen, state: () => S, bones: () => bonesData(), setHazard, setSnow, copyLoadsToFloors, renderLoads,
   toScreen: (x, y) => { const r = document.getElementById('plan').getBoundingClientRect(), p = toS([x, y]); return [r.left + p[0], r.top + p[1]]; }, fit: () => { sizePlan(); fit(); render(); }, refresh: () => { bonesLines(); render3D(); }};
 bonesReady = true;

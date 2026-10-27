@@ -1,0 +1,88 @@
+SKETCH PLAN SUMMARY
+===================
+Source:  IMG_1285.jpeg  (1623 x 1133 px)
+Read on: 2026-10-27  with claude-opus-5-5
+Units:   ft; areas in ft2
+Origin:  lower-left of the plan; +x = east (right), +y = north (up)
+Shape:   8 corners, 200 x 134.775 ft overall
+
+1. DIMENSIONS WRITTEN ON THE SKETCH
+-----------------------------------
+ID   Written   Value (ft)   Direction    Solved   Check   Measures between
+D1   60'       60           horizontal   60       OK      C3 to C4, x 70 to 130 at y = 134.775
+D2   70'       70           horizontal   70       OK      C1 to C2, x 0 to 70 at y = 96.025
+D3   70'       70           horizontal   70       OK      C5 to C6, x 130 to 200 at y = 100
+D4   200'      200          horizontal   200      OK      C8 to C7, x 0 to 200 at y = 0
+D5   100'      100          vertical     100      OK      C7 to C6, y 0 to 100 at x = 200
+
+All dimensions agree with each other.
+
+2. CORNERS (VERTICES)
+---------------------
+ID   x (ft)   y (ft)    x (m)    y (m)    Corner type   Sketch position (px)
+C1   0        96.025    0        29.268   convex        (128, 403)
+C2   70       96.025    21.336   29.268   re-entrant    (477, 387)
+C3   70       134.775   21.336   41.079   convex        (476, 196)
+C4   130      134.775   39.624   41.079   convex        (787, 184)
+C5   130      100       39.624   30.48    re-entrant    (797, 364)
+C6   200      100       60.96    30.48    convex        (1121, 363)
+C7   200      0         60.96    0        convex        (1131, 888)
+C8   0        0         0        0        convex        (157, 885)
+
+Outline order: C1 > C2 > C3 > C4 > C5 > C6 > C7 > C8 > back to C1 (clockwise)
+
+3. EDGES (LINES AS VECTORS)
+---------------------------
+ID   From > To   Start            End              Vector (dx, dy)   Unit vector   Outward normal   Length (ft)   Length (m)   Angle   Faces   Length set by
+E1   C1 > C2     (0, 96.025)      (70, 96.025)     (70, 0)           (1, 0)        (0, 1)           70            21.336       0°      north   D2 70' (written)
+E2   C2 > C3     (70, 96.025)     (70, 134.775)    (0, 38.749)       (0, 1)        (-1, 0)          38.749        11.811       90°     west    not dimensioned, scaled from the drawing
+E3   C3 > C4     (70, 134.775)    (130, 134.775)   (60, 0)           (1, 0)        (0, 1)           60            18.288       0°      north   D1 60' (written)
+E4   C4 > C5     (130, 134.775)   (130, 100)       (0, -34.775)      (0, -1)       (1, 0)           34.775        10.599       270°    east    not dimensioned, scaled from the drawing
+E5   C5 > C6     (130, 100)       (200, 100)       (70, 0)           (1, 0)        (0, 1)           70            21.336       0°      north   D3 70' (written)
+E6   C6 > C7     (200, 100)       (200, 0)         (0, -100)         (0, -1)       (1, 0)           100           30.48        270°    east    D5 100' (written)
+E7   C7 > C8     (200, 0)         (0, 0)           (-200, 0)         (-1, 0)       (0, -1)          200           60.96        180°    south   D4 200' (written)
+E8   C8 > C1     (0, 0)           (0, 96.025)      (0, 96.025)       (0, 1)        (-1, 0)          96.025        29.268       90°     west    D5 100' (part of the D5 chain)
+
+Midpoints: E1 (35, 96.025)  E2 (70, 115.4)  E3 (100, 134.775)  E4 (130, 117.387)  E5 (165, 100)  E6 (200, 50)  E7 (100, 0)  E8 (0, 48.013)
+
+4. FLOOR PLATE PROPERTIES
+-------------------------
+Floor area               21,808.24 ft2          (2,026.1 m2)
+Perimeter                669.549 ft             (204.08 m)
+Bounding box             200 x 134.775 ft       (x 0 to 200, y 0 to 134.775)
+Bounding box area        26,954.92 ft2
+Fill ratio               0.8091                 (floor area / bounding box area)
+Aspect ratio             1.484 : 1
+Centroid                 (100.829, 55.835) ft
+Ixx about centroid       24,967,538 ft4
+Iyy about centroid       65,988,451 ft4
+Ixy about centroid       762,803 ft4
+Vertices / edges         8 / 8
+Re-entrant corners       C2, C5
+Gross area, all levels   21,808.24 ft2          (1 level)
+
+5. LEVELS
+---------
+Storeys          1
+Storey height    12 ft
+Slab thickness   0.83 ft
+Total height     12 ft
+Source           default (not on the sketch)
+
+6. NOTES AND CHECKS
+-------------------
+- No column grid, columns or core were drawn.
+- The sketch is close to scale. All coordinates come from the written dimensions, not the drawn proportions:
+      Dim   Written   Drawn    Drawn scale
+      D1    60'       312 px   5.19 px/ft
+      D2    70'       349 px   4.98 px/ft
+      D3    70'       325 px   4.64 px/ft
+      D4    200'      974 px   4.87 px/ft
+      D5    100'      526 px   5.26 px/ft
+- 1 span(s) have no dimension and were scaled from the drawing.
+- Reader: Left 70' dimension arrow ends short of the step corner (around x≈257). It is assumed to measure from the left edge to the left side of the upper projection.
+- Reader: No extension lines are drawn for the 100' dimension. It is assumed to measure the right wall height from the right step down to the bottom edge.
+- Reader: The left wall height is not dimensioned, and the top-left edge is drawn slightly lower than the top-right edge. The two are probably meant to be equal at 100'.
+- Reader: The height of the upper projection (60' wide) is not dimensioned.
+- Reader: The horizontal dimensions are consistent: 70 + 60 + 70 = 200 ft.
+- Corner pixel positions are a visual reading of the image and may be off by a few pixels; this does not change the dimensioned coordinates.

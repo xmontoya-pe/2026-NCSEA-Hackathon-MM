@@ -1,0 +1,9 @@
+edge,start,end,x1,y1,x2,y2,dx,dy,length,angle_deg,orientation,faces,normal_x,normal_y,dimension,length_source
+E1,C1,C2,0.0,96.0252,70.0,96.0252,70.0,0.0,70.0,0.0,horizontal,north,0.0,1.0,D2,written
+E2,C2,C3,70.0,96.0252,70.0,134.7746,0.0,38.7494,38.7494,90.0,vertical,west,-1.0,0.0,,"not dimensioned, scaled from the drawing"
+E3,C3,C4,70.0,134.7746,130.0,134.7746,60.0,0.0,60.0,0.0,horizontal,north,0.0,1.0,D1,written
+E4,C4,C5,130.0,134.7746,130.0,100.0,0.0,-34.7746,34.7746,270.0,vertical,east,1.0,0.0,,"not dimensioned, scaled from the drawing"
+E5,C5,C6,130.0,100.0,200.0,100.0,70.0,0.0,70.0,0.0,horizontal,north,0.0,1.0,D3,written
+E6,C6,C7,200.0,100.0,200.0,0.0,0.0,-100.0,100.0,270.0,vertical,east,1.0,0.0,D5,written
+E7,C7,C8,200.0,0.0,0.0,0.0,-200.0,0.0,200.0,180.0,horizontal,south,0.0,-1.0,D4,written
+E8,C8,C1,0.0,0.0,0.0,96.0252,0.0,96.0252,96.0252,90.0,vertical,west,-1.0,0.0,D5,part of the D5 chain

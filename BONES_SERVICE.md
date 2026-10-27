@@ -44,11 +44,17 @@ What is sent, and what isn't, is listed in `docs/ASSUMPTIONS.md` (INT-1 to INT-6
    - **Gravity loads by load area:** one row per load area drawn on the pad, for the pad's current level: LL and SDL (editable; defaults 50 / 15 psf on floors, L<sub>r</sub> 20 / 20 psf at the roof) and SL at the roof. **Copy to every floor level** copies the rows.
    - S<sub>DS</sub>, S<sub>D1</sub> and I<sub>e</sub> are also written to the project's `sds`, `sd1` and `ie`, the fields the ELF app's module 1 reads. Hazards, snow and loads are saved under `bones.hazard`, `bones.snow` and `bones.loads`.
    - **Drawing pad:** **Open in the drawing pad** on step 2 loads the plan into Module 2's drawing pad (Lucas's code from the plan-import handoff, unchanged).
-   - Draw braced frames column to column, load areas by level, and edit the outline, with the pad's own snapping, undo, dimensions, C.M. / C.R. markers and frame tables.
+   - Draw lines of resistance (walls or frames; the material is chosen in module 4) end to end, load areas by level, and edit the outline, with the pad's own snapping, undo, dimensions, C.M. / C.R. markers and frame tables.
    - **Lines of resistance** (above the pad) groups the frames by line in X and Y and says whether there are enough lines to resist torsion: at least one line in each direction and at least three in total.
-   - The 3D view draws every level with one brace per story per frame (single or 2X, following each frame's direction and alternate settings). Drag to rotate, Shift-drag to pan, click then scroll to zoom.
+   - Lines of resistance are drawn as shaded walls, in plan and in 3D (one panel per story), with no braces, so the drawing does not assume steel. The pad still keeps a stiffness area A per line to share load between lines until module 4 sets the material.
+   - The 3D view draws every level and every line of resistance. Drag to rotate, Shift-drag to pan, click then scroll to zoom.
    - Everything is saved in the browser as you draw. Going back to step 2 and changing stories or snow keeps the frames and load areas. **Download file** saves the project JSON that the ELF app opens with **Open…**.
-4. All Sketch Reader files (summary, plan JSON, CSV, DXF, SVG, overlay, reading) are still written to `outputs/<name>/` and linked on step 2.
+4. **Step 4, structural system** (a stand-in until the real module 4 is in): **Compare structural systems** on step 3 opens a side-by-side comparison of steel special concentrically braced frames, special reinforced concrete shear walls, and light-frame wood shear walls.
+   - Each card shows R, Ω<sub>0</sub> and C<sub>d</sub> and the height limit for the site's SDC (ASCE 7-22 Table 12.2-1), the seismic weight W (floor area × stories × self-weight), and C<sub>s</sub> and base shear V at T<sub>a</sub> = 0.02 h<sub>n</sub><sup>0.75</sup>, using S<sub>DS</sub>, S<sub>D1</sub> and I<sub>e</sub> from step 3. Without hazards it assumes S<sub>DS</sub> 1.0 and S<sub>D1</sub> 0.6.
+   - Self-weight, cost, schedule and embodied carbon are placeholder values (`SYSTEMS` in `app.html`).
+   - A system over its height limit, or wood over 5 stories, is marked not permitted.
+   - The chosen system is saved under `bones.material` (with `placeholder: true`) and goes out with **Download file**.
+5. All Sketch Reader files (summary, plan JSON, CSV, DXF, SVG, overlay, reading) are still written to `outputs/<name>/` and linked on step 2.
 
 ## The Module 2 file (`bones_service/convert.py`)
 
@@ -69,7 +75,7 @@ Checks before hand-off (section 4.5): at least 4 corners, every edge horizontal 
 
 - The pad's CSS is scoped to `#pad` so it cannot restyle the rest of Bones, and its dark-mode rules are dropped. `pad/theme.css` gives it the Bones colors.
 - `pad/glue-pre.js` stands in for the parts of the ELF app the handoff leaves out (modules 1, 3 and 9 to 12, and the 3D code).
-- `pad/glue-post.js` opens a step 2 plan (the handoff's section 5A path), computes the lines of resistance, and draws the 3D view.
+- `pad/glue-post.js` opens a step 2 plan (the handoff's section 5A path), computes the lines of resistance, and draws the 3D view. It also swaps the pad's "Braced frames" wording for "Lines of resistance" as the pad renders (the `WORDS` list), and `pad/theme.css` draws them as shaded walls, so the verbatim files stay unchanged.
 - With no module 3 in Bones yet, a level uses its load areas whenever it has some.
 
 ## Endpoints

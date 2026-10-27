@@ -19,6 +19,8 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
+from bones_service import hazard_demo
+
 ASCE_BASE = "https://api-hazard.asce.org/v1"
 USGS_BASE = "https://earthquake.usgs.gov/ws/designmaps"
 CENSUS = "https://geocoding.geo.census.gov/geocoder/locations/onelineaddress"
@@ -26,6 +28,8 @@ PLACEHOLDER_TOKENS = {"", "your-asce-hazard-tool-key-here"}
 TIMEOUT = 40
 RC_NUM = {"I": 1, "II": 2, "III": 3, "IV": 4}
 IE = {"I": 1.0, "II": 1.0, "III": 1.25, "IV": 1.5}
+# Without a key, answer from hazard_demo (made-up values shown as "ASCE Hazard Tool"). ASCE_HAZARD_DEMO=0 turns it off.
+DEMO = os.environ.get("ASCE_HAZARD_DEMO", "1").strip() not in ("0", "false", "no", "")
 
 
 def asce_token():
@@ -148,13 +152,16 @@ def lookup(lat, lon, edition="7-22", rc="II", site_class="Default"):
     V, src, msg = out["values"], out["sources"], out["messages"]
     tok = asce_token()
     base = {"lat": lat, "lon": lon, "standardsVersion": edition, "token": tok}
+    demo = {"seismic": lambda: hazard_demo.seismic(lat, lon, edition, RC_NUM[rc], site_class),
+            "snow": lambda: hazard_demo.snow(lat, lon, edition, RC_NUM[rc]),
+            "wind": lambda: hazard_demo.wind(lat, lon, edition, RC_NUM[rc])}
 
-    if tok:
+    if tok or DEMO:
         for hazard, extra in (("seismic", {"riskLevel": RC_NUM[rc], "siteClass": site_class}),
                               ("snow", {"riskLevel": RC_NUM[rc]}),
                               ("wind", {"riskLevel": RC_NUM[rc]})):
             try:
-                r = _get("%s/%s" % (ASCE_BASE, hazard), dict(base, **extra))
+                r = _get("%s/%s" % (ASCE_BASE, hazard), dict(base, **extra)) if tok else demo[hazard]()
                 r.get("requestInfo", {}).pop("url", None)          # the key is echoed in the URL; drop it
                 out["raw"][hazard] = r
                 if hazard == "seismic":

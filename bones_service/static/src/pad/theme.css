@@ -14,3 +14,10 @@
 #pad #m3dWrap .plan-hint{position:absolute;left:12px;bottom:10px;top:auto;color:#A1A1A8;background:transparent;border:0;font-size:12.5px;padding:0;box-shadow:none}
 #pad #m3d{display:block;width:100%;height:auto}
 #pad label.cb:has(#m3dF){display:none}
+/* lines of resistance: a shaded wall band instead of a brace line, with no columns or brace arrows (material is module 4's) */
+#pad #plan .lf{stroke-width:10;stroke-opacity:.45;stroke-linecap:butt}
+#pad #plan .lfsel,#pad #plan .lfhov{stroke-width:18}
+#pad #plan .bfcol,#pad #plan .bfdir,#pad #plan .bfalt{display:none}
+#pad label.cb:has([data-opt="bdir"]){display:none}
+#pad #tpList .xbtn{display:none}
+#pad .tp-row{grid-template-columns:34px 1fr 60px}
