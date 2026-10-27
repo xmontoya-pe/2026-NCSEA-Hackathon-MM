@@ -13,6 +13,22 @@ The Bones web UI (steps 1 and 2) in front of Sketch Reader. Sketch Reader's code
 
 Options: `--port 9000`, `--out C:\path\to\outputs`, `--host 0.0.0.0` to let colleagues on your network use it. The API key never leaves the server.
 
+### With the gravity optimizer (FastAPI)
+
+`bones_service/api.py` serves the same UI and routes on FastAPI and adds the gravity optimizer. `server.py` still works, but without gravity.
+
+1. `pip install -r requirements.txt` (adds `fastapi`, `uvicorn`, `httpx`).
+2. If you edited anything in `static/src/`, rebuild the page: `python -m bones_service.build_ui`.
+3. `python -m bones_service.api` (same `--port`, `--host`, `--out` options), or `uvicorn bones_service.api:app --port 8765 --reload` while developing. Open http://127.0.0.1:8765; the API docs are at `/docs`.
+4. On step 3, pick an **Occupancy** for each load area on every floor (the roof is always roof Lr), then press **Find bay sizes** in the Gravity framing card. It shows the best steel grid, three alternates, the bay framing and the warnings.
+
+| Method | Path | Body | Does |
+|---|---|---|---|
+| GET | `/api/occupancies` | | Occupancy keys from `config/occupancies.json` |
+| POST | `/api/gravity` | `{state, options?}` | `state` is `BonesPad.state()`; `options` may hold `constraints`, `objective_weights`, `systems`. Returns `{input, notes, output}`: the gravity input built from the pad (`bones_service/gravity_bridge.py`), notes on what was and wasn't sent, and `gravity.run`'s output |
+
+What is sent, and what isn't, is listed in `docs/ASSUMPTIONS.md` (INT-1 to INT-6). In short: occupancies, not the typed LL/SDL; no roof snow yet (gravity reads it from config).
+
 ## What happens
 
 1. **Step 1:** the photo is uploaded and Sketch Reader reads it (15 to 60 seconds). Stories and story height are optional.

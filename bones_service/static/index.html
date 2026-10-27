@@ -732,6 +732,19 @@ ul.plain{margin:6px 0 0;padding-left:18px;font-size:13.5px;color:var(--muted)}
       <p class="small" style="margin:-4px 0 12px">One row per load area on the pad. Change the level with the pad’s <b>Level</b> menu.</p>
       <div id="bonesLoads"></div>
     </div>
+    <div class="b-card" style="margin-top:20px" id="gravCard">
+      <div class="headrow"><h2>Gravity framing: best bay sizes</h2>
+        <button class="btn b-primary b-sm" id="gravRun" type="button">Find bay sizes</button></div>
+      <p class="small" style="margin:-4px 0 12px">Sends the outline, stories and each load area’s occupancy to the gravity optimizer, which tries candidate grids against the bay study and sizes the columns. Steel only for now; costs are placeholder rates.</p>
+      <div class="hz-grid">
+        <label class="f">Min bay (ft)<input id="gvMinBay" inputmode="decimal" value="20"></label>
+        <label class="f">Max bay (ft)<input id="gvMaxBay" inputmode="decimal" value="45"></label>
+        <label class="f">Min ceiling height (ft)<input id="gvCeil" inputmode="decimal" value="9"></label>
+        <label class="f">Plenum (in)<input id="gvPlenum" inputmode="decimal" value="18"></label>
+      </div>
+      <p class="small" id="gravMsg" style="margin:10px 0 0"></p>
+      <div id="gravOut"></div>
+    </div>
     <dialog id="wallDlg" aria-labelledby="wallDlgH">
       <form method="dialog">
         <h2 id="wallDlgH">Wall thickness</h2>
@@ -1999,10 +2012,21 @@ function bonesOpen(project){
   return same;
 }
 
-/* Gravity loads by load area (LL, SDL; SL at the roof), kept in S.bones.loads[level][id] */
+/* Gravity loads by load area (occupancy, LL, SDL; SL at the roof), kept in S.bones.loads[level][id].
+   The occupancy keys come from /api/occupancies (window.BonesOccupancies); the gravity optimizer
+   uses the occupancy, not the LL and SDL typed here. */
 function bonesData(){ S.bones = S.bones || {}; S.bones.loads = S.bones.loads || {}; return S.bones; }
 function loadsAt(lv){ const B = bonesData(); return (B.loads[lv] = B.loads[lv] || {}); }
 function loadDefaults(lv){ return lv === nLv() ? {LL: 20, SDL: 20} : {LL: 50, SDL: 15}; }
+const occList = () => (window.BonesOccupancies || []).filter(o => !o.is_roof);
+const occName = k => k.replace(/_/g, ' ');
+function occCell(id, v){
+  const opts = occList();
+  if(!opts.length) return window.BonesOccupancies ? '<span class="b-warn">unavailable: start Bones with python -m bones_service.api</span>' : '<span class="muted">loading…</span>';
+  return `<select data-occ="${esc(id)}" aria-label="Occupancy for area ${esc(id)}" style="height:36px;border:1px solid var(--line2);border-radius:8px;padding:0 8px">
+    <option value=""${v.occupancy ? '' : ' selected'}>Choose…</option>${opts.map(o =>
+    `<option value="${esc(o.key)}"${o.key === v.occupancy ? ' selected' : ''}>${esc(occName(o.key))} (${fmt(o.ll_psf, 0)}${o.partitions_psf ? ' + ' + fmt(o.partitions_psf, 0) : ''} psf)</option>`).join('')}</select>`;
+}
 function renderLoads(){
   const el = document.getElementById('bonesLoads'); if(!el) return;
   const lv = padLv(), roof = lv === nLv(), ids = LVP().laIds || [], LS = laStats(), L = loadsAt(lv);
@@ -2014,15 +2038,23 @@ function renderLoads(){
   if(changedAny) save();
   const rows = ids.map(q => { const b = LS.byId[q.id], v = L[q.id];
     return `<tr><th scope="row"><span class="sw" style="background:${laCol(q.id)}"></span>${esc(q.id)}</th>
+      <td style="text-align:left">${roof ? '<span class="muted">roof (L<sub>r</sub>)</span>' : occCell(q.id, v)}</td>
       <td>${b ? fmt(b.A, 0) : '0'}</td><td class="muted">${esc(q.psf)}</td>
       <td><input inputmode="decimal" data-ll="${esc(q.id)}" value="${esc(v.LL)}" aria-label="Live load for area ${esc(q.id)}, psf"></td>
       <td><input inputmode="decimal" data-sdl="${esc(q.id)}" value="${esc(v.SDL)}" aria-label="Superimposed dead load for area ${esc(q.id)}, psf"></td>
       <td>${roof ? (pf !== null ? `<b>${fmt(pf, 1)}</b>` : '<span class="b-warn">enter p<sub>g</sub></span>') : '<span class="muted">–</span>'}</td></tr>`; }).join('');
-  el.innerHTML = `<div class="tbl"><table><thead><tr><th>Area ID</th><th>Area, ft²</th><th>Seismic weight, psf</th><th>LL, psf</th><th>SDL, psf</th><th>SL, psf</th></tr></thead><tbody>${rows}</tbody></table></div>
-    <p class="small" style="margin:8px 0 0">${roof ? 'Roof: LL is roof live load L<sub>r</sub>. SL is the flat-roof snow load p<sub>f</sub> from the hazard panel.' : 'SL applies at the roof only; pick the roof level to see it.'} Seismic weight is set in the pad’s Loading areas panel.</p>`;
+  el.innerHTML = `<div class="tbl"><table><thead><tr><th>Area ID</th><th style="text-align:left">Occupancy (LL + partitions)</th><th>Area, ft²</th><th>Seismic weight, psf</th><th>LL, psf</th><th>SDL, psf</th><th>SL, psf</th></tr></thead><tbody>${rows}</tbody></table></div>
+    <p class="small" style="margin:8px 0 0">${roof ? 'Roof: LL is roof live load L<sub>r</sub>. SL is the flat-roof snow load p<sub>f</sub> from the hazard panel.' : 'SL applies at the roof only; pick the roof level to see it.'} Seismic weight is set in the pad’s Loading areas panel. The gravity optimizer uses each area’s occupancy (its LL, partitions and LL reduction) and the SDL in its config.</p>`;
 }
 document.addEventListener('change', e => {
-  const t = e.target; if(!t.matches || !t.matches('#bonesLoads input')) return;
+  const t = e.target; if(!t.matches) return;
+  if(t.matches('#bonesLoads select[data-occ]')){
+    const row = loadsAt(padLv())[t.dataset.occ], o = occList().find(q => q.key === t.value);
+    row.occupancy = t.value || null;
+    if(o) row.LL = o.ll_psf;   // show the occupancy's LL; partitions are added by the optimizer
+    save(); renderLoads(); return;
+  }
+  if(!t.matches('#bonesLoads input')) return;
   const id = t.dataset.ll !== undefined ? t.dataset.ll : t.dataset.sdl, f = t.dataset.ll !== undefined ? 'LL' : 'SDL', v = num(t.value);
   if(!(v >= 0)){ renderLoads(); return; }
   loadsAt(padLv())[id][f] = v; save();
@@ -2276,7 +2308,7 @@ function setSystem(sys){
 }
 document.querySelectorAll('[data-sys]').forEach(b => b.addEventListener('click', () => setSystem(b.dataset.sys)));
 
-window.BonesPad = {open: bonesOpen, state: () => S, bones: () => bonesData(), setHazard, setSnow, copyLoadsToFloors, setSystem,
+window.BonesPad = {open: bonesOpen, state: () => S, bones: () => bonesData(), setHazard, setSnow, copyLoadsToFloors, renderLoads, setSystem,
   system: () => S.lateral_system || 'braced_frame',
   toScreen: (x, y) => { const r = document.getElementById('plan').getBoundingClientRect(), p = toS([x, y]); return [r.left + p[0], r.top + p[1]]; }, fit: () => { sizePlan(); fit(); render(); }, refresh: () => { bonesLines(); render3D(); }};
 bonesReady = true;
@@ -2427,6 +2459,47 @@ $("hzPull").addEventListener("click", async () => {
   }catch(e){ $("hzMsg").textContent = e.message; }
   finally{ b.disabled = false; }
 });
+/* ---------- step 3: gravity framing ---------- */
+async function occupancies(){
+  try{ const r = await fetch("/api/occupancies"); const j = await r.json(); window.BonesOccupancies = j.occupancies || []; }
+  catch(e){ window.BonesOccupancies = []; }
+  if(window.BonesPad && window.BonesPad.renderLoads) window.BonesPad.renderLoads();
+}
+const spans = xs => { const d = xs.slice(1).map((x, i) => +(x - xs[i]).toFixed(2)), out = [];
+  d.forEach(v => { const last = out[out.length-1]; if(last && last[0] === v) last[1]++; else out.push([v, 1]); });
+  return out.map(([v, n]) => n > 1 ? `${fmt(v, 2)}′ × ${n}` : `${fmt(v, 2)}′`).join(" + "); };
+function gravRow(s, label){
+  const t = s.totals, cols = (s.columns || []).length;
+  return `<tr><th scope="row">${esc(label)}</th><td style="text-align:left">X: ${spans(s.grid.x_ft)}<br>Y: ${spans(s.grid.y_ft)}</td>
+    <td>${cols}</td><td>${fmt(t.max_depth_in, 1)}</td><td>${fmt(s.quantities.steel_tons, 1)}</td><td>$${fmt(t.cost_per_sf, 2)}</td><td>${fmt(t.carbon_per_sf, 2)}</td></tr>`;
+}
+function renderGravity(res){
+  const out = res.output || {}, schemes = out.schemes || [];
+  if(!schemes.length){ $("gravOut").innerHTML = `<p class="small">No scheme came back. ${esc((res.notes || []).join(" "))}</p>`; return; }
+  let h = "";
+  schemes.forEach(s => {
+    const typ = {}; (s.bays || []).forEach(b => { const k = `${b.level}: ${fmt(b.span_x_ft, 2)}′ × ${fmt(b.span_y_ft, 2)}′, ${b.framing.beam}, girder ${b.framing.girder}, ${fmt(b.framing.depth_in, 1)} in`; typ[k] = (typ[k] || 0) + 1; });
+    h += `<h3 style="margin:16px 0 6px;font-size:15px">${esc(s.system.replace("_", " "))}</h3>
+      <div class="tbl"><table><thead><tr><th>Scheme</th><th style="text-align:left">Grid (bay spacing)</th><th>Columns</th><th>Max depth, in</th><th>Steel, tons</th><th>Cost, $/sf</th><th>kgCO₂e/sf</th></tr></thead>
+      <tbody>${gravRow(s, "Best")}${(s.alternates || []).map((a, i) => gravRow(a, "Alternate " + (i + 1))).join("")}</tbody></table></div>`;
+    const keys = Object.keys(typ);
+    if(keys.length) h += `<p class="small" style="margin:10px 0 4px">Bay framing, best scheme (count of bays):</p><ul class="plain">${keys.map(k => `<li>${esc(k)} (${typ[k]})</li>`).join("")}</ul>`;
+    if((s.warnings || []).length) h += `<details style="margin-top:8px"><summary class="small">${s.warnings.length} warning${s.warnings.length === 1 ? "" : "s"}</summary><ul class="plain">${s.warnings.map(w => `<li>${esc(w)}</li>`).join("")}</ul></details>`;
+  });
+  if((res.notes || []).length) h += `<p class="small" style="margin:12px 0 4px">Notes on what was sent:</p><ul class="plain">${res.notes.map(n => `<li>${esc(n)}</li>`).join("")}</ul>`;
+  $("gravOut").innerHTML = h;
+}
+$("gravRun").addEventListener("click", async () => {
+  const b = $("gravRun"); b.disabled = true; $("gravMsg").textContent = "Trying candidate grids…"; $("gravOut").innerHTML = "";
+  const n = id => { const v = parseFloat($(id).value); return isFinite(v) ? v : null; };
+  const constraints = {min_bay_ft: n("gvMinBay"), max_bay_ft: n("gvMaxBay"), min_ceiling_height_ft: n("gvCeil"), plenum_allowance_in: n("gvPlenum")};
+  Object.keys(constraints).forEach(k => { if(constraints[k] === null) delete constraints[k]; });
+  try{
+    const res = await post("/api/gravity", {state: window.BonesPad.state(), options: {constraints}});
+    $("gravMsg").textContent = ""; renderGravity(res);
+  }catch(e){ $("gravMsg").textContent = e.message; }
+  finally{ b.disabled = false; }
+});
 $("toPad").addEventListener("click", () => {
   if(!S.result || !window.BonesPad) return;
   if(!S.result.ready){ showErr(2, "Fix the checks marked ✕ before opening the drawing pad."); return; }
@@ -2546,6 +2619,7 @@ $("rebuild").addEventListener("click", async () => {
 });
 
 health();
+occupancies();
 })();
 </script>
 </body>

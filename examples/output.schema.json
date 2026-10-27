@@ -1,0 +1,439 @@
+{
+  "$defs": {
+    "Bay": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "level": {
+          "title": "Level",
+          "type": "string"
+        },
+        "span_x_ft": {
+          "title": "Span X Ft",
+          "type": "number"
+        },
+        "span_y_ft": {
+          "title": "Span Y Ft",
+          "type": "number"
+        },
+        "governing_occupancy": {
+          "title": "Governing Occupancy",
+          "type": "string"
+        },
+        "ll_psf": {
+          "title": "Ll Psf",
+          "type": "number"
+        },
+        "sdl_psf": {
+          "title": "Sdl Psf",
+          "type": "number"
+        },
+        "framing": {
+          "$ref": "#/$defs/Framing"
+        }
+      },
+      "required": [
+        "id",
+        "level",
+        "span_x_ft",
+        "span_y_ft",
+        "governing_occupancy",
+        "ll_psf",
+        "sdl_psf",
+        "framing"
+      ],
+      "title": "Bay",
+      "type": "object"
+    },
+    "Column": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "x_ft": {
+          "title": "X Ft",
+          "type": "number"
+        },
+        "y_ft": {
+          "title": "Y Ft",
+          "type": "number"
+        },
+        "stack": {
+          "items": {
+            "$ref": "#/$defs/ColumnStackEntry"
+          },
+          "title": "Stack",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "x_ft",
+        "y_ft",
+        "stack"
+      ],
+      "title": "Column",
+      "type": "object"
+    },
+    "ColumnStackEntry": {
+      "additionalProperties": false,
+      "description": "One column segment; ``level`` is the level at the bottom of the story it spans.",
+      "properties": {
+        "level": {
+          "title": "Level",
+          "type": "string"
+        },
+        "size": {
+          "title": "Size",
+          "type": "string"
+        },
+        "Pu_kips": {
+          "title": "Pu Kips",
+          "type": "number"
+        },
+        "Pd_kips": {
+          "title": "Pd Kips",
+          "type": "number"
+        },
+        "Pl_kips": {
+          "title": "Pl Kips",
+          "type": "number"
+        },
+        "Plr_kips": {
+          "title": "Plr Kips",
+          "type": "number"
+        },
+        "Psnow_kips": {
+          "title": "Psnow Kips",
+          "type": "number"
+        },
+        "governing_combo": {
+          "enum": [
+            "1.4D",
+            "1.2D+1.6L+0.5Lr",
+            "1.2D+1.6L+0.5S",
+            "1.2D+1.6Lr+1.0L",
+            "1.2D+1.6S+1.0L"
+          ],
+          "title": "Governing Combo",
+          "type": "string"
+        }
+      },
+      "required": [
+        "level",
+        "size",
+        "Pu_kips",
+        "Pd_kips",
+        "Pl_kips",
+        "Plr_kips",
+        "Psnow_kips",
+        "governing_combo"
+      ],
+      "title": "ColumnStackEntry",
+      "type": "object"
+    },
+    "FoundationReaction": {
+      "additionalProperties": false,
+      "properties": {
+        "column_id": {
+          "title": "Column Id",
+          "type": "string"
+        },
+        "D_kips": {
+          "title": "D Kips",
+          "type": "number"
+        },
+        "L_kips": {
+          "title": "L Kips",
+          "type": "number"
+        },
+        "Lr_kips": {
+          "title": "Lr Kips",
+          "type": "number"
+        },
+        "S_kips": {
+          "title": "S Kips",
+          "type": "number"
+        }
+      },
+      "required": [
+        "column_id",
+        "D_kips",
+        "L_kips",
+        "Lr_kips",
+        "S_kips"
+      ],
+      "title": "FoundationReaction",
+      "type": "object"
+    },
+    "Framing": {
+      "additionalProperties": false,
+      "properties": {
+        "slab": {
+          "title": "Slab",
+          "type": "string"
+        },
+        "beam": {
+          "title": "Beam",
+          "type": "string"
+        },
+        "girder": {
+          "title": "Girder",
+          "type": "string"
+        },
+        "depth_in": {
+          "title": "Depth In",
+          "type": "number"
+        },
+        "self_wt_psf": {
+          "title": "Self Wt Psf",
+          "type": "number"
+        },
+        "db_row": {
+          "title": "Db Row",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "slab",
+        "beam",
+        "girder",
+        "depth_in",
+        "self_wt_psf",
+        "db_row"
+      ],
+      "title": "Framing",
+      "type": "object"
+    },
+    "Grid": {
+      "additionalProperties": false,
+      "properties": {
+        "x_ft": {
+          "items": {
+            "type": "number"
+          },
+          "title": "X Ft",
+          "type": "array"
+        },
+        "y_ft": {
+          "items": {
+            "type": "number"
+          },
+          "title": "Y Ft",
+          "type": "array"
+        }
+      },
+      "required": [
+        "x_ft",
+        "y_ft"
+      ],
+      "title": "Grid",
+      "type": "object"
+    },
+    "LevelResult": {
+      "additionalProperties": false,
+      "properties": {
+        "level": {
+          "title": "Level",
+          "type": "string"
+        },
+        "seismic_weight_kips": {
+          "title": "Seismic Weight Kips",
+          "type": "number"
+        },
+        "center_of_mass_ft": {
+          "maxItems": 2,
+          "minItems": 2,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Center Of Mass Ft",
+          "type": "array"
+        },
+        "max_structure_depth_in": {
+          "title": "Max Structure Depth In",
+          "type": "number"
+        },
+        "clear_height_ft": {
+          "title": "Clear Height Ft",
+          "type": "number"
+        }
+      },
+      "required": [
+        "level",
+        "seismic_weight_kips",
+        "center_of_mass_ft",
+        "max_structure_depth_in",
+        "clear_height_ft"
+      ],
+      "title": "LevelResult",
+      "type": "object"
+    },
+    "Quantities": {
+      "additionalProperties": false,
+      "properties": {
+        "steel_tons": {
+          "title": "Steel Tons",
+          "type": "number"
+        },
+        "concrete_cy": {
+          "title": "Concrete Cy",
+          "type": "number"
+        },
+        "timber_cf": {
+          "title": "Timber Cf",
+          "type": "number"
+        }
+      },
+      "required": [
+        "steel_tons",
+        "concrete_cy",
+        "timber_cf"
+      ],
+      "title": "Quantities",
+      "type": "object"
+    },
+    "Scheme": {
+      "additionalProperties": false,
+      "properties": {
+        "system": {
+          "enum": [
+            "steel",
+            "concrete",
+            "mass_timber"
+          ],
+          "title": "System",
+          "type": "string"
+        },
+        "rank_score": {
+          "title": "Rank Score",
+          "type": "number"
+        },
+        "grid": {
+          "$ref": "#/$defs/Grid"
+        },
+        "columns": {
+          "items": {
+            "$ref": "#/$defs/Column"
+          },
+          "title": "Columns",
+          "type": "array"
+        },
+        "bays": {
+          "items": {
+            "$ref": "#/$defs/Bay"
+          },
+          "title": "Bays",
+          "type": "array"
+        },
+        "levels": {
+          "items": {
+            "$ref": "#/$defs/LevelResult"
+          },
+          "title": "Levels",
+          "type": "array"
+        },
+        "foundation_reactions": {
+          "items": {
+            "$ref": "#/$defs/FoundationReaction"
+          },
+          "title": "Foundation Reactions",
+          "type": "array"
+        },
+        "quantities": {
+          "$ref": "#/$defs/Quantities"
+        },
+        "totals": {
+          "$ref": "#/$defs/Totals"
+        },
+        "alternates": {
+          "items": {
+            "$ref": "#/$defs/Scheme"
+          },
+          "title": "Alternates",
+          "type": "array"
+        },
+        "warnings": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Warnings",
+          "type": "array"
+        }
+      },
+      "required": [
+        "system",
+        "rank_score",
+        "grid",
+        "columns",
+        "bays",
+        "levels",
+        "foundation_reactions",
+        "quantities",
+        "totals",
+        "warnings"
+      ],
+      "title": "Scheme",
+      "type": "object"
+    },
+    "Totals": {
+      "additionalProperties": false,
+      "properties": {
+        "cost_usd": {
+          "title": "Cost Usd",
+          "type": "number"
+        },
+        "cost_per_sf": {
+          "title": "Cost Per Sf",
+          "type": "number"
+        },
+        "carbon_kgco2e": {
+          "title": "Carbon Kgco2E",
+          "type": "number"
+        },
+        "carbon_per_sf": {
+          "title": "Carbon Per Sf",
+          "type": "number"
+        },
+        "max_depth_in": {
+          "title": "Max Depth In",
+          "type": "number"
+        }
+      },
+      "required": [
+        "cost_usd",
+        "cost_per_sf",
+        "carbon_kgco2e",
+        "carbon_per_sf",
+        "max_depth_in"
+      ],
+      "title": "Totals",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schemes": {
+      "items": {
+        "$ref": "#/$defs/Scheme"
+      },
+      "title": "Schemes",
+      "type": "array"
+    }
+  },
+  "required": [
+    "schemes"
+  ],
+  "title": "GravityOutput",
+  "type": "object"
+}

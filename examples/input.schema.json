@@ -1,0 +1,256 @@
+{
+  "$defs": {
+    "Constraints": {
+      "additionalProperties": false,
+      "properties": {
+        "min_ceiling_height_ft": {
+          "title": "Min Ceiling Height Ft",
+          "type": "number"
+        },
+        "plenum_allowance_in": {
+          "title": "Plenum Allowance In",
+          "type": "number"
+        },
+        "max_structure_depth_in": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max Structure Depth In"
+        },
+        "min_bay_ft": {
+          "title": "Min Bay Ft",
+          "type": "number"
+        },
+        "max_bay_ft": {
+          "title": "Max Bay Ft",
+          "type": "number"
+        }
+      },
+      "required": [
+        "min_ceiling_height_ft",
+        "plenum_allowance_in",
+        "min_bay_ft",
+        "max_bay_ft"
+      ],
+      "title": "Constraints",
+      "type": "object"
+    },
+    "DimensionLines": {
+      "additionalProperties": false,
+      "description": "Dimension lines read off the sketch by the recognizer (feet).",
+      "properties": {
+        "x_ft": {
+          "items": {
+            "type": "number"
+          },
+          "title": "X Ft",
+          "type": "array"
+        },
+        "y_ft": {
+          "items": {
+            "type": "number"
+          },
+          "title": "Y Ft",
+          "type": "array"
+        }
+      },
+      "required": [
+        "x_ft",
+        "y_ft"
+      ],
+      "title": "DimensionLines",
+      "type": "object"
+    },
+    "Level": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "elev_ft": {
+          "title": "Elev Ft",
+          "type": "number"
+        },
+        "floor_to_floor_ft": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Floor To Floor Ft"
+        }
+      },
+      "required": [
+        "name",
+        "elev_ft",
+        "floor_to_floor_ft"
+      ],
+      "title": "Level",
+      "type": "object"
+    },
+    "ObjectiveWeights": {
+      "additionalProperties": false,
+      "properties": {
+        "cost": {
+          "minimum": 0,
+          "title": "Cost",
+          "type": "number"
+        },
+        "depth": {
+          "minimum": 0,
+          "title": "Depth",
+          "type": "number"
+        },
+        "carbon": {
+          "minimum": 0,
+          "title": "Carbon",
+          "type": "number"
+        }
+      },
+      "required": [
+        "cost",
+        "depth",
+        "carbon"
+      ],
+      "title": "ObjectiveWeights",
+      "type": "object"
+    },
+    "Zone": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "level": {
+          "title": "Level",
+          "type": "string"
+        },
+        "occupancy": {
+          "title": "Occupancy",
+          "type": "string"
+        },
+        "polygon": {
+          "items": {
+            "maxItems": 2,
+            "minItems": 2,
+            "prefixItems": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "type": "array"
+          },
+          "minItems": 3,
+          "title": "Polygon",
+          "type": "array"
+        },
+        "no_columns": {
+          "default": false,
+          "title": "No Columns",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "id",
+        "level",
+        "occupancy",
+        "polygon"
+      ],
+      "title": "Zone",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "project_name": {
+      "title": "Project Name",
+      "type": "string"
+    },
+    "outline": {
+      "items": {
+        "maxItems": 2,
+        "minItems": 2,
+        "prefixItems": [
+          {
+            "type": "number"
+          },
+          {
+            "type": "number"
+          }
+        ],
+        "type": "array"
+      },
+      "minItems": 3,
+      "title": "Outline",
+      "type": "array"
+    },
+    "dimension_lines": {
+      "$ref": "#/$defs/DimensionLines"
+    },
+    "levels": {
+      "items": {
+        "$ref": "#/$defs/Level"
+      },
+      "minItems": 1,
+      "title": "Levels",
+      "type": "array"
+    },
+    "zones": {
+      "items": {
+        "$ref": "#/$defs/Zone"
+      },
+      "title": "Zones",
+      "type": "array"
+    },
+    "typical_zones_apply_to_all_levels": {
+      "title": "Typical Zones Apply To All Levels",
+      "type": "boolean"
+    },
+    "constraints": {
+      "$ref": "#/$defs/Constraints"
+    },
+    "objective_weights": {
+      "$ref": "#/$defs/ObjectiveWeights"
+    },
+    "systems": {
+      "items": {
+        "enum": [
+          "steel",
+          "concrete",
+          "mass_timber"
+        ],
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Systems",
+      "type": "array"
+    }
+  },
+  "required": [
+    "project_name",
+    "outline",
+    "dimension_lines",
+    "levels",
+    "zones",
+    "typical_zones_apply_to_all_levels",
+    "constraints",
+    "objective_weights",
+    "systems"
+  ],
+  "title": "GravityInput",
+  "type": "object"
+}
