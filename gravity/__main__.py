@@ -11,6 +11,10 @@ integration team.
 
 ``python -m gravity summary <input.json>`` prints the ranked steel candidate grids and
 the bay framing of the best one (spec 6, prompt 5).
+
+``python -m gravity column <input.json> --column B-2 [--grid "X:30x5 Y:30x3"]`` prints
+the hand-check trace for one steel column, plus column totals and seismic weights
+(spec 6, prompt 6).
 """
 
 from __future__ import annotations
@@ -47,7 +51,27 @@ def main(argv: list[str] | None = None) -> int:
     summary_parser.add_argument("input", type=Path, help="path to input.json")
     summary_parser.add_argument("--top", type=int, default=15, help="candidates to list")
 
+    column_parser = sub.add_parser(
+        "column", help="hand-check trace for one steel column (every number)"
+    )
+    column_parser.add_argument("input", type=Path, help="path to input.json")
+    column_parser.add_argument("--column", required=True, help="column id, e.g. B-2")
+    column_parser.add_argument("--grid", default=None, help='grid id, e.g. "X:30x5 Y:30x3" '
+                               "(default: best-ranked grid)")
+
     args = parser.parse_args(argv)
+
+    if args.command == "column":
+        from gravity.models import GravityInput
+        from gravity.report import column_report
+
+        try:
+            inp = GravityInput.model_validate_json(args.input.read_text(encoding="utf-8"))
+        except (OSError, ValidationError) as exc:
+            print(f"error: cannot use {args.input}: {exc}", file=sys.stderr)
+            return 2
+        print(column_report(inp, args.column, args.grid))
+        return 0
 
     if args.command == "schema":
         for path in write_schemas(args.output_dir):

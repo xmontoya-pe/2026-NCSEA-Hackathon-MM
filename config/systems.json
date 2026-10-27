@@ -9,6 +9,22 @@
       "roof": {"db_systems": ["STL_ROOF_W", "STL_ROOF_J"]}
     }
   },
+  "columns": {
+    "steel": {
+      "shapes_csv": "data/aisc_shapes.csv",
+      "shapes_source": "AISC Shapes Database v16.0",
+      "families": ["W12", "W14"],
+      "fy_ksi": 50.0,
+      "e_ksi": 29000.0,
+      "k": 1.0,
+      "target_ratio": 0.90,
+      "splice_every_n_levels": 2,
+      "cladding_plf": 0.0,
+      "cladding_note": "Perimeter cladding line load per framed level (plf of perimeter). 0 for the hackathon; a warning says so.",
+      "carbon_material": "hot_rolled_sections",
+      "max_self_weight_iterations": 5
+    }
+  },
   "db_systems": {
     "STL_COMP": {
       "design_sdl_psf": 15.0,

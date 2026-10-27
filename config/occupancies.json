@@ -29,6 +29,7 @@
     "assembly_movable_seats": {"ll_psf": 100, "partitions_psf": 0, "ll_reducible": false, "criterion": null},
     "retail_first_floor": {"ll_psf": 100, "partitions_psf": 0, "ll_reducible": true, "criterion": null},
     "storage_light": {"ll_psf": 125, "partitions_psf": 0, "ll_reducible": false, "criterion": null,
+                      "seismic_storage": true,
                       "note": "ASCE allows 20% reduction for columns supporting 2+ levels; not used for the hackathon"},
     "mechanical": {"ll_psf": 125, "partitions_psf": 0, "ll_reducible": false, "criterion": null,
                    "note": "Firm standard, not an ASCE table value"},

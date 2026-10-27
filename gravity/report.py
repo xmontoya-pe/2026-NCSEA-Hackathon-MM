@@ -10,7 +10,10 @@ from __future__ import annotations
 
 from collections import Counter
 
-from gravity.bays import CandidateResult, evaluate_all
+from gravity.bays import CandidateResult, evaluate, evaluate_all
+from gravity.columns import ColumnStack, column_config, design_columns, seismic_weights
+from gravity.grid import generate_grids, layout
+from gravity.loads import resolve_zones
 from gravity.models import GravityInput
 
 
@@ -69,6 +72,80 @@ def _bay_row(b) -> str:
         f"{b.loads.lookup_ll_psf:>4g} {str(b.loads.criterion or 'Strength'):<15} {framing} "
         f"{b.allowable_depth_in:>6.1f} {cost}"
     )
+
+
+def column_report(
+    inp: GravityInput, column: str, grid_id: str | None = None, system: str = "steel"
+) -> str:
+    """Hand-check trace for one column (spec 6, prompt 6), plus column totals and seismic
+    weights for its grid. ``grid_id`` defaults to the best-ranked grid."""
+    zone_map = resolve_zones(inp)
+    if grid_id is None:
+        candidate = evaluate_all(inp, system)[0][0]
+    else:
+        grids, _ = generate_grids(inp, system=system)
+        match = [g for g in grids if g.grid_id == grid_id]
+        if not match:
+            return f"grid {grid_id!r} not found; candidates: " + ", ".join(g.grid_id for g in grids)
+        candidate = evaluate(inp, zone_map, layout(inp, zone_map, match[0]), system)
+    design = design_columns(inp, zone_map, candidate, system)
+    ids = [c.column_id for c in design.columns]
+    if column not in ids:
+        return f"column {column!r} not in grid {candidate.grid_id}; columns: {', '.join(ids)}"
+
+    lines = column_trace(design.column(column), candidate.grid_id, column_config(system))
+    lines += [
+        "",
+        f"All columns, grid {candidate.grid_id}: {design.tons:.2f} tons, "
+        f"${design.cost_usd:,.0f} (placeholder ${design.cost_per_ton_usd:,.0f}/ton), "
+        f"{design.carbon_kgco2e:,.0f} kgCO2e ({design.carbon_kg_per_tonne:g} kg/t x 0.9072 t/ton), "
+        f"max ratio {design.max_ratio:.3f}",
+        "",
+        "Seismic weight (D + partitions + 25% storage LL + 20% snow > 30 psf + half columns):",
+    ]
+    for s in seismic_weights(inp, zone_map, candidate, design, system):
+        lines.append(f"  {s.level:<6} W = {s.weight_kips:9.1f} kips   center of mass = "
+                     f"({s.center_of_mass_ft[0]:.2f}, {s.center_of_mass_ft[1]:.2f}) ft")
+    if design.warnings:
+        lines += ["", "Column warnings:"] + [f"  {w}" for w in design.warnings]
+    return "\n".join(lines)
+
+
+def column_trace(stack: ColumnStack, grid_id: str, cfg: dict) -> list[str]:
+    """Every number for one column: tributary loads, reduction, combos, E3 capacity."""
+    k, fy = cfg["k"], cfg["fy_ksi"]
+    lines = [
+        f"Column {stack.column_id} at ({stack.x_ft:g}, {stack.y_ft:g}) ft, grid {grid_id}: "
+        f"{stack.kind} column, KLL = {stack.kll:g}",
+        f"Fy = {fy:g} ksi, E = {cfg['e_ksi']:g} ksi, K = {k:g}, target Pu/phiPn <= "
+        f"{cfg['target_ratio']:g}, splice every {cfg['splice_every_n_levels']} stories",
+        "",
+        "Tributary load by level (each bay's area / 4 to its corner columns):",
+    ]
+    for level, x in stack.level_loads.items():
+        lines.append(
+            f"  {level}: AT = {x.at_sf:g} sf; D = {x.d_kips:.2f} k; L reducible = "
+            f"{x.l_red_kips:.2f} k; L non-reducible = {x.l_nonred_kips:.2f} k; "
+            f"Lr0 = {x.lr0_kips:.2f} k; S = {x.s_kips:.2f} k"
+        )
+        lines += [f"      {note}" for note in x.notes]
+    for s in reversed(stack.stories):
+        lines += [
+            "",
+            f"Story {s.story} ({s.height_ft:g} ft), carries {', '.join(s.supports)}:",
+            f"  Pd  = {s.pd_kips:.2f} k (includes column self-weight {s.self_weight_kips:.3f} k)",
+            f"  Pl  = {s.pl_kips:.2f} k (unreduced {s.pl_unreduced_kips:.2f} k): {s.ll_note}",
+            f"  Plr = {s.plr_kips:.2f} k: {s.lr_note}",
+            f"  Ps  = {s.ps_kips:.2f} k",
+            "  combos: " + "; ".join(f"{n} = {v:.2f}" for n, v in s.combos.items()),
+            f"  Pu  = {s.pu_kips:.2f} k ({s.governing_combo})",
+        ]
+        if s.shape is not None:
+            lines += [
+                f"  {s.capacity.note(s.shape, k, fy)}",
+                f"  ratio = Pu/phiPn = {s.pu_kips:.2f}/{s.capacity.phi_pn_kips:.1f} = {s.ratio:.3f}",
+            ]
+    return lines
 
 
 def _grouped(warnings: list[str]) -> list[tuple[str, int]]:
