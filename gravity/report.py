@@ -19,6 +19,8 @@ def summary_table(inp: GravityInput, system: str = "steel", top: int = 15) -> st
     lines = [
         f"{system.upper()} candidate grids for {inp.project_name!r}: {len(results)} candidates "
         "(framing only; columns not sized; placeholder costs)",
+        "Ranked by: infeasible bays, then bays over depth, then total framing cost "
+        "(interim until scoring.py; column cost not included yet)",
         "",
         f"{'rank':>4}  {'grid':<28} {'cols':>4} {'bays':>4} {'infeas':>6} {'>depth':>6} "
         f"{'max in':>6} {'$/sf':>7} {'kgCO2e/sf':>9}",
