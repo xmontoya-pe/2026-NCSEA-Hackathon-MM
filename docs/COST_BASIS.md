@@ -11,8 +11,9 @@ hardcoded in the code. This page explains what each rate covers, why that value 
 picked, and how the optimizer uses it. The engineering assumptions behind the quantities
 are in `docs/ASSUMPTIONS.md` (C-1 to C-8, COL-12, COLC-5, COLT-4).
 
-The tool does not produce construction schedules (durations or sequencing); "schedule"
-here means the unit rate schedule.
+"Schedule" here mostly means the unit rate schedule. The gravity optimizer produces no
+construction schedule; the client dashboard's rough time-to-top-out estimate is described
+at the end of this page.
 
 ## Basis of every rate
 
@@ -145,6 +146,38 @@ study's `carbon_factors` table: `hot_rolled_sections` (per metric tonne) for ste
 `concrete_5000psi` (365 kg/m³) and `rebar_fabricated` (854 kg/t) for concrete, and
 `glulam` (137 kg/m³) for timber. See `docs/ASSUMPTIONS.md` DB-4, COL-12, COLC-5 and
 COLT-4.
+
+## Client dashboard additions (step 5)
+
+The client dashboard (`/dashboard`, `bones_service/dashboard.py`) compares whole structures,
+so it adds three things the gravity optimizer does not price. All are placeholders.
+
+**Lateral system allowance** (`config/costs.json` `lateral`). Per sq ft of floor:
+rate x seismic demand x height factor, where seismic demand = ELF base shear / floor area
+(psf) and the height factor = 1 + 0.05 x (stories − 1).
+
+| Rate | Value | Range | Applies to | Rationale |
+|---|---|---|---|---|
+| Steel braced frames | $0.85 /sf per psf | 0.60–1.20 | Special concentrically braced frames | Braces, heavier frame members and gussets; 6 stories at 14 psf is about $15/sf |
+| Concrete shear walls | $0.50 /sf per psf | 0.35–0.75 | Special RC shear walls | Walls are cheap per unit of strength, but concrete buildings attract more force |
+| Timber concrete core | $0.75 /sf per psf | 0.50–1.10 | Core walls plus collectors for a mass timber frame | One core takes nearly all the load, so collectors are heavier |
+| Height factor | 5% per story | 3–8% | All of the above | Overturning grows with height |
+
+**Cost range** (`cost_range_pct`): ±10% concrete, ±12% steel, ±18% mass timber, wider where
+pricing is less settled. The dashboard shows the range and scores the midpoint.
+
+**Schedule** (`config/schedule.json`), weeks to top out = foundations + any wait for the
+structure beyond the foundation duration + floors x floor cycle:
+
+| Item | Concrete | Steel | Mass timber | Rationale |
+|---|---|---|---|---|
+| Floor cycle, 20,000 sf plate | 2.0 wk | 1.0 wk | 0.8 wk | Cast in place one floor at a time vs. erected frame vs. prefabricated panels |
+| Lead time before the structure starts | 2 wk | 14 wk | 22 wk | Mill order and fabrication; timber supplier lead times |
+| Foundations | 4.5 wk + 3.0 wk per 100 psf of seismic weight, x √(plate / 20,000) | | | Heavier buildings need bigger foundations |
+
+The floor cycle scales with (plate / 20,000)^0.6. A contractor should check these before a
+schedule is shown as more than a relative comparison. Foundations are scheduled but not
+costed.
 
 ## Changing a rate
 
