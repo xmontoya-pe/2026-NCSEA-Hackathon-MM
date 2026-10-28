@@ -1,0 +1,48 @@
+{
+  "_meta": {
+    "description": "Step 5 client dashboard (bones_service/dashboard.py, static/dashboard.html). Which lateral system goes with each gravity scheme, the default priority weights, and the plain-language notes shown to the client. docs/ASSUMPTIONS.md DSH-*.",
+    "order": "Systems are shown in the order listed here."
+  },
+  "prepared_by": "",
+  "default_weights": {"cost": 4, "schedule": 3, "carbon": 3, "seismic": 2},
+  "default_hazard": {
+    "sds": 1.0, "sd1": 0.6, "risk_category": "II",
+    "note": "Used only when the Bones site hazard step has no values; the dashboard says so. Same fallback as step 4."
+  },
+  "systems": {
+    "concrete": {
+      "name": "Concrete",
+      "gravity": "Concrete flat plate",
+      "gravity_from_scheme": true,
+      "lateral": "special reinforced concrete shear walls",
+      "lateral_system": "shear_wall", "R": 6, "Cd": 5,
+      "height_limit_ft": {"D": 160, "E": 160, "F": 100},
+      "lateral_cost_key": "concrete_shear_walls_usd_per_sf_per_psf",
+      "figure": "walls",
+      "pros": ["Familiar to most local contractors", "Good fire and acoustic performance without added protection"],
+      "cons": ["One floor pour at a time, with shoring and reshoring below"]
+    },
+    "steel": {
+      "name": "Steel",
+      "gravity": "Composite steel deck",
+      "lateral": "special concentrically braced frames",
+      "lateral_system": "braced_frame", "R": 6, "Cd": 5,
+      "height_limit_ft": {"D": 160, "E": 160, "F": 100},
+      "lateral_cost_key": "steel_braced_frames_usd_per_sf_per_psf",
+      "figure": "braces",
+      "pros": ["Long spans and easy future changes"],
+      "cons": ["Mill and fabrication lead times", "Needs spray fireproofing", "Braced bays limit openings along those lines"]
+    },
+    "mass_timber": {
+      "name": "Mass timber",
+      "gravity": "CLT floors on a glulam frame",
+      "lateral": "a concrete core (special reinforced concrete shear walls)",
+      "lateral_system": "shear_wall", "R": 6, "Cd": 5,
+      "height_limit_ft": {"D": 160, "E": 160, "F": 100},
+      "lateral_cost_key": "timber_concrete_core_usd_per_sf_per_psf",
+      "figure": "core",
+      "pros": ["Prefabricated panels and a warm, exposed structure"],
+      "cons": ["Fewer experienced installers", "Acoustic and moisture detailing need early attention"]
+    }
+  }
+}

@@ -10,10 +10,14 @@ Sources in static/src/:
   pad/glue-pre.js           stand-ins for the parts of the ELF app that are not in the handoff
   pad/glue-post.js          opening a step 2 plan, lines of resistance, the 3D view
   pad/theme.css             the Bones palette for the pad
+  step5.js                  step 5, client view: saves the pad state and opens /dashboard
 
 When Module 2 changes, paste the new code into the pad/*.verbatim.* files and run this again.
 The pad's CSS is scoped to #pad so it cannot restyle the rest of Bones, and its dark-mode rules are dropped
 (Bones is light). Its JavaScript runs in its own function scope, exactly as in the ELF app.
+
+Step 5: the "5 Client view" label in app.html's step nav becomes a #nav5 button, and step5.js is added
+before </body>. If app.html already has a #nav5 element, it is left as is.
 """
 import os
 import re
@@ -21,6 +25,8 @@ import re
 HERE = os.path.dirname(os.path.abspath(__file__))
 SRC = os.path.join(HERE, "static", "src")
 SCOPE = "#pad"
+STEP5_LABEL = '<span class="step later"><i>5</i>Client view</span>'
+STEP5_BUTTON = '<button class="step" id="nav5" type="button"><i>5</i>Client view</button>'
 
 
 def _blocks(css):
@@ -86,6 +92,18 @@ def read(*p):
         return f.read()
 
 
+def add_step5(app):
+    """Wire the step 5 nav item to the client dashboard (see the module docstring)."""
+    if STEP5_LABEL in app:
+        app = app.replace(STEP5_LABEL, STEP5_BUTTON)
+    elif 'id="nav5"' not in app:
+        raise SystemExit("app.html has no step 5 nav item: expected " + STEP5_LABEL)
+    head, body, tail = app.rpartition("</body>")
+    if not body:
+        raise SystemExit("app.html is missing </body>")
+    return head + '<script id="step5-js">\n' + read("step5.js") + "</script>\n" + body + tail
+
+
 def build(app_html=None):
     app = app_html if app_html is not None else read("app.html")
     css = "<style id=\"pad-css\">\n" + scope_css(read("pad", "pad.verbatim.css")) + "\n" + read("pad", "theme.css") + "\n</style>"
@@ -96,7 +114,7 @@ def build(app_html=None):
         if mark not in app:
             raise SystemExit("app.html is missing " + mark)
         app = app.replace(mark, val)
-    return app
+    return add_step5(app)
 
 
 if __name__ == "__main__":

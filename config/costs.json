@@ -116,5 +116,34 @@
       "applies_to": "MT_FLOOR 3 in. concrete topping, per sq ft of floor",
       "note": "Concrete, welded wire mesh, pumping and finishing; acoustic mat excluded"
     }
+  },
+  "lateral": {
+    "_note": "Client dashboard only (bones_service/dashboard.py, docs/ASSUMPTIONS.md DSH-3). The gravity optimizer does not price the lateral system, so the dashboard adds an allowance per sq ft of floor that scales with seismic demand: rate x (base shear / floor area, psf) x (1 + height_factor_per_story x (stories - 1)).",
+    "steel_braced_frames_usd_per_sf_per_psf": {
+      "value": 0.85, "low": 0.6, "high": 1.2,
+      "applies_to": "Special concentrically braced frames: braces, heavier frame beams and columns, gusset connections",
+      "note": "6 stories at 14 psf of seismic demand: 0.85 x 14 x 1.25 = about $15/sf"
+    },
+    "concrete_shear_walls_usd_per_sf_per_psf": {
+      "value": 0.50, "low": 0.35, "high": 0.75,
+      "applies_to": "Special reinforced concrete shear walls with boundary elements",
+      "note": "Walls are cheap per unit of strength, but concrete buildings attract more force"
+    },
+    "timber_concrete_core_usd_per_sf_per_psf": {
+      "value": 0.75, "low": 0.5, "high": 1.1,
+      "applies_to": "Concrete core walls for a mass timber frame, plus drag struts and collectors to the core",
+      "note": "One core carries nearly all lateral load, so collectors are heavier than with distributed walls"
+    },
+    "height_factor_per_story": {
+      "value": 0.05, "low": 0.03, "high": 0.08,
+      "applies_to": "All lateral allowances",
+      "note": "Overturning grows with height, so lateral cost per unit of demand rises about 5% per story above the first"
+    }
+  },
+  "cost_range_pct": {
+    "_note": "Client dashboard cost range, +/- percent of the estimate. Wider where pricing is less settled.",
+    "concrete": {"value": 10, "note": "Mature local market"},
+    "steel": {"value": 12, "note": "Mill pricing moves"},
+    "mass_timber": {"value": 18, "note": "Few suppliers; wide bid spread today"}
   }
 }
