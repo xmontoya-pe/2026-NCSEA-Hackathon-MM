@@ -130,7 +130,6 @@ Loads, LL reduction, combinations and seismic weight are the same as COL-1 to CO
 | O-6 | Member sizes use the bay study and AISC labels as given (`W12X53`, `W14X22 @ 10ft`, `8" slab`, `24" sq col`, `6-3/4 x 36 @ 15ft`). For flat plates the bay's `girder` is the DB column (`24" sq col`); for one-way slabs and pan joists `beam`/`girder` are the DB's two members. Concrete columns are named `18x18 conc`, glulam columns `10.75x10.75 GL`. | Traceability |
 | O-7 | A concrete scheme's first warning names its structural system and DB system, e.g. `Concrete system: PT flat plate (CONC_PT_FP)`; the output contract has no field for it. | Contract unchanged |
 
-## Concrete
 ## Output (`gravity/optimizer.py`)
 
 | # | Assumption | Source |
@@ -150,7 +149,7 @@ Loads, LL reduction, combinations and seismic weight are the same as COL-1 to CO
 | INT-3 | The LL and SDL typed in the loads table are not sent. LL, partitions, reducibility and vibration criterion come from the occupancy; SDL from `config/sdl.json`. | User decision: no contract change |
 | INT-4 | Roof snow p_f from the hazard panel is not sent; gravity reads `settings.flat_roof_snow_psf` from `config/occupancies.json` (0 with a warning when null). | No contract change |
 | INT-5 | `typical_zones_apply_to_all_levels` is false (the pad copies load areas explicitly). `dimension_lines` are the sketch's grid lines plus the outline extents, or the outline's vertex coordinates when no grid was read. No `no_columns` zones are sent (the pad has no way to draw one yet). | Pad file format |
-| INT-6 | `constraints` (min/max bay, min ceiling height, plenum) come from the gravity card, with the spec 2.1 example values as defaults; `objective_weights` and `systems` use the spec 2.1 defaults (`steel` only). | Spec 2.1 |
+| INT-6 | `constraints` (min/max bay, min ceiling height, plenum) come from the gravity card, with the spec 2.1 example values as defaults; `objective_weights` uses the spec 2.1 default; `systems` defaults to all three (steel, concrete, mass timber), as in spec 2.1, and a request may narrow it. | Spec 2.1 |
 
 ## Concrete (when built)
 
@@ -159,3 +158,19 @@ Loads, LL reduction, combinations and seismic weight are the same as COL-1 to CO
 | CC-1 | For flat plates, the column size in the DB row (`column_in`, used for the punching-shear check) is taken as the column size and reported in the concrete output (COLC-3). | H |
 | CC-2 | One-way slab on PT beams: `span_1` is the PT beam span (24–60 ft) and `span_2` the slab span = column spacing (10–20 ft), so only bays with one side ≤ 20 ft are feasible. Both "Min depth" and "Min concrete" designs are options. | DB `db_info`, `assumptions` Layout |
 | CC-3 | Flat plate rows with and without stud rails, and every pan module, are all options for a bay; the per-bay choice (B-1) picks among them. | Interpretation |
+
+## Client dashboard (`bones_service/dashboard.py`, step 5)
+
+Schematic comparison for a client conversation, built on the gravity optimizer and the ELF engine. Every rate below is a placeholder until it is checked.
+
+| # | Assumption | Decision |
+|---|---|---|
+| DSH-1 | Site hazard (SDS, SD1, Ie) comes from the Bones hazard step (`state.sds`, `sd1`, `ie`) and the Risk Category from `bones.hazard.query.risk_category`. If SDS or SD1 is missing, placeholders SDS 1.0 and SD1 0.6 are used (the same fallback as step 4) and the dashboard says so; Ie defaults to the Risk Category's (ASCE 7 Table 1.5-2). The Seismic Design Category comes from `elf_engine.sdc_of`. | Placeholder (`config/dashboard.json`) |
+| DSH-2 | **Each scheme gets its own lateral analysis with its own weight.** The pad state goes to `elf_engine.analyze` with that scheme's lateral system, and each pad level's seismic weight is set to that scheme's gravity seismic weight at the matching level (psf = W × 1000 / outline area, `la` off), so heavier systems attract more base shear. Steel: special concentrically braced frames (R 6, Cd 5). Concrete: special reinforced concrete shear walls (R 6, Cd 5). Mass timber: a concrete core of special RC shear walls (R 6, Cd 5). Ct = 0.02, x = 0.75 ("all other" structures), T = Ta. Only base shear is used; the walls or frames drawn on the pad do not change it. The weight of the lateral system itself (walls, core) is not added. | ASCE 7-22 Table 12.2-1, 12.8; user request (tie the dashboard to gravity and lateral) |
+| DSH-3 | **Structure cost = gravity framing and columns (bay study) + a lateral allowance.** Allowance per sq ft of floor = rate × seismic demand (V / floor area, psf) × (1 + 0.05 × (stories − 1)); rates $0.85 (braced frames), $0.50 (concrete walls), $0.75 (timber with concrete core) per sf per psf (`config/costs.json` `lateral`). Foundations, fireproofing and general conditions are not included. | Placeholder (`docs/COST_BASIS.md`) |
+| DSH-4 | Cost is shown as a range: ±10% concrete, ±12% steel, ±18% mass timber (`cost_range_pct`), for pricing uncertainty. Scoring uses the midpoint. | Placeholder |
+| DSH-5 | **Time to top out** = foundations + any wait for the structure beyond the foundation duration + floors × floor cycle. Foundations = (4.5 + 3.0 × seismic weight psf / 100) × √(plate / 20,000 sf) weeks; floor cycle at a 20,000 sf plate: concrete 2.0, steel 1.0, mass timber 0.8 weeks, scaled by (plate / 20,000)^0.6; lead time: concrete 2, steel 14, mass timber 22 weeks (`config/schedule.json`). Floors = the framed levels (pad levels, roof included). | Placeholder |
+| DSH-6 | **Floor-to-floor** shown to the client = minimum ceiling height + plenum + the deepest floor framing of the scheme (roof framing excluded unless it is the only level): the story height that system needs, not the drawn one. | Spec 4.4 depth budget |
+| DSH-7 | A scheme carries conditions (shown first under trade-offs, and on its card) when: bays need framing beyond the bay study; a level's clear height is below the minimum ceiling; the lateral analysis fails; or the roof height exceeds the ASCE 7 height limit for its lateral system in SDC D (160 ft), E (160 ft) or F (100 ft). | ASCE 7-22 Table 12.2-1 |
+| DSH-8 | **Fit score** (0–100) = Σ slider weight × normalized measure / Σ weights. Measures: structure cost (midpoint), weeks to top out, embodied carbon (gravity framing and columns, t CO₂e), and base shear for "seismic resilience" (lower force scores higher). Each is min-max normalized across the three schemes, 1 for the lowest, 0 for the highest, 1 for all if equal; a missing value scores 0. Sliders run 0 (not a factor) to 5 (critical); defaults cost 4, schedule 3, carbon 3, seismic 2. The page recomputes this live as sliders move; `dashboard.fit_scores` is the same formula. | Design ("Bones — UI flow", board 5); user request |
+| DSH-9 | "Why choose it" lists where a scheme is lowest of the three on cost, schedule, carbon, seismic force or floor-to-floor, and "Trade-offs" where it is highest (ignored when the three are within 2%), then each system's general notes from `config/dashboard.json`. | Plain-language summary |
