@@ -105,8 +105,6 @@ function bonesLines(){
   if(!nx && !ny){ verdict = isWalls() ? 'No shear walls yet. Choose Shear walls, then click one end of a wall and then the other.'
                                       : 'No braced frames yet. Choose Braced frames, then click one column and the other column of a braced bay.'; cls = 'b-warn'; }
   else if(!nx || !ny){ verdict = `${isWalls() ? 'Walls' : 'Frames'} are needed in both directions; there are none in ${nx ? 'Y' : 'X'}.`; cls = 'b-bad'; }
-  if(!nx && !ny){ verdict = 'No lines of resistance yet. Choose Lines of resistance on the pad, then click one end of a wall or frame and then the other.'; cls = 'b-warn'; }
-  else if(!nx || !ny){ verdict = `Lines of resistance are needed in both directions; there are none in ${nx ? 'Y' : 'X'}.`; cls = 'b-bad'; }
   else if(nx + ny < 3){ verdict = 'Only one line in each direction: the lines meet at a point, so the plan cannot resist torsion. Add a third line.'; cls = 'b-bad'; }
   else { verdict = `${nx + ny} lines of resistance, ${nx} in X and ${ny} in Y: enough to resist torsion.`; cls = 'b-good'; }
   el.innerHTML = `<p class="${cls}" style="margin:0 0 10px">${verdict}</p>` +
@@ -118,7 +116,6 @@ function bonesLines(){
 
 /* 3D view: every level of the typical plan, columns at the corners and frame columns, one brace per story
    (shear walls: one panel per wall, full height) */
-/* 3D view: every level of the typical plan, columns at the corners, each line of resistance shaded as a wall */
 function render3D(){
   const svg = document.getElementById('m3d'); if(!svg) return;
   const pl = S.plan, V = pl.verts || [];
@@ -137,8 +134,8 @@ function render3D(){
   const T = (x, y, z) => { const q = P(x, y, z); return (ox + q[0] * k).toFixed(1) + ' ' + (oy + q[1] * k).toFixed(1); };
   const ring = z => 'M' + V.map(p => T(p[0], p[1], z)).join('L') + 'Z';
   let floors = '', cols = '', braces = '', beams = '', labels = '', panels = '';
-  let floors = '', cols = '', walls = '', labels = '';
   hs.slice(1, -1).forEach(z => floors += ring(z));
+  const colPts = V.map(p => p.slice());
   (pl.lfrs || []).forEach(l => {
     const a = [l.x1, l.y1], b = [l.x2, l.y2], x2 = l.type === 'x2';
     if(isWalls()){
@@ -163,14 +160,11 @@ function render3D(){
         const lo = toB ? a : b, hi = toB ? b : a;
         braces += 'M' + T(lo[0], lo[1], z0) + 'L' + T(hi[0], hi[1], z);
       }
-    const a = [l.x1, l.y1], b = [l.x2, l.y2];
-    hs.slice(1).forEach((z, i) => {   // one shaded panel per story, so the floor lines still read across the wall
-      walls += 'M' + T(a[0], a[1], hs[i]) + 'L' + T(b[0], b[1], hs[i]) + 'L' + T(b[0], b[1], z) + 'L' + T(a[0], a[1], z) + 'Z';
     });
     const mid = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2], q = T(mid[0], mid[1], top).split(' ');
     labels += `<text x="${q[0]}" y="${+q[1] - 10}" text-anchor="middle" font-size="15" font-weight="700" fill="#E3A3AD">${esc(l.label)}</text>`;
   });
-  V.forEach(p => cols += 'M' + T(p[0], p[1], 0) + 'L' + T(p[0], p[1], top));
+  colPts.forEach(p => cols += 'M' + T(p[0], p[1], 0) + 'L' + T(p[0], p[1], top));
   svg.innerHTML = `<path d="${ring(0)}" fill="#fff" fill-opacity=".05" stroke="#5A5A61"/>
     <path d="${floors}" fill="#fff" fill-opacity=".03" stroke="#fff" stroke-opacity=".45"/>
     <path d="${cols}" stroke="#fff" stroke-opacity=".35"/>
@@ -180,10 +174,6 @@ function render3D(){
     <path d="${ring(top)}" fill="none" stroke="#fff" stroke-width="1.6"/>${labels}`;
   const sum = document.getElementById('m3dSum'), nl = (pl.lfrs || []).length;
   if(sum) sum.textContent = `${S.levels.length} level${S.levels.length === 1 ? '' : 's'}, ${nl} ${isWalls() ? 'shear wall' : 'braced frame'}${nl === 1 ? '' : 's'}`;
-    <path d="${walls}" fill="#D0566A" fill-opacity=".38" stroke="#D0566A" stroke-width="1.6" stroke-linejoin="round"/>
-    <path d="${ring(top)}" fill="none" stroke="#fff" stroke-width="1.6"/>${labels}`;
-  const sum = document.getElementById('m3dSum'), nL = (pl.lfrs || []).length;
-  if(sum) sum.textContent = `${S.levels.length} level${S.levels.length === 1 ? '' : 's'}, ${nL} line${nL === 1 ? '' : 's'} of resistance`;
 }
 (function wire3D(){
   const views = {v3iso: [-35, 28], v3plan: [0, 90], v3front: [0, 0], v3side: [-90, 0]};
@@ -305,6 +295,8 @@ planStatsUI = function(){
   $('#ps-n').textContent = `${nx} X · ${L.length - nx} Y walls`;
   $('#ps-Rn').textContent = `${label(padLv())} (drawing pad level), walls below it, each on its own`;
 };
+// the step 3 lateral system switch (step 4's system cards also carry data-sys, so match these two only)
+const SYS_BUTTONS = '[data-sys="braced_frame"], [data-sys="shear_wall"]';
 // labels that name braced frames
 let chromeFor = null;
 function wallsChrome(){
@@ -327,46 +319,17 @@ function wallsChrome(){
   const what = w ? 'wall thicknesses' : 'brace areas';
   $('#lvCopyAll').title = `Copy this level's ${what} and load areas to every other level`;
   $('#lvCopyFrom').setAttribute('aria-label', `Copy ${what} and load areas from another level`);
-  document.querySelectorAll('[data-sys]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.sys === (w ? 'shear_wall' : 'braced_frame'))));
+  document.querySelectorAll(SYS_BUTTONS).forEach(b => b.setAttribute('aria-pressed', String(b.dataset.sys === (w ? 'shear_wall' : 'braced_frame'))));
 }
 function setSystem(sys){
   S.lateral_system = sys === 'shear_wall' ? 'shear_wall' : 'braced_frame';
   if(isWalls()) PL().lfrs.forEach(l => { if(!Array.isArray(l.ts) || !l.ts.length) l.ts = Array(nLv()).fill(wallTDef()); });
   save(); changed();
 }
-document.querySelectorAll('[data-sys]').forEach(b => b.addEventListener('click', () => setSystem(b.dataset.sys)));
+document.querySelectorAll(SYS_BUTTONS).forEach(b => b.addEventListener('click', () => setSystem(b.dataset.sys)));
 
-window.BonesPad = {open: bonesOpen, state: () => S, bones: () => bonesData(), setHazard, setSnow, copyLoadsToFloors, renderLoads, setSystem,
+window.BonesPad = {open: bonesOpen, state: () => S, bones: () => bonesData(), setHazard, setSnow, setMaterial, copyLoadsToFloors, renderLoads, setSystem,
   system: () => S.lateral_system || 'braced_frame',
-/* Wording: the pad's frames stand for walls or frames of any material (chosen in module 4), so its brace wording
-   is swapped for "lines of resistance" as it renders, leaving pad.verbatim.* unchanged. Specific phrases first. */
-const WORDS = [
-  ['Click the first column of a braced bay (the line runs column to column)', 'Click one end of the wall or frame'],
-  ['click the two columns of each braced bay', 'click both ends of each wall or frame'],
-  ['Columns, beams and one brace per story are drawn for every frame.', 'Each line of resistance is shaded as a wall at every story.'],
-  ['Frame selected:', 'Line selected:'], ['New frames, A', 'New lines, A'], [' to add frames', ' to add them'],
-  ['Braced frames', 'Lines of resistance'], ['braced frames', 'lines of resistance'],
-  ['Braced frame', 'Line of resistance'], ['braced frame', 'line of resistance']];
-const reword = s => WORDS.reduce((t, [a, b]) => t.split(a).join(b), s);
-function rewordTree(n){
-  if(n.nodeType === 3){
-    if(n.parentElement && !n.parentElement.closest('svg')){ const t = reword(n.nodeValue); if(t !== n.nodeValue) n.nodeValue = t; }
-    return;
-  }
-  if(n.nodeType !== 1 || n.closest('svg')) return;   // the plan and 3D drawings carry no wording, and redraw often
-  ['aria-label', 'title'].forEach(a => { const v = n.getAttribute(a); if(v){ const t = reword(v); if(t !== v) n.setAttribute(a, t); } });
-  n.childNodes.forEach(rewordTree);
-}
-(function wireWording(){
-  const pad = document.getElementById('pad'); if(!pad) return;
-  const foot = pad.querySelector('.tpanel:not(.lapanel) .tp-foot');
-  if(foot) foot.innerHTML = 'Each line is a wall or frame that resists lateral load; its material is chosen in Module 4. Until then, A (in²) only sets how the load is shared between lines.';
-  rewordTree(pad);
-  new MutationObserver(ms => ms.forEach(m => m.type === 'characterData' ? rewordTree(m.target) : m.addedNodes.forEach(rewordTree)))
-    .observe(pad, {childList: true, subtree: true, characterData: true});
-})();
-window.BonesPad = {open: bonesOpen, state: () => S, bones: () => bonesData(), setHazard, setSnow, setMaterial, copyLoadsToFloors,
-window.BonesPad = {open: bonesOpen, state: () => S, bones: () => bonesData(), setHazard, setSnow, copyLoadsToFloors, renderLoads,
   toScreen: (x, y) => { const r = document.getElementById('plan').getBoundingClientRect(), p = toS([x, y]); return [r.left + p[0], r.top + p[1]]; }, fit: () => { sizePlan(); fit(); render(); }, refresh: () => { bonesLines(); render3D(); }};
 bonesReady = true;
 renderTPanel(); planStatsUI(); render();   // the pad drew itself before the wrappers above existed
