@@ -6,8 +6,8 @@
       1542,
       1026
     ],
-    "read": "2026-10-27",
-    "model": "read by hand in chat (example)"
+    "read": "2026-10-28",
+    "model": "claude-sonnet-5-5"
   },
   "units": {
     "length": "ft",
@@ -16,10 +16,10 @@
     "axes": "+x east (right), +y north (up)"
   },
   "levels": {
-    "count": 1,
+    "count": 3,
     "storey_height": 12.0,
     "slab_thickness": 0.83,
-    "source": "default (not on the sketch)"
+    "source": "entered"
   },
   "outline": [
     [
@@ -91,7 +91,7 @@
       "corner": "convex",
       "sketch_px": [
         432,
-        345
+        346
       ]
     },
     {
@@ -102,8 +102,8 @@
       ],
       "corner": "convex",
       "sketch_px": [
-        770,
-        345
+        776,
+        316
       ]
     },
     {
@@ -114,8 +114,8 @@
       ],
       "corner": "re-entrant",
       "sketch_px": [
-        780,
-        492
+        782,
+        495
       ]
     },
     {
@@ -126,8 +126,8 @@
       ],
       "corner": "convex",
       "sketch_px": [
-        1062,
-        478
+        1075,
+        470
       ]
     },
     {
@@ -138,8 +138,8 @@
       ],
       "corner": "convex",
       "sketch_px": [
-        1075,
-        775
+        1069,
+        778
       ]
     },
     {
@@ -151,7 +151,7 @@
       "corner": "convex",
       "sketch_px": [
         452,
-        782
+        783
       ]
     }
   ],
@@ -259,7 +259,7 @@
         100.0
       ],
       "dimension": "D2",
-      "length_source": "same span as D2"
+      "length_source": "written"
     },
     {
       "id": "E4",
@@ -384,7 +384,7 @@
       "orientation": "h",
       "solved": 200.0,
       "agrees": true,
-      "measures": "x 300 to 500 at y = 200"
+      "measures": "C3 to C4, x 300 to 500 at y = 100"
     },
     {
       "id": "D3",
@@ -429,6 +429,18 @@
     "x": [],
     "y": []
   },
-  "notes": [],
-  "warnings": []
+  "notes": [
+    "300'",
+    "200'",
+    "500'",
+    "200'",
+    "100'",
+    "100'"
+  ],
+  "warnings": [
+    "The plan is an L-shape: a rectangle 500' x 200' with a 200' x 100' notch cut from the top-right corner.",
+    "The left vertical dimension is handwritten and could be read as 100' or 200'. I read it as 200' because it matches the two 100' dimensions on the right (100 + 100) and the overall height.",
+    "The hand-drawn outline lines do not quite meet at the corners, so the outline corners are estimated intersections.",
+    "The top-right 200' dimension measures from the notch's inner vertical edge to the right edge. Its p1/p2 are placed at y=458, the level of the right edge's top corner, because the notch is open at the top."
+  ]
 }

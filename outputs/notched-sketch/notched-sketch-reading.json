@@ -2,28 +2,28 @@
   "units": "ft",
   "outline": [
     [
-      280.2,
-      336.3
+      280,
+      337
     ],
     [
-      499.4,
-      336.3
+      503,
+      308
     ],
     [
-      505.8,
-      479.5
+      507,
+      482
     ],
     [
-      688.7,
-      465.9
+      697,
+      458
     ],
     [
-      697.1,
-      755.4
+      693,
+      758
     ],
     [
-      293.1,
-      762.2
+      293,
+      763
     ]
   ],
   "dimensions": [
@@ -31,12 +31,12 @@
       "text": "300'",
       "value": 300,
       "p1": [
-        280.2,
-        336.3
+        280,
+        337
       ],
       "p2": [
-        499.4,
-        336.3
+        503,
+        308
       ],
       "orientation": "h"
     },
@@ -44,12 +44,12 @@
       "text": "200'",
       "value": 200,
       "p1": [
-        499.4,
-        336.3
+        505,
+        458
       ],
       "p2": [
-        697.1,
-        336.3
+        697,
+        458
       ],
       "orientation": "h"
     },
@@ -57,12 +57,12 @@
       "text": "500'",
       "value": 500,
       "p1": [
-        293.1,
-        762.2
+        293,
+        763
       ],
       "p2": [
-        697.1,
-        762.2
+        693,
+        758
       ],
       "orientation": "h"
     },
@@ -70,12 +70,12 @@
       "text": "200'",
       "value": 200,
       "p1": [
-        280.2,
-        336.3
+        280,
+        337
       ],
       "p2": [
-        280.2,
-        762.2
+        293,
+        763
       ],
       "orientation": "v"
     },
@@ -83,12 +83,12 @@
       "text": "100'",
       "value": 100,
       "p1": [
-        697.1,
-        336.3
+        697,
+        308
       ],
       "p2": [
-        697.1,
-        472.7
+        697,
+        458
       ],
       "orientation": "v"
     },
@@ -96,12 +96,12 @@
       "text": "100'",
       "value": 100,
       "p1": [
-        697.1,
-        472.7
+        697,
+        458
       ],
       "p2": [
-        697.1,
-        755.4
+        697,
+        758
       ],
       "orientation": "v"
     }
@@ -114,10 +114,22 @@
     "count": null,
     "storey_height": null
   },
-  "notes": [],
-  "warnings": [],
+  "notes": [
+    "300'",
+    "200'",
+    "500'",
+    "200'",
+    "100'",
+    "100'"
+  ],
+  "warnings": [
+    "The plan is an L-shape: a rectangle 500' x 200' with a 200' x 100' notch cut from the top-right corner.",
+    "The left vertical dimension is handwritten and could be read as 100' or 200'. I read it as 200' because it matches the two 100' dimensions on the right (100 + 100) and the overall height.",
+    "The hand-drawn outline lines do not quite meet at the corners, so the outline corners are estimated intersections.",
+    "The top-right 200' dimension measures from the notch's inner vertical edge to the right edge. Its p1/p2 are placed at y=458, the level of the right edge's top corner, because the notch is open at the top."
+  ],
   "_meta": {
-    "model": "read by hand in chat (example)",
+    "model": "claude-sonnet-5-5",
     "image": "notched-sketch.png",
     "image_size": [
       1542,

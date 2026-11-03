@@ -1,86 +1,88 @@
-# Sketch Reader
+# Bones: sketch to structural scheme
 
-Photo of a hand-drawn floor plan in, text files out.
+Bones turns a photo of a hand-sketched floor plate into schematic structural framing options. It reads the sketch with Claude, rebuilds the plan to scale, pulls site hazards, and compares the best column grid and bay framing for **steel, concrete and mass timber**: depth, clear height, columns, cost, carbon, seismic weight and base shear. It is meant for the first conversation about a building, not for design.
 
-You pick a photo of a sketch. Claude reads the outline and the written dimensions. The app rebuilds the plan to scale from those dimensions and saves:
+![The example sketch with the app's reading (corners and dimensions) drawn on top](outputs/notched-sketch/notched-sketch-overlay.png)
 
-| File | What it is |
+## What this tool is, and what it is not
+
+**It provides schematic-level framing from curated data. It does not create or run any analysis models.**
+
+- No finite element or frame analysis model is built or run.
+- Framing depths come from a curated bay study database (`data/bay_studies.sqlite`), produced ahead of time through engineering analysis, like published tables such as CRSI's. The app looks up a row the way an engineer reads a design table, rounding spans and loads **up**, never interpolating unconservatively.
+- Column sizes (tributary loads, AISC capacity) and seismic base shear (ASCE 7-22 ELF) are hand-calculation-level formulas.
+- Unit costs in `config/costs.json` are placeholders ([docs/COST_BASIS.md](docs/COST_BASIS.md)). Every assumption is in [docs/ASSUMPTIONS.md](docs/ASSUMPTIONS.md).
+
+Results are a starting point for engineering judgment; a licensed engineer must design the structure.
+
+## Setup
+
+**1. Download.** `git clone https://github.com/xmontoya-pe/2026-NCSEA-Hackathon-MM.git`, or **Code > Download ZIP** on GitHub.
+
+**2. Environment.** Either:
+- **Dev container (recommended).** Needs Docker and VS Code with the Dev Containers extension. Open the folder and choose **Reopen in Container**. The container (`.devcontainer/`) is Python 3.14 on Debian, with Node.js, Claude Code and the Python extensions, running as `root`. VS Code forwards port 8765 automatically.
+- **Your own machine.** Python 3.11 or newer (on Windows, tick "Add python.exe to PATH"). A virtual environment is optional.
+
+Then install the libraries (the container doesn't do this for you):
+```
+pip install -r requirements.txt
+pip install -r requirements-api.txt    # only for the Seismic ELF API
+```
+
+**3. Claude API key in `.env`.** **A key is required to read a hand sketch**: each new sketch is one call to Claude. Everything after the reading is plain Python and JavaScript. Get a key at https://console.anthropic.com (**Settings > API keys**), then create `.env` in the repo root:
+```
+ANTHROPIC_API_KEY=sk-ant-...
+ASCE_HAZARD_TOKEN=...
+```
+`ASCE_HAZARD_TOKEN` is optional; without it, seismic values come from USGS and you type in wind and snow. `.env` is git-ignored. A key set as an environment variable takes priority, and the key is read when the server starts. Without a key, **Read sketch** is greyed out, but **Try the example sketch** and every later step still work.
+
+## Run the web app
+
+```
+python -m bones_service.api
+```
+
+Open http://127.0.0.1:8765 (Ctrl+C stops it). Options: `--port 9000`, `--host 0.0.0.0` to share on your network, `--out <folder>` for sketch files (default `outputs/`). While developing, use `uvicorn bones_service.api:app --port 8765 --reload`; API docs are at `/docs`. If you edit `bones_service/static/src/`, rebuild the page with `python -m bones_service.build_ui`.
+
+Use `bones_service.api`, not `bones_service.server`: that older server has no gravity optimizer.
+
+### Steps
+
+1. **Sketch.** Drop in a photo and press **Read sketch** (15 to 60 seconds), or **Try the example sketch**.
+2. **Plan and 3D.** Check the plan against **Reading on photo**, fix stories or story height, then **Open in the drawing pad**.
+3. **Drawing pad and loads.** Pull site hazards from the address, draw lines of resistance and load areas on each level, and pick an occupancy for every load area.
+4. **Structural system.** A stand-in comparison of lateral systems (R, height limits, base shear).
+5. **Analysis.** Set bay limits, ceiling height, plenum and ranking weights, then **Run the analysis**. You get the best grid per material, headline winners, a side-by-side table, results by level, runner-up grids and every warning. **Download results (JSON)** saves it all.
+
+Your drawing is saved in the browser as you go. Details on each step and the endpoints: [BONES_SERVICE.md](BONES_SERVICE.md).
+
+## Command line
+
+```
+python -m gravity run tests/fixtures/simple_rect.json -o out/   # out/output.json and out/warnings.log
+python -m gravity report tests/fixtures/simple_rect.json        # best scheme and alternates per system
+python -m gravity column tests/fixtures/simple_rect.json --column B-2   # every number for one column
+uvicorn api:app --reload                                         # Seismic ELF API on :8000, POST /analyze
+python -m unittest discover -s tests -v                          # tests (pytest also works)
+```
+
+Input format: [examples/README.md](examples/README.md). Spec: [GRAVITY_OPTIMIZER_SPEC.md](GRAVITY_OPTIMIZER_SPEC.md). From Python: `import gravity; gravity.run(input_dict)`.
+
+## Sketch Reader on its own
+
+`python app.py` opens a desktop window that reads one sketch and saves the plan as text, JSON, CSV, DXF, SVG and an overlay PNG. It does not read `.env`: set `ANTHROPIC_API_KEY` in the environment or paste the key into the window. Without a key:
+```
+python app.py examples/notched-sketch.png --reading examples/notched-sketch-reading.json
+```
+
+For good readings, write a dimension on every span with an overall for each chain, draw the slab edge heaviest, and write the story count and height on the sketch. Always check the overlay before using the numbers.
+
+## Troubleshooting
+
+| What you see | Fix |
 |---|---|
-| `<name>-summary.txt` | Everything in plain text: dimensions, corners, edges as vectors, floor area, perimeter, centroid, second moments, levels, checks |
-| `<name>-plan.json` | The same data in a structured form (for Grasshopper, Python, the Rhino import) |
-| `<name>-edges.csv` | One row per edge, for Excel |
-| `<name>-plan.dxf` | Lines, corner and length labels, level outlines; opens in Rhino or AutoCAD |
-| `<name>-plan.svg` | A labelled, to-scale drawing |
-| `<name>-overlay.png` | Your photo with what was read drawn on top, to check the reading |
-| `<name>-reading.json` | Claude's raw reading, so you can re-run without calling Claude again |
-
-Files go into a folder named after the photo, inside the output folder you choose.
-
-## Setup (once)
-
-1. Install Python 3.10 or newer from python.org. On Windows, tick "Add python.exe to PATH" in the installer.
-2. Open a terminal in this folder and install the two libraries:
-   ```
-   pip install -r requirements.txt
-   ```
-3. Get an API key from https://console.anthropic.com (Settings > API keys) and save it:
-   ```
-   setx ANTHROPIC_API_KEY "sk-ant-..."
-   ```
-   Close and reopen the terminal afterwards. You can also paste the key into the app each time instead.
-
-## Use it
-
-**Window:** double-click `run_app.bat` (or run `python app.py`).
-1. Browse to the sketch photo.
-2. Choose where to save the files. It defaults to `AISUMMIT\outputs` in your user folder when that folder exists.
-3. Optionally enter the number of storeys and the storey height, if they aren't written on the sketch.
-4. Press **Read sketch and save files**. Reading takes about 15 to 60 seconds.
-
-To change the storeys later without paying for another reading, tick **Reuse the saved reading** and run it again.
-
-**Command line:**
-```
-python app.py sketch.png --out C:\Users\you\AISUMMIT\outputs
-python app.py sketch.png --levels 6 --storey-height 12
-python app.py sketch.png --reading outputs\sketch\sketch-reading.json   (no Claude call)
-```
-
-**Try it without an API key:** the `examples` folder has your notched sketch and a saved reading:
-```
-python app.py examples\notched-sketch.png --reading examples\notched-sketch-reading.json
-```
-
-## How it works
-
-1. `sketch_reader/reader.py` sends the photo to Claude with instructions to return the outline corners, every written dimension (with the two points it measures between), grid lines, columns, cores, storeys and notes, as JSON.
-2. `sketch_reader/geometry.py` rebuilds the plan. Sketches are rarely to scale, so it ignores the drawn proportions. It splits the plan into spans between the x and y lines of the drawing and sets each span from the written dimensions. Spans with no dimension are scaled from the drawing. When a chain of dimensions doesn't add up to the overall, it tells you which ones disagree.
-3. `sketch_reader/outputs.py` writes the files.
-
-## Getting good readings
-
-- Write a dimension on every span, and give chains an overall. The overall lets the app check the chain.
-- Draw the slab edge with the heaviest line.
-- Use ' for feet, or write "m" / "mm" once.
-- Write the storey count and height on the sketch, e.g. "6 STOREYS, F-F 12'".
-- Always glance at `overlay.png` to confirm the reading before using the numbers.
-
-## Open it in Rhino
-
-Run `import_sketch_plan.py` in Rhino (Rhino 8: `ScriptEditor`; Rhino 7: `RunPythonScript`) and pick the `-plan.json` file. It builds layers, the outline, edge lines carrying their data as Attribute User Text, real dimensions, slabs per level, and floor properties as Document User Text.
-
-## Settings
-
-- Model: `claude-sonnet-5-5` by default. Pick `claude-opus-5-5` in the window, or pass `--model`, for messy sketches.
-- Tolerances (how close lines must be to count as the same line, how far off horizontal an edge can be) are at the top of `sketch_reader/geometry.py`.
-
-## Seismic ELF API
-
-`api.py` is a FastAPI service over `elf_engine.py`, the ASCE 7-22 ELF engine for steel braced frames or concrete shear walls (one engine, picked by the project's `lateral_system`).
-
-```
-pip install -r requirements-api.txt
-uvicorn api:app --reload
-```
-
-Open http://127.0.0.1:8000/docs. `POST /analyze` takes the project file the Bones drawing pad downloads. For shear walls, add a `shear_walls` block with R, C<sub>d</sub>, f′c and the other wall inputs; wall thicknesses come from the pad. Tests: `python -m pytest tests` (the shear wall results are checked against the ShearWall dashboard, `tests/test_shearwall.py`).
+| **Read sketch** is greyed out | No `ANTHROPIC_API_KEY`. Add it to `.env` and restart the server. |
+| Occupancy says "unavailable", or **Run the analysis** fails | You started the old server. Run `python -m bones_service.api`. |
+| A change to the page isn't showing | `python -m bones_service.build_ui`, then refresh. |
+| "Address already in use" | Add `--port 9000`. |
+| Many "Envelope: no DB row is designed for both..." warnings | Expected for office floors (docs/ASSUMPTIONS.md L-6). |
