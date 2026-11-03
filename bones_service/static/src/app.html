@@ -144,6 +144,32 @@ ul.plain{margin:6px 0 0;padding-left:18px;font-size:13.5px;color:var(--muted)}
 .bar i{display:block;height:100%;background:var(--wine)}
 .sys-card .btn{margin-top:auto}
 @media (max-width:1000px){.sys-grid{grid-template-columns:1fr}.sys-basis{grid-template-columns:repeat(3,minmax(0,1fr))}}
+
+/* step 5: analysis */
+.an-verdicts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:20px}
+.an-verdicts .b-stat div:nth-child(2){font-size:20px;font-weight:700;letter-spacing:-.02em}
+.an-verdicts .b-stat small{display:block;font-size:12.5px;color:var(--muted);font-weight:500;margin-top:2px}
+.an-head{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap;margin:28px 0 10px}
+.an-head h2{margin:0;font-size:19px;font-weight:600}
+.cmp{overflow-x:auto}
+.cmp table{border-collapse:collapse;width:100%;min-width:680px;font-size:14px}
+.cmp th,.cmp td{padding:8px 12px;border-bottom:1px solid #ECECE8;vertical-align:top}
+.cmp thead th{font-size:13px;font-weight:600;text-align:left;border-bottom:1px solid var(--line2)}
+.cmp thead th span{display:block;font-weight:400;color:var(--muted);font-size:12px}
+.cmp tbody th{text-align:left;font-weight:400;color:var(--muted);white-space:nowrap;width:22%}
+.cmp td{width:26%}
+.cmp .v{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-variant-numeric:tabular-nums}
+.cmp .v b{font-weight:600}
+.cmp td:not(.best) .v b{font-weight:500}
+.cmp .tag{font-size:11px;font-weight:600;padding:1px 8px;border-radius:999px;background:#E7F3EC;color:var(--ok);white-space:nowrap}
+.cmp .hb{display:block;height:6px;margin-top:6px;border-radius:3px;background:#F0F0EE}
+.cmp .hb i{display:block;height:100%;min-width:2px;border-radius:0 3px 3px 0;background:#C9919B}
+.cmp .best .hb i{background:var(--wine)}
+.cmp tr.sec th{padding:18px 12px 6px;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--wine);border-bottom:1px solid var(--line2)}
+.an-detail{margin-top:12px}
+.an-detail summary{cursor:pointer;font-weight:600}
+.an-detail[open] summary{margin-bottom:10px}
+@media (max-width:1000px){.an-verdicts{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (max-width:640px){header,nav{padding-left:16px;padding-right:16px} main{padding:24px 16px 48px} h1{font-size:28px} .b-stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
 </style>
 <!--PAD_CSS-->
@@ -162,7 +188,8 @@ ul.plain{margin:6px 0 0;padding-left:18px;font-size:13.5px;color:var(--muted)}
   <button class="step later" id="nav2" type="button" disabled><i>2</i>Plan and 3D</button>
   <button class="step later" id="nav3" type="button" disabled><i>3</i>Drawing pad and loads</button>
   <button class="step later" id="nav4" type="button" disabled><i>4</i>Structural system</button>
-  <span class="step later"><i>5</i>Client view</span>
+  <button class="step later" id="nav5" type="button" disabled><i>5</i>Analysis</button>
+  <span class="step later"><i>6</i>Client view</span>
 </nav>
 
 <main>
@@ -200,7 +227,7 @@ ul.plain{margin:6px 0 0;padding-left:18px;font-size:13.5px;color:var(--muted)}
           <p class="small" style="margin:8px 0 14px">Leave blank if they are written on the sketch. You can change them on the next screen without reading it again.</p>
           <label class="f">Reader<select id="model"><option value="claude-sonnet-5-5">Standard (faster)</option><option value="claude-opus-5-5">Careful, for messy sketches (slower)</option></select></label>
         </div>
-        <div class="b-note" id="noKey" hidden>Reading new sketches needs an Anthropic API key. Paste it into the .env file next to run_bones.bat and restart. The example below works without one.</div>
+        <div class="b-note" id="noKey" hidden>Reading new sketches needs an Anthropic API key. Paste it into the .env file in the repo root and restart. The example below works without one.</div>
         <div class="err" id="err1" hidden></div>
         <button class="btn b-primary" id="go" type="button" disabled>Read sketch</button>
         <button class="btn ghost" id="example" type="button">Try the example sketch</button>
@@ -317,6 +344,7 @@ ul.plain{margin:6px 0 0;padding-left:18px;font-size:13.5px;color:var(--muted)}
           <div id="bonesLines" class="lines"></div>
         </div>
         <button class="btn b-primary" id="toSys" type="button">Compare structural systems</button>
+        <button class="btn black" id="toAna3" type="button">Go to the analysis</button>
         <button class="btn ghost" id="back3" type="button">Back to the plan</button>
       </aside>
     </div>
@@ -327,19 +355,6 @@ ul.plain{margin:6px 0 0;padding-left:18px;font-size:13.5px;color:var(--muted)}
         <button class="btn ghost b-sm" id="copyLoads" type="button">Copy to every floor level</button></div>
       <p class="small" style="margin:-4px 0 12px">One row per load area on the pad. Change the level with the pad’s <b>Level</b> menu.</p>
       <div id="bonesLoads"></div>
-    </div>
-    <div class="b-card" style="margin-top:20px" id="gravCard">
-      <div class="headrow"><h2>Gravity framing: best bay sizes</h2>
-        <button class="btn b-primary b-sm" id="gravRun" type="button">Find bay sizes</button></div>
-      <p class="small" style="margin:-4px 0 12px">Sends the outline, stories and each load area’s occupancy to the gravity optimizer, which tries candidate grids against the bay study and sizes the columns. Steel only for now; costs are placeholder rates.</p>
-      <div class="hz-grid">
-        <label class="f">Min bay (ft)<input id="gvMinBay" inputmode="decimal" value="20"></label>
-        <label class="f">Max bay (ft)<input id="gvMaxBay" inputmode="decimal" value="45"></label>
-        <label class="f">Min ceiling height (ft)<input id="gvCeil" inputmode="decimal" value="9"></label>
-        <label class="f">Plenum (in)<input id="gvPlenum" inputmode="decimal" value="18"></label>
-      </div>
-      <p class="small" id="gravMsg" style="margin:10px 0 0"></p>
-      <div id="gravOut"></div>
     </div>
     <dialog id="wallDlg" aria-labelledby="wallDlgH">
       <form method="dialog">
@@ -369,9 +384,44 @@ ul.plain{margin:6px 0 0;padding-left:18px;font-size:13.5px;color:var(--muted)}
           <p class="small" style="margin:0 0 12px">The same file as step 3, now with the chosen system under <code>bones.material</code>.</p>
           <button class="btn b-primary" id="sysSave" type="button" style="width:100%">Download file</button>
         </div>
+        <button class="btn black" id="toAna4" type="button">Go to the analysis</button>
         <button class="btn ghost" id="back4" type="button">Back to the drawing pad</button>
       </aside>
     </div>
+  </section>
+
+  <!-- STEP 5 -->
+  <section id="s5" hidden>
+    <h1>Analysis</h1>
+    <p class="lede">Gravity framing for steel, concrete and mass timber on this plan, side by side. For each one the optimizer tries candidate column grids against the bay study, sizes the columns, and keeps the best grid. Costs use placeholder unit rates.</p>
+    <div class="row">
+      <div class="b-card grow" style="flex-basis:620px">
+        <div class="headrow"><h2>Basis</h2><span class="small" id="anSrc"></span></div>
+        <div class="sys-basis" id="anBasis"></div>
+        <p class="small" style="margin:12px 0 0">Loads come from each load area’s occupancy on step 3; areas without one use the default occupancy (office). Base shear pairs each material with a lateral system from step 4: steel with braced frames, concrete with shear walls, and mass timber with a concrete core (the shear wall row).</p>
+      </div>
+      <aside class="side">
+        <div class="b-card">
+          <h2>Settings</h2>
+          <div class="grid2">
+            <label class="f">Min bay (ft)<input id="anMinBay" inputmode="decimal" value="20"></label>
+            <label class="f">Max bay (ft)<input id="anMaxBay" inputmode="decimal" value="45"></label>
+            <label class="f">Min ceiling height (ft)<input id="anCeil" inputmode="decimal" value="9"></label>
+            <label class="f">Plenum (in)<input id="anPlenum" inputmode="decimal" value="18"></label>
+          </div>
+          <p class="small" style="margin:12px 0 6px">Ranking weights, used to pick each material’s best grid:</p>
+          <div class="grid2" style="grid-template-columns:repeat(3,minmax(0,1fr))">
+            <label class="f">Cost<input id="anWc" inputmode="decimal" value="0.5"></label>
+            <label class="f">Depth<input id="anWd" inputmode="decimal" value="0.3"></label>
+            <label class="f">Carbon<input id="anWk" inputmode="decimal" value="0.2"></label>
+          </div>
+          <button class="btn b-primary" id="anRun" type="button" style="width:100%;margin-top:14px">Run the analysis</button>
+          <p class="small" id="anMsg" style="margin:8px 0 0" role="status" aria-live="polite"></p>
+        </div>
+        <button class="btn ghost" id="back5" type="button">Back to the drawing pad</button>
+      </aside>
+    </div>
+    <div id="anOut"></div>
   </section>
 </main>
 <!--PAD_JS-->
@@ -436,12 +486,13 @@ $("example").addEventListener("click", async () => {
 
 /* ---------- navigation ---------- */
 function go(n){
-  const open = {2: !!S.result, 3: !!S.padOpen, 4: !!S.sysOpen};
-  [1, 2, 3, 4].forEach(i => { $("s" + i).hidden = n !== i; $("nav" + i).setAttribute("aria-current", n === i ? "step" : "false"); });
+  const open = {2: !!S.result, 3: !!S.padOpen, 4: !!S.sysOpen, 5: !!S.anaOpen};
+  [1, 2, 3, 4, 5].forEach(i => { $("s" + i).hidden = n !== i; $("nav" + i).setAttribute("aria-current", n === i ? "step" : "false"); });
   $("nav1").className = "step" + (n >= 2 ? " done" : "");
-  [2, 3, 4].forEach(i => { $("nav" + i).disabled = !open[i]; $("nav" + i).className = "step" + (!open[i] ? " later" : n === i ? "" : " done"); });
+  [2, 3, 4, 5].forEach(i => { $("nav" + i).disabled = !open[i]; $("nav" + i).className = "step" + (!open[i] ? " later" : n === i ? "" : " done"); });
   if(n === 3 && window.BonesPad) requestAnimationFrame(() => window.BonesPad.fit());
   if(n === 4) sysRender();
+  if(n === 5) anRender();
   window.scrollTo(0, 0);
 }
 $("nav1").addEventListener("click", () => go(1));
@@ -452,6 +503,9 @@ $("back3").addEventListener("click", () => go(2));
 $("nav4").addEventListener("click", () => S.sysOpen && go(4));
 $("toSys").addEventListener("click", () => { S.sysOpen = true; go(4); });
 $("back4").addEventListener("click", () => go(3));
+$("nav5").addEventListener("click", () => S.anaOpen && go(5));
+["toAna3", "toAna4"].forEach(id => $(id).addEventListener("click", () => { S.anaOpen = true; go(5); }));
+$("back5").addEventListener("click", () => go(3));
 
 /* ---------- step 4: structural system (stand-in for module 4) ---------- */
 // R, Ω0, Cd, row and height limits (ft, by SDC; absent = not limited) are ASCE 7-22 Table 12.2-1.
@@ -609,32 +663,168 @@ function gravRow(s, label){
   return `<tr><th scope="row">${esc(label)}</th><td style="text-align:left">X: ${spans(s.grid.x_ft)}<br>Y: ${spans(s.grid.y_ft)}</td>
     <td>${cols}</td><td>${fmt(t.max_depth_in, 1)}</td><td>${fmt(s.quantities.steel_tons, 1)}</td><td>$${fmt(t.cost_per_sf, 2)}</td><td>${fmt(t.carbon_per_sf, 2)}</td></tr>`;
 }
-function renderGravity(res){
-  const out = res.output || {}, schemes = out.schemes || [];
-  if(!schemes.length){ $("gravOut").innerHTML = `<p class="small">No scheme came back. ${esc((res.notes || []).join(" "))}</p>`; return; }
-  let h = "";
-  schemes.forEach(s => {
-    const typ = {}; (s.bays || []).forEach(b => { const k = `${b.level}: ${fmt(b.span_x_ft, 2)}′ × ${fmt(b.span_y_ft, 2)}′, ${b.framing.beam}, girder ${b.framing.girder}, ${fmt(b.framing.depth_in, 1)} in`; typ[k] = (typ[k] || 0) + 1; });
-    h += `<h3 style="margin:16px 0 6px;font-size:15px">${esc(s.system.replace("_", " "))}</h3>
-      <div class="tbl"><table><thead><tr><th>Scheme</th><th style="text-align:left">Grid (bay spacing)</th><th>Columns</th><th>Max depth, in</th><th>Steel, tons</th><th>Cost, $/sf</th><th>kgCO₂e/sf</th></tr></thead>
-      <tbody>${gravRow(s, "Best")}${(s.alternates || []).map((a, i) => gravRow(a, "Alternate " + (i + 1))).join("")}</tbody></table></div>`;
-    const keys = Object.keys(typ);
-    if(keys.length) h += `<p class="small" style="margin:10px 0 4px">Bay framing, best scheme (count of bays):</p><ul class="plain">${keys.map(k => `<li>${esc(k)} (${typ[k]})</li>`).join("")}</ul>`;
-    if((s.warnings || []).length) h += `<details style="margin-top:8px"><summary class="small">${s.warnings.length} warning${s.warnings.length === 1 ? "" : "s"}</summary><ul class="plain">${s.warnings.map(w => `<li>${esc(w)}</li>`).join("")}</ul></details>`;
-  });
-  if((res.notes || []).length) h += `<p class="small" style="margin:12px 0 4px">Notes on what was sent:</p><ul class="plain">${res.notes.map(n => `<li>${esc(n)}</li>`).join("")}</ul>`;
-  $("gravOut").innerHTML = h;
+/* ---------- step 5: analysis (gravity schemes side by side) ---------- */
+const AN_SYSTEMS = ["steel", "concrete", "mass_timber"];
+const AN_NAMES = {steel: "Steel", concrete: "Concrete", mass_timber: "Mass timber"};
+// Step 4 row used for R and the height limit. Mass timber's lateral system is a concrete core (spec),
+// so it uses the RC shear wall row; the light-frame wood row's 65 ft / 5-story limits don't apply to it.
+const AN_LATERAL = {steel: "steel", concrete: "concrete", mass_timber: "concrete"};
+// rank_score = 0..1 score + penalties (config/systems.json "scoring"): 1000 per unframed bay,
+// 1 + 1 per inch for each bay over depth, so any over-depth candidate scores above 1
+const AN_UNFRAMED = 1000, AN_OVERDEPTH = 1;
+const modeOf = a => { const c = {}; a.forEach(k => { c[k] = (c[k] || 0) + 1; }); return Object.keys(c).sort((p, q) => c[q] - c[p])[0]; };
+function anMetrics(s, b){
+  const lv = s.levels || [], W = lv.reduce((t, l) => t + l.seismic_weight_kips, 0);
+  const row = SYSTEMS.find(x => x.key === AN_LATERAL[s.system]), lat = row ? sysCalc(row, b) : null;
+  const kind = ((s.warnings || [])[0] || "").match(/^[A-Za-z ]*system: (.+)$/);
+  const sizes = (s.columns || []).flatMap(c => (c.stack || []).map(x => x.size));
+  return {s, key: s.system, name: AN_NAMES[s.system] || s.system, kind: kind ? kind[1] : "",
+    cost_sf: s.totals.cost_per_sf, cost: s.totals.cost_usd, co2_sf: s.totals.carbon_per_sf, co2_t: s.totals.carbon_kgco2e / 1000,
+    depth: s.totals.max_depth_in, clear: lv.length ? Math.min(...lv.map(l => l.clear_height_ft)) : null,
+    W, lat, V: lat ? lat.Cs * W : null, cols: (s.columns || []).length, colSize: sizes.length ? modeOf(sizes) : "–",
+    bay: (s.bays || []).length ? modeOf(s.bays.map(x => `${fmt(x.span_x_ft, 1)}′ × ${fmt(x.span_y_ft, 1)}′`)) : "–",
+    steel: s.quantities.steel_tons, conc: s.quantities.concrete_cy, timber: s.quantities.timber_cf,
+    unframed: s.rank_score >= AN_UNFRAMED, overDepth: s.rank_score > AN_OVERDEPTH && s.rank_score < AN_UNFRAMED};
 }
-$("gravRun").addEventListener("click", async () => {
-  const b = $("gravRun"); b.disabled = true; $("gravMsg").textContent = "Trying candidate grids…"; $("gravOut").innerHTML = "";
+function anBest(M, key, hi){   // the single best scheme on one metric, or null when there is nothing to choose
+  const v = M.filter(m => m[key] != null && isFinite(m[key]));
+  if(v.length < 2) return null;
+  const pick = v.reduce((p, q) => (hi ? q[key] > p[key] : q[key] < p[key]) ? q : p);
+  return v.filter(m => m[key] === pick[key]).length > 1 ? null : pick;
+}
+function anBasisRender(){
+  const b = sysBasis(), stat = (l, v) => `<div class="b-stat"><div>${l}</div><div>${v}</div></div>`;
+  $("anBasis").innerHTML = stat("Floor area", fmt(b.A, 0) + " sf") + stat("Stories", b.n) + stat("Roof height h<sub>n</sub>", fmt(b.hn, 1) + " ft") +
+    stat("S<sub>DS</sub> / S<sub>D1</sub>", b.sds.toFixed(2) + " / " + b.sd1.toFixed(2)) + stat("SDC", b.sdc) + stat("I<sub>e</sub>, Risk Cat. " + esc(b.rc), b.ie.toFixed(2));
+  $("anSrc").innerHTML = b.has ? "Site hazards from step 3" : '<span class="b-warn">No site hazards yet: S<sub>DS</sub> 1.0 and S<sub>D1</sub> 0.6 assumed for base shear.</span>';
+  return b;
+}
+function anRender(){
+  if(!window.BonesPad) return;
+  const b = anBasisRender(), res = S.analysis;
+  if(!res){ $("anOut").innerHTML = `<div class="b-card" style="margin-top:20px"><p class="small" style="margin:0">Press <b>Run the analysis</b>. It takes from a few seconds to about a minute, depending on the plan size and the number of stories.</p></div>`; return; }
+  const schemes = ((res.output || {}).schemes || []).slice().sort((p, q) => AN_SYSTEMS.indexOf(p.system) - AN_SYSTEMS.indexOf(q.system));
+  if(!schemes.length){ $("anOut").innerHTML = `<div class="err" style="margin-top:20px">No scheme came back. ${esc((res.notes || []).join(" "))}</div>`; return; }
+  const M = schemes.map(s => anMetrics(s, b));
+  const stat = (l, v) => `<div class="b-stat"><div>${l}</div><div>${v}</div></div>`;
+  let h = "";
+
+  // headline verdicts
+  const verdict = (label, key, hi, val) => { const m = anBest(M, key, hi);
+    return `<div class="b-stat"><div>${label}</div><div>${m ? esc(m.name) : "–"}</div><small>${m ? val(m) : "No single winner"}</small></div>`; };
+  h += `<div class="an-verdicts">${verdict("Lowest cost", "cost_sf", false, m => "$" + fmt(m.cost_sf, 2) + "/sf, " + money(m.cost))}${
+    verdict("Lowest embodied carbon", "co2_sf", false, m => fmt(m.co2_sf, 1) + " kg CO₂e/sf")}${
+    verdict("Shallowest framing", "depth", false, m => fmt(m.depth, 1) + " in deepest bay")}${
+    verdict("Lightest building", "W", false, m => fmt(m.W, 0) + " k seismic weight")}</div>`;
+
+  // one card per material
+  const bCost = anBest(M, "cost_sf"), bCO2 = anBest(M, "co2_sf"), bDepth = anBest(M, "depth");
+  h += `<div class="sys-grid">${M.map(m => {
+    const badges = (m === bCost ? '<span class="badge ok">Lowest cost</span> ' : "") + (m === bCO2 ? '<span class="badge ok">Lowest carbon</span> ' : "") +
+      (m === bDepth ? '<span class="badge ok">Shallowest</span> ' : "") + (m.unframed ? '<span class="badge">Unframed bays</span>' : m.overDepth ? '<span class="badge">Over depth</span>' : "");
+    const latTxt = m.lat ? `${m.key === "mass_timber" ? "concrete core" : esc(m.lat.short.toLowerCase()) + " lateral"}, R = ${m.lat.R}` : "no lateral row";
+    return `<div class="sys-card">
+      <div class="sys-top"><span class="sys-mat">${esc(m.name)}</span><span>${badges}</span></div>
+      <h3>${esc(m.kind || "Best grid " + spans(m.s.grid.x_ft) + " by " + spans(m.s.grid.y_ft))}</h3>
+      <div class="sys-big">${stat("Cost", "$" + fmt(m.cost_sf, 2) + "/sf")}${stat("Carbon", fmt(m.co2_sf, 1) + " kg/sf")}</div>
+      <dl class="sys-dl">
+        <div><dt>Grid, X</dt><dd>${spans(m.s.grid.x_ft)}</dd></div>
+        <div><dt>Grid, Y</dt><dd>${spans(m.s.grid.y_ft)}</dd></div>
+        <div><dt>Typical bay</dt><dd>${m.bay}</dd></div>
+        <div><dt>Deepest framing</dt><dd>${fmt(m.depth, 1)} in</dd></div>
+        <div><dt>Least clear height</dt><dd>${m.clear == null ? "–" : fmt(m.clear, 2) + " ft"}</dd></div>
+        <div><dt>Columns</dt><dd>${m.cols}, mostly ${esc(m.colSize)}</dd></div>
+        <div><dt>Structure cost</dt><dd>${money(m.cost)}</dd></div>
+        <div><dt>Embodied carbon</dt><dd>${fmt(m.co2_t, 0)} t CO₂e</dd></div>
+        <div><dt>Seismic weight W</dt><dd>${fmt(m.W, 0)} k</dd></div>
+        <div><dt>Base shear V <span class="muted">(${latTxt})</span></dt><dd>${m.V == null ? "–" : fmt(m.V, 0) + " k"}</dd></div>
+      </dl>
+      ${m.unframed ? '<p class="small b-bad" style="margin:0">Some bays could not be framed from the bay study; see the warnings below.</p>' : ""}
+      ${m.overDepth ? '<p class="small b-warn" style="margin:0">Some bays are deeper than the ceiling allows; see the warnings below.</p>' : ""}
+      ${m.lat && !m.lat.allowed ? `<p class="small b-bad" style="margin:0">Lateral: ${esc(m.lat.why.join(" "))}</p>` : ""}
+    </div>`; }).join("")}</div>`;
+
+  // metric-by-metric comparison: one row per measure, one column per material
+  const rows = [
+    ["Cost and carbon"],
+    ["Structure cost, $/sf", "cost_sf", "low", v => "$" + fmt(v, 2)],
+    ["Structure cost, total", "cost", "low", v => money(v)],
+    ["Embodied carbon, kg CO₂e/sf", "co2_sf", "low", v => fmt(v, 1)],
+    ["Embodied carbon, total t", "co2_t", "low", v => fmt(v, 0)],
+    ["Framing"],
+    ["Typical bay", "bay", null, v => esc(v)],
+    ["Deepest framing, in", "depth", "low", v => fmt(v, 1)],
+    ["Least clear height, ft", "clear", "high", v => fmt(v, 2)],
+    ["Columns", "cols", "low", v => fmt(v, 0)],
+    ["Most common column", "colSize", null, v => esc(v)],
+    ["Seismic"],
+    ["Seismic weight W, k", "W", "low", v => fmt(v, 0)],
+    ["Base shear V, k", "V", "low", v => fmt(v, 0)],
+    ["Quantities"],
+    ["Steel, tons", "steel", null, v => fmt(v, 1)],
+    ["Concrete, cy", "conc", null, v => fmt(v, 0)],
+    ["Timber, cf", "timber", null, v => fmt(v, 0)],
+  ];
+  const body = rows.map(([label, key, dir, f]) => {
+    if(!key) return `<tr class="sec"><th colspan="${M.length + 1}" scope="colgroup">${label}</th></tr>`;
+    const nums = M.map(m => m[key]).filter(v => typeof v === "number" && isFinite(v)), max = Math.max(0, ...nums);
+    const best = dir ? anBest(M, key, dir === "high") : null;
+    return `<tr><th scope="row">${label}</th>${M.map(m => { const v = m[key], num = typeof v === "number" && isFinite(v);
+      const bar = num && max > 0 ? `<span class="hb" title="${esc(m.name)}: ${esc(label)} ${f(v)}"><i style="width:${(v / max * 100).toFixed(1)}%"></i></span>` : "";
+      return `<td class="${m === best ? "best" : ""}"><div class="v"><b>${v == null ? "–" : f(v)}</b>${m === best ? `<span class="tag">${dir === "high" ? "Highest" : "Lowest"}</span>` : ""}</div>${bar}</td>`; }).join("")}</tr>`;
+  }).join("");
+  h += `<div class="an-head"><h2>Side by side</h2><span class="small">Bars are relative to the largest value in each row. Green tags mark the best value where lower (or higher) is better.</span></div>
+    <div class="b-card cmp"><table><thead><tr><th scope="col">Measure</th>${M.map(m => `<th scope="col">${esc(m.name)}<span>${esc(m.kind || "best grid")}</span></th>`).join("")}</tr></thead><tbody>${body}</tbody></table></div>`;
+
+  // by level
+  const levels = (M[0].s.levels || []).map(l => l.level);
+  h += `<div class="an-head"><h2>By level</h2><span class="small">Seismic weight W (k) and clear height below the framing (ft)</span></div>
+    <div class="b-card tbl"><table><thead><tr><th>Level</th>${M.map(m => `<th>${esc(m.name)}, W</th><th>${esc(m.name)}, clear</th>`).join("")}</tr></thead><tbody>${
+      levels.map(name => `<tr><th scope="row">${esc(name)}</th>${M.map(m => { const l = (m.s.levels || []).find(x => x.level === name);
+        return `<td>${l ? fmt(l.seismic_weight_kips, 0) : "–"}</td><td>${l ? fmt(l.clear_height_ft, 2) : "–"}</td>`; }).join("")}</tr>`).join("")}</tbody></table></div>`;
+
+  // details per material: alternates, bay framing, warnings
+  h += `<div class="an-head"><h2>Details</h2><span class="small">The best grid and up to three runner-up grids for each material</span></div>`;
+  M.forEach(m => {
+    const s = m.s, typ = {};
+    (s.bays || []).forEach(x => { const k = `${x.level}: ${fmt(x.span_x_ft, 2)}′ × ${fmt(x.span_y_ft, 2)}′, ${x.framing.beam}${x.framing.girder ? ", girder " + x.framing.girder : ""}, ${fmt(x.framing.depth_in, 1)} in`; typ[k] = (typ[k] || 0) + 1; });
+    const keys = Object.keys(typ);
+    h += `<details class="b-card an-detail"><summary>${esc(m.name)}${m.kind ? ": " + esc(m.kind) : ""} <span class="small">· ${(s.alternates || []).length} alternate${(s.alternates || []).length === 1 ? "" : "s"} · ${(s.warnings || []).length} warning${(s.warnings || []).length === 1 ? "" : "s"}</span></summary>
+      <div class="tbl"><table><thead><tr><th>Scheme</th><th style="text-align:left">Grid (bay spacing)</th><th>Columns</th><th>Max depth, in</th><th>Steel, tons</th><th>Cost, $/sf</th><th>kgCO₂e/sf</th></tr></thead>
+      <tbody>${gravRow(s, "Best")}${(s.alternates || []).map((a, i) => gravRow(a, "Alternate " + (i + 1))).join("")}</tbody></table></div>
+      ${keys.length ? `<p class="small" style="margin:12px 0 4px">Bay framing in the best grid (number of bays):</p><ul class="plain">${keys.map(k => `<li>${esc(k)} (${typ[k]})</li>`).join("")}</ul>` : ""}
+      ${(s.warnings || []).length ? `<p class="small" style="margin:12px 0 4px">Warnings:</p><ul class="plain">${s.warnings.map(w => `<li>${esc(w)}</li>`).join("")}</ul>` : ""}
+    </details>`;
+  });
+  if((res.notes || []).length) h += `<div class="b-card" style="margin-top:12px"><h2>What was sent</h2><ul class="plain">${res.notes.map(n => `<li>${esc(n)}</li>`).join("")}</ul></div>`;
+  h += `<div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap"><button class="btn ghost b-sm" id="anSave" type="button">Download results (JSON)</button></div>`;
+  $("anOut").innerHTML = h;
+}
+$("anRun").addEventListener("click", async () => {
+  const b = $("anRun"); b.disabled = true;
+  $("anMsg").textContent = "Trying candidate grids for steel, concrete and mass timber…";
   const n = id => { const v = parseFloat($(id).value); return isFinite(v) ? v : null; };
-  const constraints = {min_bay_ft: n("gvMinBay"), max_bay_ft: n("gvMaxBay"), min_ceiling_height_ft: n("gvCeil"), plenum_allowance_in: n("gvPlenum")};
+  const constraints = {min_bay_ft: n("anMinBay"), max_bay_ft: n("anMaxBay"), min_ceiling_height_ft: n("anCeil"), plenum_allowance_in: n("anPlenum")};
   Object.keys(constraints).forEach(k => { if(constraints[k] === null) delete constraints[k]; });
+  const w = {cost: n("anWc"), depth: n("anWd"), carbon: n("anWk")};
+  const options = {constraints, systems: AN_SYSTEMS};
+  if(Object.values(w).every(v => v !== null && v >= 0)) options.objective_weights = w;
   try{
-    const res = await post("/api/gravity", {state: window.BonesPad.state(), options: {constraints}});
-    $("gravMsg").textContent = ""; renderGravity(res);
-  }catch(e){ $("gravMsg").textContent = e.message; }
+    S.analysis = await post("/api/gravity", {state: window.BonesPad.state(), options});
+    $("anMsg").textContent = "Done at " + new Date().toLocaleTimeString([], {hour: "numeric", minute: "2-digit"}) + ". Run it again after changing the plan or loads.";
+    anRender();
+  }catch(e){ $("anMsg").textContent = e.message; }
   finally{ b.disabled = false; }
+});
+$("anOut").addEventListener("click", e => {
+  if(!e.target.closest("#anSave") || !S.analysis) return;
+  const b = sysBasis(), lateral = {};
+  ((S.analysis.output || {}).schemes || []).forEach(s => { const m = anMetrics(s, b);
+    lateral[s.system] = m.lat ? {system: m.lat.name, R: m.lat.R, Ta_s: m.lat.Ta, Cs: m.lat.Cs, W_kips: m.W, V_kips: m.V, permitted: m.lat.allowed, placeholder_pairing: true} : null; });
+  const blob = new Blob([JSON.stringify(Object.assign({basis: b, lateral}, S.analysis), null, 2)], {type: "application/json"});
+  const a = document.createElement("a"), name = (($("projName").textContent || "bones").trim().replace(/[^\w.-]+/g, "-") || "bones");
+  a.href = URL.createObjectURL(blob); a.download = name + "-analysis.json"; a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 });
 $("toPad").addEventListener("click", () => {
   if(!S.result || !window.BonesPad) return;

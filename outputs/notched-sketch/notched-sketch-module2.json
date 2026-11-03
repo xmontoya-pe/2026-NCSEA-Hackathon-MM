@@ -1,10 +1,22 @@
 {
   "project": "notched-sketch",
-  "n": 1,
+  "n": 3,
   "levels": [
     {
       "name": "",
       "h": 12.0,
+      "psf": 150,
+      "la": false
+    },
+    {
+      "name": "",
+      "h": 24.0,
+      "psf": 150,
+      "la": false
+    },
+    {
+      "name": "",
+      "h": 36.0,
       "psf": 150,
       "la": false
     }
@@ -47,8 +59,8 @@
         1542,
         1026
       ],
-      "read": "2026-10-27",
-      "model": "read by hand in chat (example)"
+      "read": "2026-10-28",
+      "model": "claude-sonnet-5-5"
     },
     "area_sf": 80000.0,
     "grids": {
@@ -57,7 +69,12 @@
     },
     "columns": [],
     "cores": [],
-    "warnings": [],
+    "warnings": [
+      "The plan is an L-shape: a rectangle 500' x 200' with a 200' x 100' notch cut from the top-right corner.",
+      "The left vertical dimension is handwritten and could be read as 100' or 200'. I read it as 200' because it matches the two 100' dimensions on the right (100 + 100) and the overall height.",
+      "The hand-drawn outline lines do not quite meet at the corners, so the outline corners are estimated intersections.",
+      "The top-right 200' dimension measures from the notch's inner vertical edge to the right edge. Its p1/p2 are placed at y=458, the level of the right edge's top corner, because the notch is open at the top."
+    ],
     "snow": null
   }
 }
