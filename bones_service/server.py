@@ -4,7 +4,7 @@ Run:   python -m bones_service.server            (then open http://127.0.0.1:876
        python -m bones_service.server --port 9000 --out C:\\path\\to\\outputs
 
 Only the Python standard library is added on top of Sketch Reader's own requirements.
-The Anthropic API key is read on the server, from the .env file next to run_bones.bat or from the
+The Anthropic API key is read on the server, from the .env file in the repo root or from the
 ANTHROPIC_API_KEY environment variable, and never reaches the browser.
 
 Endpoints (JSON in, JSON out):
@@ -270,7 +270,7 @@ def main(argv=None):
     srv = ThreadingHTTPServer((a.host, a.port), Handler)
     print("Bones sketch service on http://%s:%d  (outputs: %s)" % (a.host, a.port, OUT))
     if not os.environ.get("ANTHROPIC_API_KEY"):
-        print("No API key yet: paste it into the .env file next to run_bones.bat, then restart.")
+        print("No API key yet: paste it into the .env file in the repo root, then restart.")
         print("'Try the example sketch' works without one.")
     try:
         srv.serve_forever()

@@ -7,8 +7,8 @@ The Bones web UI (steps 1 and 2) in front of Sketch Reader. Sketch Reader's code
 ## Run it
 
 1. Set up Sketch Reader as in its README: Python 3.10+, then `pip install -r requirements.txt`. The service needs nothing else.
-2. **API key:** open `.env` (next to `run_bones.bat`) in Notepad, replace `sk-ant-your-key-here` with your key from https://console.anthropic.com, and save. A key already set as the `ANTHROPIC_API_KEY` environment variable also works and takes priority. Keep `.env` private; `.gitignore` already leaves it out of git.
-3. Double-click `run_bones.bat`, or run `python -m bones_service.server`. It opens http://127.0.0.1:8765.
+2. **API key:** open `.env` (in the repo root) in a text editor, replace `sk-ant-your-key-here` with your key from https://console.anthropic.com, and save. A key already set as the `ANTHROPIC_API_KEY` environment variable also works and takes priority. Keep `.env` private; `.gitignore` already leaves it out of git.
+3. Run `python -m bones_service.server` and open http://127.0.0.1:8765.
 4. Without an API key you can still press **Try the example sketch**, which uses the saved reading in `examples`.
 
 Options: `--port 9000`, `--out C:\path\to\outputs`, `--host 0.0.0.0` to let colleagues on your network use it. The API key never leaves the server.
@@ -20,7 +20,7 @@ Options: `--port 9000`, `--out C:\path\to\outputs`, `--host 0.0.0.0` to let coll
 1. `pip install -r requirements.txt` (adds `fastapi`, `uvicorn`, `httpx`).
 2. If you edited anything in `static/src/`, rebuild the page: `python -m bones_service.build_ui`.
 3. `python -m bones_service.api` (same `--port`, `--host`, `--out` options), or `uvicorn bones_service.api:app --port 8765 --reload` while developing. Open http://127.0.0.1:8765; the API docs are at `/docs`.
-4. On step 3, pick an **Occupancy** for each load area on every floor (the roof is always roof Lr), then press **Find bay sizes** in the Gravity framing card. It shows the best steel grid, three alternates, the bay framing and the warnings.
+4. On step 3, pick an **Occupancy** for each load area on every floor (the roof is always roof Lr), then **Go to the analysis** (step 5) and press **Run the analysis**. It compares the best steel, concrete and mass timber grids side by side (see step 5 below).
 
 | Method | Path | Body | Does |
 |---|---|---|---|
@@ -61,7 +61,14 @@ What is sent, and what isn't, is listed in `docs/ASSUMPTIONS.md` (INT-1 to INT-6
    - Self-weight, cost, schedule and embodied carbon are placeholder values (`SYSTEMS` in `app.html`).
    - A system over its height limit, or wood over 5 stories, is marked not permitted.
    - The chosen system is saved under `bones.material` (with `placeholder: true`) and goes out with **Download file**.
-5. All Sketch Reader files (summary, plan JSON, CSV, DXF, SVG, overlay, reading) are still written to `outputs/<name>/` and linked on step 2.
+5. **Step 5, analysis** (needs `python -m bones_service.api`): **Go to the analysis** on step 3 or 4. Settings: min/max bay, minimum ceiling height, plenum, and the cost / depth / carbon weights that pick each material's best grid. **Run the analysis** posts the pad state to `POST /api/gravity` with `systems: [steel, concrete, mass_timber]`, then shows:
+   - headline winners: lowest cost, lowest carbon, shallowest framing, lightest building (seismic weight);
+   - a card per material: grid, typical bay, deepest framing, least clear height, columns and the most common size, cost, carbon, seismic weight W and base shear V. Badges flag unframed bays or bays over depth (from the scheme's `rank_score` penalties);
+   - a side-by-side table, one row per measure, with bars relative to the row's largest value and the best value tagged;
+   - seismic weight and clear height by level, then the alternates, bay framing and warnings per material.
+   - Base shear V = C<sub>s</sub> × W, with W from the gravity optimizer and C<sub>s</sub> from step 4's lateral row for that material (steel SCBF; RC shear walls for concrete; and for mass timber, a concrete core using the RC shear wall row). The site hazards come from step 3.
+   - **Download results (JSON)** saves the gravity input and output, the basis and the lateral numbers. The results are not saved in the project file; run it again after changing the plan or loads.
+6. All Sketch Reader files (summary, plan JSON, CSV, DXF, SVG, overlay, reading) are still written to `outputs/<name>/` and linked on step 2.
 
 ## The Module 2 file (`bones_service/convert.py`)
 
