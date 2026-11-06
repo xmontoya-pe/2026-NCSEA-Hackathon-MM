@@ -1,0 +1,19 @@
+{
+  "_meta": {
+    "status": "PLACEHOLDER. Rough durations compiled from general industry knowledge, without a scheduler's input. Verify with a contractor before showing a schedule as more than a relative comparison.",
+    "basis": "Weeks to top out = foundations + any wait for the structure beyond the foundation duration (procurement lead time) + floors x floor cycle. Durations at a 20,000 sf floor plate; foundations scale with sqrt(plate / reference), the floor cycle with (plate / reference) ^ cycle_scale_exponent.",
+    "used_by": "bones_service/dashboard.py schedule_weeks (docs/ASSUMPTIONS.md DSH-5)"
+  },
+  "reference_plate_sf": 20000,
+  "cycle_scale_exponent": 0.6,
+  "foundations": {
+    "base_weeks": 4.5,
+    "weeks_per_100_psf": 3.0,
+    "note": "Heavier buildings need bigger foundations: weeks = base + per_100_psf x seismic weight (psf) / 100, at the reference plate."
+  },
+  "systems": {
+    "concrete": {"floor_cycle_weeks": 2.0, "lead_time_weeks": 2, "note": "Cast in place, one floor at a time; little procurement lead."},
+    "steel": {"floor_cycle_weeks": 1.0, "lead_time_weeks": 14, "note": "Mill order, shop drawings and fabrication before erection; deck and slab follow the frame."},
+    "mass_timber": {"floor_cycle_weeks": 0.8, "lead_time_weeks": 22, "note": "Panels and glulam are prefabricated and go up quickly, but supplier lead times are long; the concrete core is assumed to keep pace."}
+  }
+}

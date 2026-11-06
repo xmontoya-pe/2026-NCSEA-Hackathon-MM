@@ -11,6 +11,11 @@ own) by calling server.py's functions, and adds:
   POST /api/gravity       {state: BonesPad.state(), options?: {constraints?, objective_weights?, systems?}}
                           -> {input, notes, output}: the gravity input built from the pad,
                           notes on the translation, and gravity.run's output (spec 3.1).
+  GET  /dashboard         step 5, the client dashboard page (static/dashboard.html)
+  POST /api/dashboard     {state: BonesPad.state(), options?} or {example: true}
+                          -> concrete, steel and mass timber: gravity + lateral (ELF) results,
+                          cost, schedule, carbon, floor-to-floor and default fit scores
+                          (bones_service/dashboard.py).
 
 Errors come back as {"error": "plain message"}, the shape the UI's post() reads.
 """
@@ -30,7 +35,7 @@ from pydantic import ValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from bones_service import server as srv   # loads .env and puts the repo root on sys.path
-from bones_service import gravity_bridge
+from bones_service import dashboard, gravity_bridge
 
 app = FastAPI(title="Bones", description="Sketch to plan, site hazards and gravity schemes.")
 
@@ -100,7 +105,7 @@ def health():
     return _json({"ok": True, "api_key": bool(os.environ.get("ANTHROPIC_API_KEY")),
                   "asce_key": bool(srv.HZ.asce_token()),
                   "example": os.path.isfile(srv.EXAMPLE_READING), "models": srv.MODELS,
-                  "gravity": True})
+                  "gravity": True, "dashboard": True})
 
 
 # ---------------------------------------------------------------- sketch reading (server.py logic)
@@ -133,8 +138,8 @@ def rebuild(req: dict = Body(default={})):
     return _json(srv.process(srv.find_image(folder, job), raw, job, levels, height, snow))
 
 
-@app.post("/api/example")
-def example(req: dict = Body(default={})):
+def _example(req: dict) -> dict:
+    """The bundled example sketch with its saved reading (no API key needed)."""
     levels, height, snow = _stories(req)
     job, folder = srv.job_dir("notched-sketch")
     os.makedirs(folder, exist_ok=True)
@@ -142,7 +147,12 @@ def example(req: dict = Body(default={})):
     shutil.copyfile(srv.EXAMPLE_IMG, img)
     with open(srv.EXAMPLE_READING) as f:
         raw = json.load(f)
-    return _json(srv.process(img, raw, job, levels, height, snow))
+    return srv.process(img, raw, job, levels, height, snow)
+
+
+@app.post("/api/example")
+def example(req: dict = Body(default={})):
+    return _json(_example(req))
 
 
 # ---------------------------------------------------------------- site hazards (server.py logic)
@@ -171,6 +181,23 @@ def run_gravity(req: dict = Body(default={})):
     if not isinstance(state, dict):
         raise ValueError("Open a plan in the drawing pad first.")
     return _json(gravity_bridge.run(state, req.get("options") or {}))
+
+
+# ---------------------------------------------------------------- step 5: client dashboard
+@app.get("/dashboard", include_in_schema=False)
+def dashboard_page():
+    return FileResponse(os.path.join(srv.STATIC, "dashboard.html"), media_type="text/html; charset=utf-8")
+
+
+@app.post("/api/dashboard")
+def dashboard_data(req: dict = Body(default={})):
+    if req.get("example"):
+        state = _example(req)["module2"]   # the example plan: no occupancies or hazard, so defaults apply
+    else:
+        state = req.get("state")
+        if not isinstance(state, dict):
+            raise ValueError("Open the plan in the Bones drawing pad first, or use the example building.")
+    return _json(dashboard.build(state, req.get("options") or {}))
 
 
 def main(argv=None):
